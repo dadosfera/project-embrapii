@@ -1,0 +1,46 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: paraphrase-backend
+    ports:
+      - "8001:8000"
+    environment:
+      - DATABASE_URL=sqlite:////data/paraphrase_benchmark.db
+      - TRANSFORMERS_CACHE=/app/.cache
+    volumes:
+      - backend-data:/data
+      - model-cache:/app/.cache
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s  # Tempo para carregar modelos
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: paraphrase-frontend
+    ports:
+      - "3000:3000"
+      - "8000:8000"
+    environment:
+      - API_URL=http://backend:8000
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  backend-data:
+    name: paraphrase-backend-data
+  model-cache:
+    name: paraphrase-model-cache
+
