@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 
 from app.database import init_db
 from app.routes.evaluate import router as evaluate_router
+from app.routes.pipeline import router as pipeline_router
 
 
 # Variável global para o evaluator (carregado no startup)
@@ -27,6 +28,16 @@ async def lifespan(app: FastAPI):
     from app.evaluator import ParaphraseEvaluator
     evaluator = ParaphraseEvaluator()
     print("✅ Modelos carregados com sucesso!")
+    
+    # Inicializa LLM generator se a API key estiver configurada
+    import os
+    if os.getenv("OPENAI_API_KEY"):
+        print("🤖 Inicializando gerador LLM...")
+        from app.llm_client import init_llm_generator
+        init_llm_generator()
+        print("✅ Gerador LLM inicializado!")
+    else:
+        print("⚠️ OPENAI_API_KEY não configurada - Pipeline de geração desabilitado")
     
     yield
     
@@ -52,6 +63,7 @@ app.add_middleware(
 
 # Registra rotas
 app.include_router(evaluate_router, prefix="/api", tags=["Evaluation"])
+app.include_router(pipeline_router, prefix="/api/pipeline", tags=["Pipeline"])
 
 
 def get_evaluator():

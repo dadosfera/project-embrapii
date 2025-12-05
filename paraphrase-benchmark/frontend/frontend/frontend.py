@@ -1,7 +1,8 @@
 import reflex as rx
-from frontend.state import State
+from frontend.state import State, PipelineState
 from frontend.components.evaluation_form import evaluation_form
 from frontend.components.history_table import history_table
+from frontend.components.pipeline.pipeline_wizard import pipeline_wizard
 
 
 # Cores do Beast/Dadosfera Design System
@@ -86,6 +87,21 @@ def navbar() -> rx.Component:
             ),
             rx.spacer(),
             rx.hstack(
+                rx.button(
+                    rx.icon("workflow", size=16),
+                    "Pipeline",
+                    on_click=State.go_to_pipeline,
+                    variant=rx.cond(State.current_page == "pipeline", "solid", "ghost"),
+                    style={
+                        "background": rx.cond(
+                            State.current_page == "pipeline",
+                            f"linear-gradient(135deg, {COLORS['primary_500']} 0%, {COLORS['secondary_500']} 100%)",
+                            "transparent"
+                        ),
+                        "fontFamily": "'Quicksand', sans-serif",
+                        "fontWeight": "600",
+                    }
+                ),
                 rx.button(
                     rx.icon("file-text", size=16),
                     "Avaliar",
@@ -188,10 +204,12 @@ def index() -> rx.Component:
     return rx.box(
         navbar(),
         rx.box(
-            rx.cond(
-                State.current_page == "evaluate",
-                evaluation_form(),
-                history_table(),
+            rx.match(
+                State.current_page,
+                ("pipeline", pipeline_wizard()),
+                ("evaluate", evaluation_form()),
+                ("history", history_table()),
+                evaluation_form()  # Default
             ),
             max_width="1200px",
             margin="0 auto",
