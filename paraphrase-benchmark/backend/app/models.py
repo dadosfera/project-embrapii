@@ -1,8 +1,33 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
 from app.database import Base
+
+
+class PipelineSession(Base):
+    """Modelo para armazenar sessões do pipeline de geração."""
+    
+    __tablename__ = "pipeline_sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    current_step = Column(Integer, default=1)  # 1-6
+    
+    # Schema do banco de dados (DDL)
+    schema = Column(Text, nullable=False)
+    
+    # Dados de cada etapa em JSON
+    questions_data = Column(JSON, default=list)  # Lista de QuestionItem
+    sql_pairs_data = Column(JSON, default=list)  # Lista de SQLPairItem
+    paraphrases_data = Column(JSON, default=list)  # Lista de ParaphraseItem
+    
+    # Métricas finais (após avaliação)
+    evaluation_id = Column(Integer, ForeignKey("evaluations.id"), nullable=True)
+    
+    # Relacionamento com a avaliação
+    evaluation = relationship("Evaluation", backref="pipeline_session")
 
 
 class Evaluation(Base):
