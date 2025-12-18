@@ -15,6 +15,7 @@ import numpy as np
 from bs4 import BeautifulSoup as soup
 from urllib.parse import urljoin
 from datetime import datetime
+from collections import Counter
 
 from sqlalchemy import create_engine, text, inspect
 from sqlalchemy.types import Integer, String, Date, DateTime, Numeric, Float
@@ -24,7 +25,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 warnings.filterwarnings('ignore')
 
 # ==============================================================================
-# CONFIGURAÇÃO DE CONEXÃO COM O BANCO POSTGRESQL
+# CONFIGURAÇÃO DE CONEXÃO
 # ==============================================================================
 DB_CONFIG = {
     "user": "datalake_user",
@@ -36,148 +37,253 @@ DB_CONFIG = {
 DATABASE_URL = f"postgresql+psycopg2://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['dbname']}"
 
 # ==============================================================================
-# CONFIGURAÇÃO DE SCHEMA E MAPPING
+# CONFIGURAÇÕES DE SCHEMA (LEITOS, BPS, BNAFAR)
 # ==============================================================================
 
 config_leitos = {
     "name": "ETL_Leitos_Sus",
-    "source": { "path": "DYNAMIC", "format": "csv"},
+    "source": {"path": "DYNAMIC", "format": "csv"},
     "clean_numbers": ["cnes", "co_cep", "co_ibge"],
     "dimensions": [
         {
-            "target_table": "Endereco", "id_col": "Endereco_ID",
-            "keys": ["Nivel_Detalhe", "Logradouro", "Numero_do_Logradouro", "CEP"],
+            "target_table": "endereco", "id_col": "endereco_id",
+            "keys": ["logradouro", "numero_do_logradouro", "cep", "municipio", "unidade_federativa"],
             "mapping": {
-                "LIT_NIVEL_DETALHE_COMPLETO": "Nivel_Detalhe",
-                "regiao": "Regiao_do_Brasil", "uf": "Unidade_Federativa", "co_ibge": "Codigo_do_IBGE",
-                "municipio": "Municipio", "no_bairro": "Bairro", "no_logradouro": "Logradouro",
-                "nu_endereco": "Numero_do_Logradouro", "no_complemento": "Complemento", "co_cep": "CEP"
+                "regiao": "regiao_do_brasil", 
+                "uf": "unidade_federativa", 
+                "co_ibge": "codigo_do_ibge",
+                "municipio": "municipio", 
+                "no_bairro": "bairro", 
+                "no_logradouro": "logradouro",
+                "nu_endereco": "numero_do_logradouro", 
+                "no_complemento": "complemento", 
+                "co_cep": "cep"
             }
         },
         {
-            "target_table": "Instituicao", "id_col": "Instituicao_ID", "keys": ["Codigo_CNES"],
+            "target_table": "instituicao", "id_col": "instituicao_id", "keys": ["codigo_cnes"],
             "mapping": {
-                "cnes": "Codigo_CNES", "nome_estabelecimento": "Nome_Instituicao", "razao_social": "Razao_Social",
-                "tp_gestao": "Tipo_de_Gestao", "co_tipo_unidade": "Codigo_do_Tipo_da_Unidade", "ds_tipo_unidade": "Descricao_do_Tipo_da_Unidade",
-                "natureza_juridica": "Codigo_da_Natureza_Juridica", "desc_natureza_juridica": "Descricao_da_Natureza_Juridica",
-                "motivo_desabilitacao": "Motivo_da_Desabilitacao", "no_email": "Email", "nu_telefone": "Telefone",
-                "LIT_NIVEL_DETALHE_COMPLETO": "Nivel_Detalhe", "no_logradouro": "Logradouro", "nu_endereco": "Numero_do_Logradouro", "co_cep": "CEP"
+                "cnes": "codigo_cnes", 
+                "nome_estabelecimento": "nome_instituicao", 
+                "razao_social": "razao_social",
+                "tp_gestao": "tipo_de_gestao", 
+                "co_tipo_unidade": "codigo_do_tipo_da_unidade", 
+                "ds_tipo_unidade": "descricao_do_tipo_da_unidade",
+                "natureza_juridica": "codigo_da_natureza_juridica", 
+                "desc_natureza_juridica": "descricao_da_natureza_juridica",
+                "motivo_desabilitacao": "motivo_da_desabilitacao", 
+                "no_email": "email", 
+                "nu_telefone": "telefone"
             },
-            "lookups": { "Endereco": {"join_keys": ["Nivel_Detalhe", "Logradouro", "Numero_do_Logradouro", "CEP"], "ref_pk": "Endereco_ID", "target_fk": "Endereco_ID"} }
+            "lookup_sources": {
+                "no_logradouro": "logradouro", 
+                "nu_endereco": "numero_do_logradouro", 
+                "co_cep": "cep",
+                "municipio": "municipio", 
+                "uf": "unidade_federativa"
+            },
+            "lookups": { 
+                "endereco": {
+                    "join_keys": ["logradouro", "numero_do_logradouro", "cep", "municipio", "unidade_federativa"], 
+                    "ref_pk": "endereco_id", 
+                    "target_id_col": "endereco_id"
+                } 
+            }
         }
     ],
     "fact": {
-        "target_table": "Leitos", "id_col": "Leitos_ID",
-        "lookups": { "Instituicao": {"target_id_col": "Instituicao_ID", "pk_dim": "Instituicao_ID"} },
+        "target_table": "leitos", "id_col": "leitos_id",
+        "lookups": { 
+            "instituicao": {
+                "target_id_col": "instituicao_id", 
+                "pk_dim": "instituicao_id",
+                "join_keys": {"cnes": "codigo_cnes"} 
+            } 
+        },
         "mapping": {
-            "comp": ("Data_de_Competencia", "date", "yyyyMM"),
-            "cnes": "Codigo_CNES",
-            "leitos_existentes": ("Quantidade_Leitos_Gerais", "int"),
-            "leitos_sus": ("Quantidade_Leitos_SUS", "int"),
-            "uti_total_exist": ("Quantidade_Leitos_UTI", "int"),
-            "uti_total_sus": ("Quantidade_Leitos_UTI_SUS", "int")
+            "comp": ("data_de_competencia", "date"),
+            "leitos_existentes": ("quantidade_leitos_gerais", "int"),
+            "leitos_sus": ("quantidade_leitos_sus", "int"),
+            "uti_total_exist": ("quantidade_leitos_uti", "int"),
+            "uti_total_sus": ("quantidade_leitos_uti_sus", "int"),
+            "uti_adulto_exist": ("quantidade_leitos_uti_adulto", "int"),
+            "uti_adulto_sus": ("quantidade_leitos_uti_sus_adulto", "int"),
+            "uti_pediatrico_exist": ("quantidade_leitos_uti_pediatrico", "int"),
+            "uti_pediatrico_sus": ("quantidade_leitos_uti_sus_pediatrico", "int"),
+            "uti_neonatal_exist": ("quantidade_leitos_uti_neonatal", "int"),
+            "uti_neonatal_sus": ("quantidade_leitos_uti_sus_neonatal", "int"),
+            "uti_queimado_exist": ("quantidade_leitos_uti_queimado", "int"),
+            "uti_queimado_sus": ("quantidade_leitos_uti_sus_queimado", "int"),
+            "uti_coronariana_exist": ("quantidade_leitos_uti_coronariana", "int"),
+            "uti_coronariana_sus": ("quantidade_leitos_uti_sus_coronariana", "int")
         }
     }
 }
 
 config_bps = {
     "name": "ETL_BPS_Compras",
-    "source": { "path": "DYNAMIC", "format": "csv"},
+    "source": {"path": "DYNAMIC", "format": "csv"},
     "clean_numbers": ["cnpj_instituicao", "cnpj_fornecedor", "cnpj_fabricante"],
     "dimensions": [
         {
-            "target_table": "Endereco", "id_col": "Endereco_ID",
-            "keys": ["Nivel_Detalhe", "Municipio", "Unidade_Federativa"],
+            "target_table": "endereco", "id_col": "endereco_id",
+            "keys": ["logradouro", "numero_do_logradouro", "cep", "municipio", "unidade_federativa"],
             "mapping": {
-                "LIT_NIVEL_DETALHE_SIMPLES": "Nivel_Detalhe", "municipio_instituicao": "Municipio", "uf": "Unidade_Federativa",
-                "LIT_STRING_VAZIA_LOG": "Logradouro", "LIT_STRING_VAZIA_NUM": "Numero_do_Logradouro", "LIT_STRING_VAZIA_CEP": "CEP",
-                "LIT_STRING_VAZIA_COMP": "Complemento", "LIT_STRING_VAZIA_BAIRRO": "Bairro", "LIT_STRING_VAZIA_REGIAO": "Regiao_do_Brasil", "LIT_STRING_VAZIA_IBGE": "Codigo_do_IBGE",
+                "municipio_instituicao": "municipio", 
+                "uf": "unidade_federativa"
             }
         },
-        { "target_table": "Fornecedor", "id_col": "Fornecedor_ID", "keys": ["CNPJ_Fornecedor"], "mapping": {"cnpj_fornecedor": "CNPJ_Fornecedor", "fornecedor": "Nome_Fornecedor"} },
-        { "target_table": "Fabricante", "id_col": "Fabricante_ID", "keys": ["CNPJ_Fabricante"], "mapping": {"cnpj_fabricante": "CNPJ_Fabricante", "fabricante": "Nome_Fabricante"} },
-        { "target_table": "Produto", "id_col": "Produto_ID", "keys": ["Codigo_CATMAT", "Anvisa"], "mapping": {"codigo_br": "Codigo_CATMAT", "anvisa": "Anvisa", "descricao_catmat": "Descricao_CATMAT", "generico": "Generico"} },
+        { 
+            "target_table": "fornecedor", "id_col": "fornecedor_id", 
+            "keys": ["cnpj_fornecedor"], 
+            "mapping": {"cnpj_fornecedor": "cnpj_fornecedor", "fornecedor": "nome_fornecedor"} 
+        },
+        { 
+            "target_table": "fabricante", "id_col": "fabricante_id", 
+            "keys": ["cnpj_fabricante"], 
+            "mapping": {"cnpj_fabricante": "cnpj_fabricante", "fabricante": "nome_fabricante"} 
+        },
+        { 
+            "target_table": "produto", "id_col": "produto_id", 
+            "keys": ["codigo_catmat", "anvisa"],
+            "mapping": {"codigo_br": "codigo_catmat", "anvisa": "anvisa", "descricao_catmat": "descricao_catmat", "generico": "generico"} 
+        },
         {
-            "target_table": "Instituicao", "id_col": "Instituicao_ID", "keys": ["CNPJ_Instituicao"],
-            "mapping": {
-                "cnpj_instituicao": "CNPJ_Instituicao", "nome_instituicao": "Nome_Instituicao",
-                "LIT_NIVEL_DETALHE_SIMPLES": "Nivel_Detalhe", "municipio_instituicao": "Municipio", "uf": "Unidade_Federativa"
+            "target_table": "instituicao", "id_col": "instituicao_id", "keys": ["cnpj_instituicao"],
+            "mapping": { "cnpj_instituicao": "cnpj_instituicao", "nome_instituicao": "nome_instituicao"},
+            "lookup_sources": {
+                "municipio_instituicao": "municipio", 
+                "uf": "unidade_federativa"
             },
-            "lookups": { "Endereco": {"join_keys": ["Nivel_Detalhe", "Municipio", "Unidade_Federativa"], "ref_pk": "Endereco_ID", "target_fk": "Endereco_ID"} }
+            "lookups": { 
+                "endereco": {
+                    "join_keys": ["logradouro", "numero_do_logradouro", "cep", "municipio", "unidade_federativa"], 
+                    "ref_pk": "endereco_id", 
+                    "target_id_col": "endereco_id"
+                } 
+            }
         }
     ],
     "fact": {
-        "target_table": "Instituicao_Compra_Produto", "id_col": "Instituicao_Compra_Produto_ID",
+        "target_table": "instituicao_compra_produto", 
+        "id_col": "instituicao_compra_produto_id",
         "lookups": {
-            "Fornecedor": {"target_id_col": "Fornecedor_ID", "pk_dim": "Fornecedor_ID"},
-            "Fabricante": {"target_id_col": "Fabricante_ID", "pk_dim": "Fabricante_ID"},
-            "Produto": {"target_id_col": "Produto_ID", "pk_dim": "Produto_ID"},
-            "Instituicao": {"target_id_col": "Instituicao_ID", "pk_dim": "Instituicao_ID"}
+            "fornecedor": {
+                "target_id_col": "fornecedor_id", 
+                "pk_dim": "fornecedor_id",
+                "join_keys": {"cnpj_fornecedor": "cnpj_fornecedor"}
+            },
+            "fabricante": {
+                "target_id_col": "fabricante_id", 
+                "pk_dim": "fabricante_id",
+                "join_keys": {"cnpj_fabricante": "cnpj_fabricante"}
+            },
+            "produto": {
+                "target_id_col": "produto_id", 
+                "pk_dim": "produto_id",
+                "join_keys": {"codigo_br": "codigo_catmat", "anvisa": "anvisa"}
+            },
+            "instituicao": {
+                "target_id_col": "instituicao_id", 
+                "pk_dim": "instituicao_id",
+                "join_keys": {"cnpj_instituicao": "cnpj_instituicao"}
+            }
         },
         "mapping": {
-            "compra": ("Data_de_Compra", "date", "yyyy/MM/dd HH:mm:ss.SSS"), 
-            "insercao": ("Data_de_Insercao", "date", "yyyy/MM/dd HH:mm:ss.SSS"),
-            "modalidade_compra": "Modalidade_de_Compra", 
-            "capacidade": ("Capacidade", "decimal"), 
-            "unidade_medida": "Unidade_de_Medida", 
-            "tipo_compra": "Tipo_da_Compra", 
-            "qtd_itens_comprados": ("Quantidade_de_Itens", "decimal"), 
-            "preco_unitario": ("Preco_Unitario", "decimal"), 
-            "preco_total": ("Preco_Total", "decimal"),
-            "cnpj_fabricante": "CNPJ_Fabricante", "cnpj_fornecedor": "CNPJ_Fornecedor", "codigo_br": "Codigo_CATMAT", "anvisa": "Anvisa", "cnpj_instituicao": "CNPJ_Instituicao"
+            "compra": ("data_de_compra", "date"), 
+            "insercao": ("data_de_insercao", "date"),
+            "modalidade_da_compra": "modalidade_de_compra",
+            "capacidade": ("capacidade", "decimal"), 
+            "unidade_medida": "unidade_de_medida", 
+            "tipo_compra": "tipo_da_compra", 
+            "qtd_itens_comprados": ("quantidade_de_itens", "decimal"), 
+            "preco_unitario": ("preco_unitario", "decimal"), 
+            "preco_total": ("preco_total", "decimal")
         }
     }
 }
 
 config_bnafar = {
     "name": "ETL_BNAFAR_Estoque",
-    "batch_size": 1000000,
-    "source": { "path": "DYNAMIC", "format": "csv"},
+    "batch_size": 500000,
+    "source": {"path": "DYNAMIC", "format": "csv"},
     "clean_numbers": ["co_cnes", "co_cep"],
     "dimensions": [
         {
-            "target_table": "Endereco", "id_col": "Endereco_ID", "keys": ["Nivel_Detalhe", "Logradouro", "Numero_do_Logradouro", "CEP"],
+            "target_table": "endereco", "id_col": "endereco_id", 
+            "keys": ["logradouro", "numero_do_logradouro", "cep", "municipio", "unidade_federativa"],
             "mapping": {
-                "LIT_NIVEL_DETALHE_COMPLETO": "Nivel_Detalhe", "no_municipio": "Municipio", "sg_uf": "Unidade_Federativa", "no_logradouro": "Logradouro", "nu_endereco": "Numero_do_Logradouro", "no_bairro": "Bairro", "co_cep": "CEP",
-                "nu_latitude": ("Latitude", "latlong"), "nu_longitude": ("Longitude", "latlong")
+                "no_municipio": "municipio", 
+                "sg_uf": "unidade_federativa", 
+                "no_logradouro": "logradouro", 
+                "nu_endereco": "numero_do_logradouro", 
+                "no_bairro": "bairro", 
+                "co_cep": "cep",
+                "nu_latitude": ("latitude", "latlong"), 
+                "nu_longitude": ("longitude", "latlong")
             }
         },
         {
-            "target_table": "Instituicao", "id_col": "Instituicao_ID", "keys": ["Codigo_CNES"],
+            "target_table": "instituicao", "id_col": "instituicao_id", "keys": ["codigo_cnes"],
             "mapping": {
-                "co_cnes": "Codigo_CNES", "no_fantasia": "Nome_Instituicao", "no_razao_social": "Razao_Social", "no_email": "Email", "nu_telefone": "Telefone",
-                "LIT_NIVEL_DETALHE_COMPLETO": "Nivel_Detalhe", "no_logradouro": "Logradouro", "nu_endereco": "Numero_do_Logradouro", "co_cep": "CEP"
+                "co_cnes": "codigo_cnes", 
+                "no_fantasia": "nome_instituicao", 
+                "no_razao_social": "razao_social", 
+                "no_email": "email", 
+                "nu_telefone": "telefone"
             },
-            "lookups": { "Endereco": {"join_keys": ["Nivel_Detalhe", "Logradouro", "Numero_do_Logradouro", "CEP"], "ref_pk": "Endereco_ID", "target_fk": "Endereco_ID"} }
-        },
-        {
-            "target_table": "Produto", "id_col": "Produto_ID", "keys": ["Codigo_CATMAT", "Anvisa"],
-            "mapping": {
-                "co_catmat": "Codigo_CATMAT", "ds_produto": "Descricao_CATMAT", "LIT_NAO_SE_APLICA": "Anvisa"
+            "lookup_sources": {
+                "no_logradouro": "logradouro", 
+                "nu_endereco": "numero_do_logradouro", 
+                "co_cep": "cep",
+                "no_municipio": "municipio", 
+                "sg_uf": "unidade_federativa"
+            },
+            "lookups": { 
+                "endereco": {
+                    "join_keys": ["logradouro", "numero_do_logradouro", "cep", "municipio", "unidade_federativa"], 
+                    "ref_pk": "endereco_id", 
+                    "target_id_col": "endereco_id"
+                } 
             }
+        },
+        { 
+            "target_table": "produto", "id_col": "produto_id", 
+            "keys": ["codigo_catmat", "anvisa"], 
+            "mapping": {
+                "co_catmat": "codigo_catmat", 
+                "ds_produto": "descricao_catmat", 
+                "LIT_NAO_SE_APLICA": "anvisa"
+            } 
         }
     ],
     "fact": {
-        "target_table": "Instituicao_Estoca_Produto", "id_col": "Instituicao_Estoca_Produto_ID",
-        "lookups": {
-            "Instituicao": {"target_id_col": "Instituicao_ID", "pk_dim": "Instituicao_ID"},
-            "Produto": {"target_id_col": "Produto_ID", "pk_dim": "Produto_ID"}
+        "target_table": "instituicao_estoca_produto", 
+        "id_col": "instituicao_estoca_produto_id",
+        "lookups": { 
+            "instituicao": {
+                "target_id_col": "instituicao_id", 
+                "pk_dim": "instituicao_id",
+                "join_keys": {"co_cnes": "codigo_cnes"}
+            }, 
+            "produto": {
+                "target_id_col": "produto_id", 
+                "pk_dim": "produto_id",
+                "join_keys": {"co_catmat": "codigo_catmat", "LIT_NAO_SE_APLICA": "anvisa"}
+            } 
         },
         "mapping": {
-            "co_cnes": "Codigo_CNES", "co_catmat": "Codigo_CATMAT", "LIT_NAO_SE_APLICA": "Anvisa",
-            "dt_posicao_estoque": ("Data_de_Posicao_no_Estoque", "date", "yyyy/MM/dd"),
-            "qt_estoque": ("Quantidade_do_Item_em_Estoque", "decimal"),
-            "nu_lote": "Numero_do_Lote",
-            "dt_validade": ("Data_de_Validade", "timestamp", "yyyy-MM-dd HH:mm:ssX"),
-            "tp_produto": "Tipo_do_Produto",
-            "sg_programa_saude": "Sigla_do_Programa_de_Saude", "ds_programa_saude": "Descricao_do_Programa_de_Saude", "sg_origem": "Sigla_do_Sistema_de_Origem"
+            "dt_posicao_estoque": ("data_de_posicao_no_estoque", "date"),
+            "qt_estoque": ("quantidade_do_item_em_estoque", "decimal"), 
+            "nu_lote": "numero_do_lote",
+            "dt_validade": ("data_de_validade", "timestamp"),
+            "tp_produto": "tipo_do_produto", 
+            "sg_programa_saude": "sigla_do_programa_de_saude", 
+            "ds_programa_saude": "descricao_do_programa_de_saude", 
+            "sg_origem": "sigla_do_sistema_de_origem"
         }
     }
 }
-
-# ==============================================================================
-# CONFIGURAÇÃO DE DADOS
-# ==============================================================================
 
 DATASET_URLS = {
     "bps": "https://opendatasus.saude.gov.br/dataset/bps",
@@ -191,9 +297,6 @@ CONFIG_MAP = {
     "bnafar": config_bnafar
 }
 
-# ==============================================================================
-# 1. CONTROLE DE ESTADO (CHECKPOINT)
-# ==============================================================================
 class ProcessTracker:
     """Gerencia quais URLs já foram processadas."""
     def __init__(self, tracking_file="processed_files_pg.txt"):
@@ -214,323 +317,319 @@ class ProcessTracker:
             f.write(f"{url}\n")
         self.processed.add(url)
 
-# ==============================================================================
-# 2. GERENCIADOR DO SGBD
-# ==============================================================================
-class SGBDLoader:
-    def __init__(self, connection_string):
-        self.engine = create_engine(connection_string, pool_pre_ping=True)
-        self.type_map = {"int": Integer, "string": String, "date": Date, "datetime": DateTime, "decimal": Numeric(20, 4), "latlong": Numeric(12, 10)}
-
-    def ensure_table(self, table_name, schema_mapping, pk_col=None):
-        table_name_lower = table_name.lower()
-        inspector = inspect(self.engine)
-        
-        # 1. Mapear colunas desejadas e seus tipos
-        desired_columns = {}
-        if pk_col:
-            desired_columns[pk_col.lower()] = "SERIAL PRIMARY KEY"
-            
-        for col_name, config in schema_mapping.items():
-            target_col = (config[0] if isinstance(config, tuple) else config).lower()
-            
-            # Pula se for a PK (já tratada)
-            if pk_col and target_col == pk_col.lower():
-                continue
-                
-            # Define o tipo SQL
-            sql_type = "TEXT"
-            if isinstance(config, tuple):
-                t_str = config[1] if len(config) > 1 else "string"
-                if t_str == "int": sql_type = "INTEGER"
-                elif t_str == "decimal": sql_type = "NUMERIC(20,4)"
-                elif t_str == "date": sql_type = "DATE"
-                elif t_str == "timestamp": sql_type = "TIMESTAMP"
-                elif t_str == "latlong": sql_type = "NUMERIC(12,10)"
-            
-            desired_columns[target_col] = sql_type
-
-        # 2. Se a tabela NÃO existe, cria do zero
-        if not inspector.has_table(table_name_lower):
-            logging.info(f"🛠️ Criando tabela nova: {table_name}")
-            cols_ddl = [f"{col} {ctype}" for col, ctype in desired_columns.items()]
-            ddl = f"CREATE TABLE {table_name_lower} ({', '.join(cols_ddl)});"
-            with self.engine.begin() as conn:
-                conn.execute(text(ddl))
-            return
-
-        # 3. Se a tabela JÁ existe, verifica colunas faltantes (Schema Evolution)
-        existing_columns = [c['name'].lower() for c in inspector.get_columns(table_name_lower)]
-        missing_columns = [col for col in desired_columns.keys() if col not in existing_columns]
-
-        if missing_columns:
-            logging.warning(f"🔄 Atualizando schema da tabela '{table_name}'. Adicionando colunas: {missing_columns}")
-            with self.engine.begin() as conn:
-                for col in missing_columns:
-                    ctype = desired_columns[col]
-                    # Adiciona coluna como NULLABLE por padrão para não quebrar dados antigos
-                    alter_query = f"ALTER TABLE {table_name_lower} ADD COLUMN {col} {ctype}"
-                    conn.execute(text(alter_query))
-
-    def sync_dimension(self, df_source: pd.DataFrame, table_name: str, keys: list, id_col: str):
-        inserted_count = 0
-        df_source.columns = [c.lower() for c in df_source.columns]
-        keys_lower = [k.lower() for k in keys]
-        id_col_lower = id_col.lower()
-        table_name_lower = table_name.lower()
-
-        df_dim = df_source[keys_lower].dropna().drop_duplicates()
-        
-        # FIX: Retorno explícito se vazio
-        if df_dim.empty:
-            return pd.DataFrame(), 0 
-
-        for k in keys_lower: df_dim[k] = df_dim[k].astype(str)
-
-        cols_select = ", ".join([id_col_lower] + keys_lower)
-        query = f"SELECT {cols_select} FROM {table_name_lower}"
-        
-        try:
-            df_db = pd.read_sql(query, self.engine)
-            for k in keys_lower: df_db[k] = df_db[k].astype(str)
-        except:
-            df_db = pd.DataFrame(columns=[id_col_lower] + keys_lower)
-
-        df_new = df_dim.merge(df_db, on=keys_lower, how='left', indicator=True)
-        df_to_insert = df_new[df_new['_merge'] == 'left_only'][keys_lower]
-
-        if not df_to_insert.empty:
-            inserted_count = len(df_to_insert)
-            logging.info(f"➕ Inserindo {inserted_count} novos registros em {table_name}")
-            try:
-                df_to_insert.to_sql(table_name_lower, self.engine, if_exists='append', index=False, method='multi', chunksize=1000)
-                df_db = pd.read_sql(query, self.engine)
-                for k in keys_lower: df_db[k] = df_db[k].astype(str)
-            except Exception as e:
-                logging.error(f"Erro ao inserir dimensão {table_name}: {e}")
-                inserted_count = 0
-
-        return df_db, inserted_count
-
-    def load_fact(self, df: pd.DataFrame, table_name: str):
-        # FIX: Retorno explícito se vazio
-        if df.empty: return 0
-        
-        df.columns = [c.lower() for c in df.columns]
-        table_name_lower = table_name.lower()
-        
-        count = len(df)
-        logging.info(f"📊 Carregando {count} linhas na fato {table_name}...")
-        try:
-            df.to_sql(table_name_lower, self.engine, if_exists='append', index=False, method='multi', chunksize=2000)
-            return count # FIX: Retorna o contador
-        except Exception as e:
-            logging.error(f"❌ Erro ao inserir Fato {table_name}: {e}")
-            return 0 # FIX: Retorna 0 em caso de erro
 
 # ==============================================================================
-# 3. TRANSFORMADORES PANDAS
+# CLASSES DE SUPORTE
 # ==============================================================================
+
+type_map = {
+    "date": "DATE",
+    "int": "INTEGER",
+    "decimal": "DECIMAL(20,4)",  # Aumentado para suportar trilhões com 4 casas
+    "latlong": "DECIMAL(12,9)",
+    "text": "TEXT"
+}
+
 class Sanitizer:
     @staticmethod
     def clean_generic(df: pd.DataFrame) -> pd.DataFrame:
-        """Limpeza básica de strings: Upper, Strip e Nulos para String Vazia"""
-        # Garante que NAs virem string vazia antes de aplicar métodos de string
-        for col in df.select_dtypes(include=['object']).columns:
-            df[col] = df[col].fillna("").astype(str).str.strip().str.upper()
+        for col in df.columns:
+            df[col] = df[col].astype(str).str.strip().str.upper()
+            df[col] = df[col].replace(['NAN', 'NONE', '', 'N/A'], None)
         return df
 
     @staticmethod
     def clean_numbers(df: pd.DataFrame, cols: list) -> pd.DataFrame:
-        """Remove caracteres não numéricos"""
         for c in cols:
-            if c in df.columns:
+            if c in df.columns and df[c] is not None:
                 df[c] = df[c].astype(str).str.replace(r'[^0-9]', '', regex=True)
         return df
 
     @staticmethod
     def apply_mapping(df: pd.DataFrame, mapping: dict) -> pd.DataFrame:
-        """Aplica o mapeamento de colunas (Renomear e Tipar)"""
         df_out = pd.DataFrame(index=df.index)
-
         for src, tgt in mapping.items():
-            # Lógica para Literais
+            # 1. Trata literais (LIT_)
             if src.startswith("LIT_"):
                 val = ""
-                if src == "LIT_NIVEL_DETALHE_COMPLETO": val = "DETALHADO"
-                elif src == "LIT_NIVEL_DETALHE_SIMPLES": val = "MUNICIPIO_UF"
-                elif src == "LIT_NAO_SE_APLICA": val = "N/A"
-                elif src.startswith("LIT_STRING_VAZIA"): val = ""
+                if src == "LIT_NAO_SE_APLICA": val = "N/A"
+                elif src == "LIT_VAZIO": val = "" # <-- Para o Anvisa vazio
                 
                 target_col = tgt if isinstance(tgt, str) else tgt[0]
-                
-                # Atribui o valor escalar para TODAS as linhas do índice
-                df_out[target_col] = val
+                df_out[target_col.lower()] = val
                 continue
 
-            # Se coluna não existe na origem, cria nula
-            if src not in df.columns:
-                col_series = pd.Series([None] * len(df), index=df.index)
-            else:
-                col_series = df[src]
-
-            # Processamento do Target
+            # 2. Pega a série de dados original
+            col_series = df[src] if src in df.columns else pd.Series([None] * len(df), index=df.index)
+            
             if isinstance(tgt, tuple):
-                name, type_ = tgt[0], tgt[1]
-                fmt = tgt[2] if len(tgt) > 2 else None
-
-                if type_ == "date":
-                    if fmt:
-                        fmt_py = fmt.replace("yyyy", "%Y").replace("MM", "%m").replace("dd", "%d")\
-                                    .replace("HH", "%H").replace("mm", "%M").replace("ss", "%S").replace(".SSS", ".%f")
-                        df_out[name] = pd.to_datetime(col_series, format=fmt_py, errors='coerce').dt.date
+                name, type_ = tgt[0].lower(), tgt[1]
+                if type_ in ["date", "timestamp"]:
+                    dt_series = pd.to_datetime(col_series, errors='coerce', utc=True)
+                    if type_ == "date":
+                        df_out[name] = dt_series.dt.date
                     else:
-                        df_out[name] = pd.to_datetime(col_series, errors='coerce').dt.date
-                
-                elif type_ == "timestamp":
-                     df_out[name] = pd.to_datetime(col_series, errors='coerce')
-
+                        df_out[name] = dt_series
                 elif type_ == "int":
                     df_out[name] = pd.to_numeric(col_series, errors='coerce').fillna(0).astype(int)
-
-                elif type_ == "decimal":
-                    if col_series.dtype == 'object':
-                        col_series = col_series.str.replace(',', '.')
-                    df_out[name] = pd.to_numeric(col_series, errors='coerce')
-
-                elif type_ == "latlong":
-                     if col_series.dtype == 'object':
-                        col_series = col_series.str.replace(',', '.')
-                     df_out[name] = pd.to_numeric(col_series, errors='coerce')
+                elif type_ in ["decimal", "latlong"]:
+                    s = col_series.astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
+                    s = s.str.replace(r'[^0-9.]', '', regex=True)
+                    df_out[name] = pd.to_numeric(s, errors='coerce')
             else:
-                # String simples
-                df_out[tgt] = col_series
-
+                # 3. Tratamento crucial para Chaves de Join (Anvisa, etc)
+                # Se não for um tipo especial (tuple), garantimos que nulos virem string vazia
+                df_out[tgt.lower()] = col_series.fillna("") 
+        
         return df_out
 
-# ==============================================================================
-# 4. ORQUESTRADOR ETL
-# ==============================================================================
-from collections import Counter
+class SGBDLoader:
+    def __init__(self, connection_string):
+        self.engine = create_engine(connection_string, pool_pre_ping=True)
+
+    def ensure_table(self, table_name, schema_mapping, keys=None, lookups=None, pk_col=None):
+        table_name = table_name.lower()
+        inspector = inspect(self.engine)
+        
+        desired_columns = {}
+        if pk_col: desired_columns[pk_col.lower()] = "SERIAL PRIMARY KEY"
+        
+        # 1. Colunas vindas do Mapping
+        for config in schema_mapping.values():
+            target_col = (config[0] if isinstance(config, tuple) else config).lower()
+            if pk_col and target_col == pk_col.lower(): continue
+            
+            ctype = "TEXT"
+            if isinstance(config, tuple):
+                if config[1] == "decimal": ctype = "NUMERIC(20,4)"
+                elif config[1] == "int": ctype = "INTEGER"
+                elif config[1] == "date": ctype = "DATE"
+                elif config[1] == "timestamp": ctype = "TIMESTAMPTZ"
+            desired_columns[target_col] = ctype
+
+        # 2. NOVO: Colunas vindas das Keys (essencial para colunas que completamos com "")
+        if keys:
+            for k in keys:
+                k_lower = k.lower()
+                if k_lower not in desired_columns:
+                    desired_columns[k_lower] = "TEXT"
+
+        # 3. Colunas de Lookups (FKs)
+        if lookups:
+            for info in lookups.values():
+                fk_col = info.get("target_id_col", info.get("target_fk")).lower()
+                desired_columns[fk_col] = "INTEGER"
+
+        # 4. Criação/Alteração da Tabela
+        if not inspector.has_table(table_name):
+            cols_ddl = [f"{col} {ctype}" for col, ctype in desired_columns.items()]
+            ddl = f"CREATE TABLE {table_name} ({', '.join(cols_ddl)});"
+            with self.engine.begin() as conn: conn.execute(text(ddl))
+            logging.info(f"🆕 Tabela {table_name} criada com schema completo.")
+        else:
+            existing_cols = [c['name'].lower() for c in inspector.get_columns(table_name)]
+            with self.engine.begin() as conn:
+                for col, ctype in desired_columns.items():
+                    if col not in existing_cols:
+                        logging.info(f"⚙️ Adicionando coluna faltante {col} em {table_name}")
+                        conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {col} {ctype};"))
+                        
+    def sync_dimension(self, df_source: pd.DataFrame, table_name: str, keys: list, id_col: str):
+        table_name, id_col = table_name.lower(), id_col.lower()
+        keys = [k.lower() for k in keys]
+        df_source.columns = [c.lower() for c in df_source.columns]
+        
+        df_dim = df_source[keys].dropna().drop_duplicates()
+        if df_dim.empty: return pd.DataFrame(), 0
+        for k in keys: df_dim[k] = df_dim[k].astype(str)
+
+        try:
+            df_db = pd.read_sql(f"SELECT {', '.join([id_col] + keys)} FROM {table_name}", self.engine)
+            df_db.columns = [c.lower() for c in df_db.columns]
+            for k in keys: df_db[k] = df_db[k].astype(str)
+        except:
+            df_db = pd.DataFrame(columns=[id_col] + keys)
+
+        df_new = df_dim.merge(df_db, on=keys, how='left', indicator=True)
+        df_to_insert = df_new[df_new['_merge'] == 'left_only'][keys]
+
+        if not df_to_insert.empty:
+            logging.info(f"➕ Inserindo {len(df_to_insert)} novos em {table_name}")
+            df_to_insert.to_sql(table_name, self.engine, if_exists='append', index=False, method='multi')
+            df_db = pd.read_sql(f"SELECT {', '.join([id_col] + keys)} FROM {table_name}", self.engine)
+            df_db.columns = [c.lower() for c in df_db.columns]
+            for k in keys: df_db[k] = df_db[k].astype(str)
+
+        return df_db, len(df_to_insert)
+
+    def sync_dimension_full(self, df_source: pd.DataFrame, table_name: str, keys: list, id_col: str):
+        table_name, id_col = table_name.lower(), id_col.lower()
+        df_source.columns = [c.lower() for c in df_source.columns]
+        
+        try:
+            df_db = pd.read_sql(f"SELECT {', '.join([id_col] + keys)} FROM {table_name}", self.engine)
+            df_db.columns = [c.lower() for c in df_db.columns]
+        except:
+            df_db = pd.DataFrame(columns=[id_col] + keys)
+
+        # Identifica o que é novo
+        df_merge = df_source.merge(df_db, on=keys, how='left', indicator=True)
+        df_to_insert = df_merge[df_merge['_merge'] == 'left_only'].drop(columns=['_merge', id_col], errors='ignore')
+
+        if not df_to_insert.empty:
+            logging.info(f"➕ Inserindo {len(df_to_insert)} registros em {table_name}")
+            df_to_insert.to_sql(table_name, self.engine, if_exists='append', index=False, method='multi')
+            
+            # Recarrega para ter os IDs novos
+            df_db = pd.read_sql(f"SELECT {', '.join([id_col] + keys)} FROM {table_name}", self.engine)
+            df_db.columns = [c.lower() for c in df_db.columns]
+
+        return df_db, len(df_to_insert)
+
+    def load_fact(self, df: pd.DataFrame, table_name: str):
+        if df.empty: return 0
+        df.columns = [c.lower() for c in df.columns]
+        logging.info(f"📊 Fato {table_name}: {len(df)} linhas")
+        df.to_sql(table_name.lower(), self.engine, if_exists='append', index=False, method='multi', chunksize=2000)
+        return len(df)
 
 class ETLEngine:
     def __init__(self):
         self.db = SGBDLoader(DATABASE_URL)
-        self.dim_cache = {} 
         self.stats = Counter()
 
     def run(self, config: dict):
-        print(f"\n🚀 Pipeline Python -> Postgres: {config['name']}")
+        print(f"\n🚀 Pipeline: {config['name']}")
         
-        # Define tamanho do lote (padrão: None = processa tudo de uma vez)
-        batch_size = config.get("batch_size")
-        source_path = config['source']['path']
-
-        # Prepara o iterador (se batch_size existir) ou lê tudo
-        if batch_size:
-            logging.info(f"📦 Modo Batch Ativado: Processando {batch_size} linhas por vez.")
-            reader = pd.read_csv(source_path, sep=';', dtype=str, chunksize=batch_size)
-        else:
-            # Modo Legacy (Tudo na RAM)
-            try:
-                reader = [pd.read_csv(source_path, sep=';', dtype=str)]
-            except Exception as e:
-                logging.error(f"⚠️ Falha ao ler arquivo: {e}")
-                return
-
-        total_chunks = 0
+        b_size = config.get('batch_size') 
         
+        # 1. LEITURA EM LOTES
+        reader = pd.read_csv(
+            config['source']['path'], 
+            sep=';', 
+            dtype=str, 
+            chunksize=b_size
+        )
+
+        if b_size is None:
+            reader = [pd.read_csv(config['source']['path'], sep=';', dtype=str)]
+
         for i, df_raw in enumerate(reader):
-            # Garbage Collection forçado a cada loop
-            if i > 0: gc.collect()
-            
-            chunk_info = f"[Lote {i+1}]" if batch_size else "[Total]"
-            print(f"⏳ Processando {chunk_info} com {len(df_raw)} linhas...")
+            if b_size:
+                logging.info(f"📦 Processando lote {i+1} de {config['name']}...")
 
-            # --- AUTO-CORREÇÃO BPS (Apenas se colunas existirem no chunk) ---
-            if 'cnpj_instituicao' in df_raw.columns and 'nome_instituicao' in df_raw.columns:
-                sample = df_raw['cnpj_instituicao'].dropna().astype(str)
-                # Verifica apenas se a amostra não estiver vazia
-                if not sample.empty and sample.str.contains('[a-zA-Z]', regex=True).any():
-                     # Só avisa no primeiro lote para não spamar
-                    if i == 0: logging.warning("🔄 DETECTADO: Colunas 'cnpj_instituicao' e 'nome_instituicao' trocadas!")
-                    df_raw.rename(columns={'cnpj_instituicao': 'temp', 'nome_instituicao': 'cnpj_instituicao'}, inplace=True)
-                    df_raw.rename(columns={'temp': 'nome_instituicao'}, inplace=True)
-            # ---------------------------------------------------------------
+            # --- LÓGICA DE SWAP (Colunas trocadas no CSV) ---
+            swaps = [('cnpj_instituicao', 'nome_instituicao'), ('cnpj_fornecedor', 'fornecedor'), ('cnpj_fabricante', 'fabricante')]
+            for c_cnpj, c_nome in swaps:
+                if c_cnpj in df_raw.columns and c_nome in df_raw.columns:
+                    sample = df_raw[c_cnpj].dropna().head(100)
+                    if not sample.empty and sample.str.contains('[A-Z]', na=False).any():
+                        df_raw[c_cnpj], df_raw[c_nome] = df_raw[c_nome].values, df_raw[c_cnpj].values
 
+            # --- LIMPEZA INICIAL ---
             df_clean = Sanitizer.clean_generic(df_raw)
             if "clean_numbers" in config:
-                df_clean = Sanitizer.clean_numbers(df_clean, config["clean_numbers"])
+                for c in config["clean_numbers"]:
+                    if c in df_clean.columns:
+                        df_clean[c] = df_clean[c].astype(str).str.replace(r'[^0-9]', '', regex=True)
 
-            # 1. Processar Dimensões
-            loaded_refs = {} 
+            loaded_refs = {}
 
-            for dim_conf in config.get("dimensions", []):
-                table_name = dim_conf["target_table"]
-                keys = dim_conf["keys"]
-                id_col = dim_conf["id_col"]
-
-                self.db.ensure_table(table_name, dim_conf["mapping"], pk_col=id_col)
-                df_dim_source = Sanitizer.apply_mapping(df_clean, dim_conf["mapping"])
-
-                # Resolve Lookups
-                if "lookups" in dim_conf:
-                    for dim_ref_name, info in dim_conf["lookups"].items():
-                        if dim_ref_name in loaded_refs:
-                            ref_df = loaded_refs[dim_ref_name]
-                            if ref_df.empty: continue
-                            
-                            join_keys, target_fk, ref_pk = info["join_keys"], info["target_fk"], info["ref_pk"]
-                            valid_keys = [k for k in join_keys if k in df_dim_source.columns and k in ref_df.columns]
-                            if not valid_keys: continue
-
-                            for k in valid_keys: 
-                                df_dim_source[k] = df_dim_source[k].astype(str)
-                                ref_df[k] = ref_df[k].astype(str)
-                                
-                            df_dim_source = df_dim_source.merge(ref_df, on=valid_keys, how='left')
-                            if ref_pk in df_dim_source.columns:
-                                df_dim_source.rename(columns={ref_pk: target_fk}, inplace=True)
-
-                # Sincroniza
-                df_dim_mapped, count_inserted = self.db.sync_dimension(df_dim_source, table_name, keys, id_col)
-                self.stats[table_name] += count_inserted
-                loaded_refs[table_name] = df_dim_mapped
-
-            # 2. Processar Fato
-            if "fact" in config:
-                fact_conf = config["fact"]
-                table_name = fact_conf["target_table"]
+            # --- 3. DIMENSÕES ---
+            for dim in config.get("dimensions", []):
+                t_name, id_col = dim["target_table"].lower(), dim["id_col"].lower()
+                db_keys = [k.lower() for k in dim["keys"]]
                 
-                df_fact = Sanitizer.apply_mapping(df_clean, fact_conf["mapping"])
-                self.db.ensure_table(table_name, fact_conf["mapping"], pk_col=fact_conf.get("id_col"))
+                # 3.1. Mapeamento e Garantia de Colunas (reindex aqui evita KeyError)
+                df_mapped = Sanitizer.apply_mapping(df_clean, dim["mapping"])
+                
+                # Garante que todas as keys da dimensão existam
+                all_cols = list(set(db_keys + list(df_mapped.columns)))
+                df_mapped = df_mapped.reindex(columns=all_cols, fill_value="")
+                
+                cols_to_keep_in_db = list(df_mapped.columns)
 
-                for dim_name, info in fact_conf.get("lookups", {}).items():
-                    if dim_name in loaded_refs:
-                        dim_map = loaded_refs[dim_name]
-                        if dim_map.empty: continue
-                        target_fk_col, pk_dim = info["target_id_col"], info["pk_dim"]
-                        try: dim_keys = next(d["keys"] for d in config["dimensions"] if d["target_table"] == dim_name)
-                        except: continue
-                        valid_keys = [k for k in dim_keys if k in df_fact.columns and k in dim_map.columns]
-                        if not valid_keys: continue
-                        for k in valid_keys: 
-                            df_fact[k] = df_fact[k].astype(str)
-                            dim_map[k] = dim_map[k].astype(str)
-                        cols_to_merge = valid_keys + [pk_dim]
-                        df_fact = df_fact.merge(dim_map[cols_to_merge], on=valid_keys, how='left')
-                        df_fact.rename(columns={pk_dim: target_fk_col}, inplace=True)
+                # 3.2. LOOKUPS (Join entre dimensões, ex: endereco_id na instituicao)
+                if "lookups" in dim:
+                    for ref_table, info in dim["lookups"].items():
+                        ref_key = ref_table.lower()
+                        if ref_key in loaded_refs:
+                            df_lkp_src = Sanitizer.apply_mapping(df_clean, dim.get("lookup_sources", {}))
+                            df_for_join = pd.concat([df_mapped, df_lkp_src], axis=1)
+                            
+                            # Remove colunas duplicadas após o concat
+                            df_for_join = df_for_join.loc[:, ~df_for_join.columns.duplicated()]
+                            
+                            ref_df = loaded_refs[ref_key]
+                            j_keys = [k.lower() for k in info["join_keys"]]
+                            t_fk = info.get("target_id_col", info.get("target_fk")).lower()
+                            
+                            # Vacina de Join: Garante que as chaves de busca existam
+                            df_for_join = df_for_join.reindex(columns=list(set(df_for_join.columns) | set(j_keys)), fill_value="")
+                            
+                            df_for_join = df_for_join.merge(ref_df[j_keys + [info["ref_pk"].lower()]], on=j_keys, how='left')
+                            df_for_join.rename(columns={info["ref_pk"].lower(): t_fk}, inplace=True)
+                            
+                            df_mapped = df_for_join
+                            cols_to_keep_in_db.append(t_fk)
 
-                id_col_fact = fact_conf.get("id_col")
-                if id_col_fact and id_col_fact in df_fact.columns:
-                    df_fact.drop(columns=[id_col_fact], inplace=True)
+                # 3.3. PREPARAÇÃO E CARGA
+                # Mantemos as chaves vazias ("") para não perder registros
+                df_final_dim = df_mapped.drop_duplicates(subset=db_keys)
+                
+                # Seleciona apenas colunas válidas para o banco
+                final_cols = [c for c in list(set(cols_to_keep_in_db)) if c in df_final_dim.columns]
+                df_final_dim = df_final_dim[final_cols]
 
-                count_inserted = self.db.load_fact(df_fact, table_name)
-                self.stats[table_name] += count_inserted
+                # Sincroniza Schema e Dados
+                self.db.ensure_table(t_name, dim["mapping"], keys=dim["keys"], lookups=dim.get("lookups"), pk_col=id_col)
+                df_sync, count = self.db.sync_dimension_full(df_final_dim, t_name, db_keys, id_col)
+                self.stats[t_name] += count
+                loaded_refs[t_name] = df_sync
+
+            # --- 4. FATO ---
+            if "fact" in config:
+                fact = config["fact"]
+                df_fact = Sanitizer.apply_mapping(df_clean, fact["mapping"])
+                
+                # Lookups na Fato (Conecta todas as FKs)
+                for d_name, info in fact.get("lookups", {}).items():
+                    d_key = d_name.lower()
+                    if d_key in loaded_refs:
+                        d_map = loaded_refs[d_key]
+                        t_fk = info["target_id_col"].lower()
+                        j_map = info.get("join_keys", {})
+                        
+                        # j_dst_cols são os nomes das colunas na Dimensão de destino
+                        j_dst_cols = [k.lower() for k in j_map.values()]
+                        
+                        df_temp_keys = Sanitizer.apply_mapping(df_clean, j_map)
+                        df_fact_with_keys = pd.concat([df_fact, df_temp_keys], axis=1)
+                        
+                        # Vacina na Fato: Garante colunas de join (ex: catmat ou logradouro vazio)
+                        df_fact_with_keys = df_fact_with_keys.reindex(columns=list(set(df_fact_with_keys.columns) | set(j_dst_cols)), fill_value="")
+                        
+                        df_fact_with_keys = df_fact_with_keys.merge(d_map[j_dst_cols + [info["pk_dim"].lower()]], on=j_dst_cols, how='left')
+                        df_fact[t_fk] = df_fact_with_keys[info["pk_dim"].lower()]
+
+                # Lógica de Preço (Cálculo automático se faltar o total)
+                if 'preco_unitario' in df_fact.columns and 'quantidade_de_itens' in df_fact.columns:
+                    if 'preco_total' not in df_fact.columns: df_fact['preco_total'] = 0.0
+                    mask = (df_fact['preco_total'].isna()) | (df_fact['preco_total'] == 0) | (df_fact['preco_total'] == "")
+                    
+                    # Converte para float apenas para o cálculo
+                    q = pd.to_numeric(df_fact.loc[mask, 'quantidade_de_itens'], errors='coerce').fillna(0)
+                    p = pd.to_numeric(df_fact.loc[mask, 'preco_unitario'], errors='coerce').fillna(0)
+                    df_fact.loc[mask, 'preco_total'] = q * p
+
+                # Carga Final da Fato
+                self.db.ensure_table(fact["target_table"], fact["mapping"], lookups=fact.get("lookups"), pk_col=fact.get("id_col"))
+                count_fact = self.db.load_fact(df_fact, fact["target_table"])
+                self.stats[fact["target_table"]] += count_fact
             
-            # Limpa memória do chunk atual
-            del df_raw, df_clean, loaded_refs
-        
+            # Limpeza de memória
+            del df_raw, df_clean
+            gc.collect()
 
 # ==============================================================================
 # 5. MÓDULO WEB SCRAPER
