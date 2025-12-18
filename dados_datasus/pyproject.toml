@@ -1,0 +1,38 @@
+[project]
+name = "datasus"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Botelho"}
+]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pyspark (==3.4.2)",
+    "delta-spark (==2.4.0)",
+    "jupyterlab (>=4.4.10,<5.0.0)",
+    "ipykernel (>=7.1.0,<8.0.0)",
+    "fastapi (>=0.123.9,<0.124.0)",
+    "uvicorn (>=0.38.0,<0.39.0)",
+    "duckdb (>=1.4.2,<2.0.0)",
+    "pandas (>=2.3.3,<3.0.0)",
+    "python-dotenv (>=1.2.1,<2.0.0)",
+    "logging (>=0.4.9.6,<0.5.0.0)",
+    "pyarrow (>=22.0.0,<23.0.0)",
+    "jupyter (>=1.1.1,<2.0.0)",
+    "lab (>=8.6,<9.0)",
+    "sqlalchemy (>=2.0.45,<3.0.0)",
+    "psycopg2-binary (>=2.9.11,<3.0.0)",
+    "seaborn (>=0.13.2,<0.14.0)",
+    "matplotlib (>=3.10.8,<4.0.0)",
+    "geopandas (>=1.1.1,<2.0.0)"
+]
+
+[tool.poetry]
+package-mode = false
+packages = []
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
