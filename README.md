@@ -1,6 +1,14 @@
 # Text-to-SQL-References
 This repository is designed to maintain a curated list of references related Text-to-SQL including State-Of-The-Art, other repositories, code samples and innovative techniques
 
+## Repository Structure
+- `dados_datasus/`: DataSUS ingestion, schema, and JDBC-based access (see its README for DB tunnel/test steps).
+- `analises/`: Exploratory data analysis notebooks.
+- `assets/`: Images and supporting assets.
+- `paraphrase-benchmark/`: Benchmark configs for paraphrase evaluation.
+- `README.ipynb`: Notebook version of the README/content.
+- `ParaphraseEvaluator.py`, `generated_queries.py`, `sample.py`: Supporting scripts.
+
 
 ## Views
 - **Nascimento, E.R., García, G., Izquierdo, Y.T. et al.**  
