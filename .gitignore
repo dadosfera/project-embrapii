@@ -1,0 +1,24 @@
+# Dados grandes
+data/
+
+# Ambientes
+.env
+.venv
+__pycache__/
+*.pyc
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Docker
+*.log
+
+# Spark
+spark-warehouse/
+
+# DuckDB
+*.duckdb
+*.db
+
+# Sistema
+.DS_Store
