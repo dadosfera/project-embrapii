@@ -57,10 +57,7 @@ Abra um terminal e execute o comando abaixo:
 ssh -L 5433:150.164.2.13:5432 lbduser@150.164.2.44
 ```
 
-Digite a senha:
-```python3
-[REDACTED]
-```
+Digite a senha (solicitar ao responsável pelo ambiente).
 Esse comando cria o túnel SSH. Em alguns casos, a conexão via túnel tende a ficar suspensa e dar erro por timeout. Basta matar o terminal do túnel e executar o comando novamente. 
 
 Mantenha este terminal aberto durante o uso do banco. 
