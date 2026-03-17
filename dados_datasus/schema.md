@@ -122,7 +122,7 @@ Registra a posição de estoque dos produtos nas instituições, incluindo quant
 | Quantidade_do_Item_em_Estoque    | Quantidade disponível do produto em estoque na data informada.            |
 | Numero_do_Lote                   | Número do lote do produto.                                                |
 | Data_de_Validade                 | Data de validade do produto.                                              |
-| Tipo_do_Produto                  | Classificação do produto (ex: B, A, etc.).                                |
+| Tipo_do_Produto                  | Classificação do produto (ex: B, E, S, O.).                               |
 | Sigla_do_Programa_de_Saude       | Sigla do programa de saúde associado ao produto.                          |
 | Descricao_do_Programa_de_Saude   | Descrição do programa de saúde.                                           |
 | Sigla_do_Sistema_de_Origem       | Sistema de origem da informação de estoque.                               |

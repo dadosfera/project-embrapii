@@ -1,3 +1,5 @@
+# SCRIPT ATUALIZADO PARA CONSIDERAR A ATUALIZAÇÃO DO SITE DO OPENDATASUS
+
 import os
 import io
 import re
@@ -28,9 +30,9 @@ warnings.filterwarnings('ignore')
 # CONFIGURAÇÃO DE CONEXÃO
 # ==============================================================================
 DB_CONFIG = {
-    "user": "datalake_user",
-    "password": "senha123",
-    "host": "172.17.0.1",
+    "user": "postgres",
+    "password": "datalake123",
+    "host": "127.0.0.1",
     "port": "5432",
     "dbname": "datalake_db"
 }
@@ -205,7 +207,7 @@ config_bps = {
 
 config_bnafar = {
     "name": "ETL_BNAFAR_Estoque",
-    "batch_size": 500000,
+    "batch_size": 50000,
     "source": {"path": "DYNAMIC", "format": "csv"},
     "clean_numbers": ["co_cnes", "co_cep"],
     "dimensions": [
@@ -286,9 +288,9 @@ config_bnafar = {
 }
 
 DATASET_URLS = {
-    "bps": "https://opendatasus.saude.gov.br/dataset/bps",
-    "hospitais_leitos": "https://opendatasus.saude.gov.br/dataset/hospitais-e-leitos",
-    "bnafar": "https://opendatasus.saude.gov.br/dataset/bnafar-posicao-de-estoque",
+    "bps": "bps",
+    "hospitais_leitos": "hospitais-e-leitos",
+    "bnafar": "bnafar-posicao-de-estoque",
 }
 
 CONFIG_MAP = {
@@ -298,8 +300,8 @@ CONFIG_MAP = {
 }
 
 class ProcessTracker:
-    """Gerencia quais URLs já foram processadas."""
-    def __init__(self, tracking_file="processed_files_pg.txt"):
+    """Gerencia URLs e lotes (batches) já processados."""
+    def __init__(self, tracking_file="processed_files.txt"):
         self.tracking_file = tracking_file
         self.processed = self._load_processed()
 
@@ -309,14 +311,23 @@ class ProcessTracker:
         with open(self.tracking_file, "r") as f:
             return set(line.strip() for line in f)
 
-    def is_processed(self, url):
-        return url in self.processed
+    def is_processed(self, url, batch_idx=-1):
+        # -1 representa o arquivo completo ou arquivo sem lotes
+        key = f"{url}|{batch_idx}"
+        return key in self.processed
 
-    def mark_processed(self, url):
-        with open(self.tracking_file, "a") as f:
-            f.write(f"{url}\n")
-        self.processed.add(url)
+    def mark_processed(self, url, batch_idx=-1):
+        key = f"{url}|{batch_idx}"
+        if key not in self.processed:
+            with open(self.tracking_file, "a") as f:
+                f.write(f"{key}\n")
+            self.processed.add(key)
 
+    def is_file_totally_done(self, url):
+        return f"{url}|DONE" in self.processed
+
+    def mark_file_totally_done(self, url):
+        self.mark_processed(url, "DONE")
 
 # ==============================================================================
 # CLASSES DE SUPORTE
@@ -493,144 +504,194 @@ class SGBDLoader:
         df.to_sql(table_name.lower(), self.engine, if_exists='append', index=False, method='multi', chunksize=2000)
         return len(df)
 
+    def get_table_counts(self, tables):
+        counts = {}
+        # Usamos connect() e garantimos que estamos lendo dados commitados
+        with self.engine.connect() as conn:
+            # Força o fechamento de qualquer transação pendente para ler o estado atual
+            conn.execute(text("COMMIT")) 
+            for table in tables:
+                try:
+                    # Usamos aspas duplas para evitar problemas com nomes reservados no Postgres
+                    res = conn.execute(text(f'SELECT COUNT(*) FROM "{table.lower()}"'))
+                    counts[table.lower()] = res.scalar()
+                except Exception:
+                    counts[table.lower()] = 0
+        return counts
+        
 class ETLEngine:
     def __init__(self):
         self.db = SGBDLoader(DATABASE_URL)
         self.stats = Counter()
 
-    def run(self, config: dict):
-        print(f"\n🚀 Pipeline: {config['name']}")
+    def run(self, config: dict, file_url: str, tracker: ProcessTracker):
+        """
+        Executa o pipeline de ETL completo: 
+        Leitura em lotes -> Limpeza -> Dimensões -> Fato -> Checkpoint.
+        """
+        print(f"\n🚀 Iniciando Pipeline: {config['name']}")
         
-        b_size = config.get('batch_size') 
+        b_size = config.get('batch_size')
         
-        # 1. LEITURA EM LOTES
-        reader = pd.read_csv(
-            config['source']['path'], 
-            sep=';', 
-            dtype=str, 
-            chunksize=b_size
-        )
+        # 1. PREPARAÇÃO DO LEITOR (ITERADOR)
+        try:
+            reader = pd.read_csv(
+                config['source']['path'], 
+                sep=';', 
+                dtype=str, 
+                chunksize=b_size,
+                on_bad_lines='skip'
+            )
+            if b_size is None:
+                reader = [reader]
+        except Exception as e:
+            logging.error(f"❌ Erro ao abrir arquivo temporário: {e}")
+            return
 
-        if b_size is None:
-            reader = [pd.read_csv(config['source']['path'], sep=';', dtype=str)]
-
+        # 2. LOOP DE PROCESSAMENTO POR LOTE
         for i, df_raw in enumerate(reader):
-            if b_size:
-                logging.info(f"📦 Processando lote {i+1} de {config['name']}...")
+            current_batch_idx = i if b_size else -1
+            
+            # --- CHECKPOINT: Pula o lote se ele já estiver no log ---
+            if tracker.is_processed(file_url, current_batch_idx):
+                logging.info(f"⏩ Lote {current_batch_idx} já processado. Pulando...")
+                continue
 
-            # --- LÓGICA DE SWAP (Colunas trocadas no CSV) ---
-            swaps = [('cnpj_instituicao', 'nome_instituicao'), ('cnpj_fornecedor', 'fornecedor'), ('cnpj_fabricante', 'fabricante')]
+            if b_size:
+                logging.info(f"📦 Processando lote #{current_batch_idx} ({len(df_raw)} linhas)...")
+
+            # --- 3. LÓGICA DE SWAP (Correção de colunas invertidas no DataSUS) ---
+            swaps = [
+                ('cnpj_instituicao', 'nome_instituicao'), 
+                ('cnpj_fornecedor', 'fornecedor'), 
+                ('cnpj_fabricante', 'fabricante')
+            ]
             for c_cnpj, c_nome in swaps:
                 if c_cnpj in df_raw.columns and c_nome in df_raw.columns:
-                    sample = df_raw[c_cnpj].dropna().head(100)
+                    sample = df_raw[c_cnpj].dropna().head(50)
                     if not sample.empty and sample.str.contains('[A-Z]', na=False).any():
                         df_raw[c_cnpj], df_raw[c_nome] = df_raw[c_nome].values, df_raw[c_cnpj].values
 
-            # --- LIMPEZA INICIAL ---
+            # --- 4. LIMPEZA INICIAL ---
             df_clean = Sanitizer.clean_generic(df_raw)
             if "clean_numbers" in config:
-                for c in config["clean_numbers"]:
-                    if c in df_clean.columns:
-                        df_clean[c] = df_clean[c].astype(str).str.replace(r'[^0-9]', '', regex=True)
+                df_clean = Sanitizer.clean_numbers(df_clean, config["clean_numbers"])
 
-            loaded_refs = {}
+            loaded_refs = {} # Cache de IDs para este lote
 
-            # --- 3. DIMENSÕES ---
+            # --- 5. PROCESSAMENTO DE DIMENSÕES ---
             for dim in config.get("dimensions", []):
                 t_name, id_col = dim["target_table"].lower(), dim["id_col"].lower()
                 db_keys = [k.lower() for k in dim["keys"]]
                 
-                # 3.1. Mapeamento e Garantia de Colunas (reindex aqui evita KeyError)
+                # Mapeamento
                 df_mapped = Sanitizer.apply_mapping(df_clean, dim["mapping"])
                 
-                # Garante que todas as keys da dimensão existam
+                # "Vacina": Garante que as colunas de chave de busca existam
                 all_cols = list(set(db_keys + list(df_mapped.columns)))
                 df_mapped = df_mapped.reindex(columns=all_cols, fill_value="")
                 
                 cols_to_keep_in_db = list(df_mapped.columns)
 
-                # 3.2. LOOKUPS (Join entre dimensões, ex: endereco_id na instituicao)
+                # Lookups entre Dimensões (ex: endereco_id dentro da tabela instituicao)
                 if "lookups" in dim:
                     for ref_table, info in dim["lookups"].items():
                         ref_key = ref_table.lower()
                         if ref_key in loaded_refs:
                             df_lkp_src = Sanitizer.apply_mapping(df_clean, dim.get("lookup_sources", {}))
                             df_for_join = pd.concat([df_mapped, df_lkp_src], axis=1)
-                            
-                            # Remove colunas duplicadas após o concat
                             df_for_join = df_for_join.loc[:, ~df_for_join.columns.duplicated()]
                             
                             ref_df = loaded_refs[ref_key]
                             j_keys = [k.lower() for k in info["join_keys"]]
                             t_fk = info.get("target_id_col", info.get("target_fk")).lower()
                             
-                            # Vacina de Join: Garante que as chaves de busca existam
                             df_for_join = df_for_join.reindex(columns=list(set(df_for_join.columns) | set(j_keys)), fill_value="")
-                            
                             df_for_join = df_for_join.merge(ref_df[j_keys + [info["ref_pk"].lower()]], on=j_keys, how='left')
                             df_for_join.rename(columns={info["ref_pk"].lower(): t_fk}, inplace=True)
                             
                             df_mapped = df_for_join
                             cols_to_keep_in_db.append(t_fk)
 
-                # 3.3. PREPARAÇÃO E CARGA
-                # Mantemos as chaves vazias ("") para não perder registros
+                # Upsert na Dimensão
                 df_final_dim = df_mapped.drop_duplicates(subset=db_keys)
-                
-                # Seleciona apenas colunas válidas para o banco
                 final_cols = [c for c in list(set(cols_to_keep_in_db)) if c in df_final_dim.columns]
                 df_final_dim = df_final_dim[final_cols]
 
-                # Sincroniza Schema e Dados
                 self.db.ensure_table(t_name, dim["mapping"], keys=dim["keys"], lookups=dim.get("lookups"), pk_col=id_col)
                 df_sync, count = self.db.sync_dimension_full(df_final_dim, t_name, db_keys, id_col)
+                
                 self.stats[t_name] += count
                 loaded_refs[t_name] = df_sync
 
-            # --- 4. FATO ---
+            # --- 6. PROCESSAMENTO DA TABELA FATO ---
             if "fact" in config:
                 fact = config["fact"]
                 df_fact = Sanitizer.apply_mapping(df_clean, fact["mapping"])
                 
-                # Lookups na Fato (Conecta todas as FKs)
+                # Conecta as FKs das dimensões
                 for d_name, info in fact.get("lookups", {}).items():
                     d_key = d_name.lower()
                     if d_key in loaded_refs:
                         d_map = loaded_refs[d_key]
                         t_fk = info["target_id_col"].lower()
                         j_map = info.get("join_keys", {})
-                        
-                        # j_dst_cols são os nomes das colunas na Dimensão de destino
                         j_dst_cols = [k.lower() for k in j_map.values()]
                         
                         df_temp_keys = Sanitizer.apply_mapping(df_clean, j_map)
                         df_fact_with_keys = pd.concat([df_fact, df_temp_keys], axis=1)
-                        
-                        # Vacina na Fato: Garante colunas de join (ex: catmat ou logradouro vazio)
                         df_fact_with_keys = df_fact_with_keys.reindex(columns=list(set(df_fact_with_keys.columns) | set(j_dst_cols)), fill_value="")
                         
                         df_fact_with_keys = df_fact_with_keys.merge(d_map[j_dst_cols + [info["pk_dim"].lower()]], on=j_dst_cols, how='left')
                         df_fact[t_fk] = df_fact_with_keys[info["pk_dim"].lower()]
 
-                # Lógica de Preço (Cálculo automático se faltar o total)
+                # Lógica de Preço Total (Cálculo automático se vazio)
                 if 'preco_unitario' in df_fact.columns and 'quantidade_de_itens' in df_fact.columns:
                     if 'preco_total' not in df_fact.columns: df_fact['preco_total'] = 0.0
                     mask = (df_fact['preco_total'].isna()) | (df_fact['preco_total'] == 0) | (df_fact['preco_total'] == "")
-                    
-                    # Converte para float apenas para o cálculo
                     q = pd.to_numeric(df_fact.loc[mask, 'quantidade_de_itens'], errors='coerce').fillna(0)
                     p = pd.to_numeric(df_fact.loc[mask, 'preco_unitario'], errors='coerce').fillna(0)
                     df_fact.loc[mask, 'preco_total'] = q * p
 
-                # Carga Final da Fato
+                # Carga na Fato
                 self.db.ensure_table(fact["target_table"], fact["mapping"], lookups=fact.get("lookups"), pk_col=fact.get("id_col"))
                 count_fact = self.db.load_fact(df_fact, fact["target_table"])
                 self.stats[fact["target_table"]] += count_fact
-            
-            # Limpeza de memória
-            del df_raw, df_clean
+
+            # --- 7. FINALIZAÇÃO DO LOTE ---
+            tracker.mark_processed(file_url, current_batch_idx)
+            del df_raw, df_clean, loaded_refs
             gc.collect()
 
+        # --- 8. FINALIZAÇÃO DO ARQUIVO ---
+        # Só marca DONE se o loop de lotes chegar ao fim sem erros
+        tracker.mark_processed(file_url, "DONE")
+        logging.info(f"✅ Finalizado processamento completo de: {config['name']}")
+
+    def print_db_status(self, filename, clear_stats=True):
+        """Gera um relatório comparando o arquivo atual com o estado do banco."""
+        tables = [
+            "instituicao_compra_produto", "leitos", "instituicao_estoca_produto",
+            "endereco", "instituicao", "fornecedor", "fabricante", "produto"
+        ]
+        db_counts = self.db.get_table_counts(tables)
+        
+        print(f"\n" + "-"*65)
+        print(f"📄 STATUS DO BANCO APÓS: {filename}")
+        print("-"*65)
+        print(f"{'TABELA':<28} | {'INSERIDOS (ARQ)':>14} | {'TOTAL (DB)':>14}")
+        print("-"*65)
+        
+        for table in tables:
+            added = self.stats.get(table, 0)
+            total = db_counts.get(table, 0)
+            if added > 0 or total > 0:
+                print(f"{table:<28} | {added:>14,} | {total:>14,}".replace(",", "."))
+        
+        print("-"*65 + "\n")
+        if clear_stats:
+            self.stats.clear()
+       
 # ==============================================================================
 # 5. MÓDULO WEB SCRAPER
 # ==============================================================================
@@ -640,28 +701,78 @@ def import_unicodedata(s):
 class DataFetcher:
     def __init__(self, output_temp_file="temp_stage.csv"):
         self.output_temp_file = output_temp_file
+        self.base_url = "https://dadosabertos.saude.gov.br"
 
-    def fetch_page(self, url):
+    def discover_s3_links(self, dataset_slug):
+        """
+        Navega da página do Dataset para as páginas de Recursos e captura os links diretos do S3.
+        Filtra automaticamente para retornar apenas CSVs e ZIPs pertinentes.
+        """
+        dataset_url = f"{self.base_url}/dataset/{dataset_slug}"
+        logging.info(f"🔎 Explorando recursos em: {dataset_url}")
+        
         try:
-            logging.info(f"🔎 Acessando: {url}")
-            resp = requests.get(url, timeout=30)
+            resp = requests.get(dataset_url, timeout=30)
             resp.raise_for_status()
-            return soup(resp.content, "html.parser")
+            page_soup = soup(resp.content, "html.parser")
+            
+            # 1. Mapeia todas as sub-páginas de recursos (/resource/...)
+            resource_links = []
+            pattern = re.compile(rf"/dataset/{dataset_slug}/resource/")
+            for a in page_soup.find_all("a", href=pattern):
+                link = urljoin(self.base_url, a["href"])
+                if link not in resource_links:
+                    resource_links.append(link)
+            
+            logging.info(f"📂 {len(resource_links)} sub-páginas de recursos encontradas.")
+            
+            # 2. Varre cada página de recurso em busca do link real no bucket S3
+            direct_s3_links = []
+            for res_url in resource_links:
+                try:
+                    res_resp = requests.get(res_url, timeout=20)
+                    res_resp.raise_for_status()
+                    res_soup = soup(res_resp.content, "html.parser")
+                    
+                    # Procura o link que aponta para o bucket S3 do Ministério da Saúde
+                    target = res_soup.find("a", href=re.compile(r"s3\.sa-east-1\.amazonaws\.com/ckan\.saude\.gov\.br"))
+                    
+                    if target:
+                        file_url = target["href"]
+                        ext = file_url.lower()
+                        
+                        # Filtro de Formato: Aceita CSV ou ZIPs (desde que não sejam JSON/XML)
+                        if '.csv' in ext or (ext.endswith('.zip') and not any(x in ext for x in ['json', 'xml'])):
+                            if file_url not in direct_s3_links:
+                                direct_s3_links.append(file_url)
+                except Exception as e:
+                    logging.warning(f"⚠️ Erro ao acessar sub-recurso {res_url}: {e}")
+                
+                # Delay curto para respeitar o servidor
+                time.sleep(0.3)
+            
+            return direct_s3_links
+
         except Exception as e:
-            logging.error(f"❌ Erro ao acessar {url}: {e}")
-            return None
+            logging.error(f"❌ Erro crítico ao descobrir links para {dataset_slug}: {e}")
+            return []
 
     def read_and_clean_csv(self, file_bytes):
-        # Tenta detectar separador e encoding
-        possibilities = [(';', 'utf-8'), (',', 'utf-8'), (';', 'latin-1'), (',', 'latin-1'), (';', 'cp1252')]
+        """
+        Tenta detectar separador e encoding para ler o CSV corretamente.
+        """
+        possibilities = [
+            (';', 'utf-8'), (',', 'utf-8'), 
+            (';', 'latin-1'), (',', 'latin-1'), 
+            (';', 'cp1252')
+        ]
         
         for sep, enc in possibilities:
             try:
                 file_bytes.seek(0)
-                # Lê apenas header
+                # Teste rápido com as primeiras 10 linhas
                 df_test = pd.read_csv(file_bytes, sep=sep, encoding=enc, dtype=str, on_bad_lines='skip', nrows=10)
                 if len(df_test.columns) > 1:
-                    # Se deu certo, lê tudo
                     file_bytes.seek(0)
                     df = pd.read_csv(file_bytes, sep=sep, encoding=enc, dtype=str, on_bad_lines='skip')
                     logging.info(f"✅ CSV detectado: sep='{sep}', enc='{enc}', linhas={len(df)}")
@@ -671,45 +782,52 @@ class DataFetcher:
         return None
 
     def download_and_save(self, url, required_columns=None):
+        """
+        Faz o download do arquivo, trata ZIPs se necessário e salva o CSV normalizado 
+        em um arquivo temporário para o Orchestrator processar.
+        """
         logging.info(f"⬇️ Baixando: {url}")
         try:
             resp = requests.get(url, timeout=180)
+            resp.raise_for_status()
             file_obj = io.BytesIO(resp.content)
             
             df = None
             if url.lower().endswith('.zip'):
                 with zipfile.ZipFile(file_obj) as zf:
+                    # Pega o primeiro CSV que encontrar dentro do ZIP
                     csvs = [f for f in zf.namelist() if f.lower().endswith('.csv')]
                     if csvs:
                         with zf.open(csvs[0]) as zf_csv:
-                            # Carrega em memória bytes do arquivo dentro do zip
                             csv_bytes = io.BytesIO(zf_csv.read())
                             df = self.read_and_clean_csv(csv_bytes)
             else:
                 df = self.read_and_clean_csv(file_obj)
 
             if df is not None and not df.empty:
-                # Normaliza colunas
+                # Normalização de nomes de colunas (Snake Case, sem acentos)
                 df.columns = [
-                    re.sub(r'[^a-z0-9]+', '_', "".join([c for c in import_unicodedata(col_name) if not unicodedata.combining(c)]).lower()).strip('_')
+                    re.sub(r'[^a-z0-9]+', '_', 
+                           "".join([c for c in import_unicodedata(col_name) if not unicodedata.combining(c)])
+                           .lower()).strip('_')
                     for col_name in df.columns
                 ]
                 
-                # Harmoniza colunas faltantes
+                # Harmonização de colunas faltantes conforme o schema_mapping
                 if required_columns:
                     for req in required_columns:
                         if req not in df.columns and not req.startswith("lit_"):
                             df[req] = ""
 
-                # Salva em disco temporariamente para o Pandas reler limpo no Orchestrator
+                # Salva no disco para o Pandas do Orchestrator ler em chunksize
                 df.to_csv(self.output_temp_file, index=False, sep=";", encoding="utf-8")
                 return True
             else:
-                logging.warning("⚠️ Falha ao ler DataFrame ou arquivo vazio.")
+                logging.warning("⚠️ O DataFrame resultante está vazio ou não pôde ser lido.")
                 return False
 
         except Exception as e:
-            logging.error(f"❌ Erro no download/processamento: {e}")
+            logging.error(f"❌ Erro no processo de download/save: {e}")
             return False
 
 # ==============================================================================
@@ -728,7 +846,7 @@ def get_year_from_url(url):
     match = re.search(r'(\d{4})', url)
     return int(match.group(1)) if match else 0
 
-def reset_environment(engine, tracking_file="processed_files_pg.txt"):
+def reset_environment(engine, tracking_file="processed_files.txt"):
     """
     🚨 PERIGO: Apaga todas as tabelas do pipeline e o arquivo de controle.
     Use apenas em ambiente de desenvolvimento/testes.
@@ -775,60 +893,62 @@ def main():
     orchestrator = ETLEngine()
     fetcher = DataFetcher(output_temp_file="temp_stage.csv")
 
-    RESET_ON_START = True 
+    RESET_ON_START = False
 
     if RESET_ON_START:
         reset_environment(orchestrator.db.engine, tracker.tracking_file)
         tracker = ProcessTracker()
 
-    for key, url in DATASET_URLS.items():
+    for key, slug in DATASET_URLS.items():
         logging.info(f"\n{'='*50}\n🔎 Dataset: {key}\n{'='*50}")
         config = CONFIG_MAP.get(key)
         if not config: continue
 
         req_cols = extract_required_columns(config)
-        page = fetcher.fetch_page(url)
-        if not page: continue
+        
+        # Em vez de fetch_page + soup.find_all, chamamos o descobridor de links direto
+        valid_urls = fetcher.discover_s3_links(slug)
+        # ---------------------------
 
-        resources = page.find_all("li", class_="resource-item")
-        valid_urls = []
-        for res in resources:
-            link = res.find("a", class_="resource-url-analytics")
-            if not link: continue
-            file_url = link['href']
-            
-            # --- FIX: Filtro mais abrangente ---
-            # Aceita se tiver .csv no nome OU se terminar em .zip
-            ext = file_url.lower()
-            if '.csv' in ext or (ext.endswith('.zip') and not ('json' in ext or 'xml' in ext)):
-                full_url = urljoin(url, file_url)
-                valid_urls.append(full_url)
-            # -----------------------------------
-
-        # Ordena tentativa de processamento cronológico
+        # Ordena cronologicamente (do mais antigo para o mais novo)
         valid_urls.sort(key=lambda x: get_year_from_url(x), reverse=False)
 
+        #if valid_urls:
+        #    valid_urls = valid_urls[:5] 
+        #    logging.info(f"⚠️ Limitação ativa: processando apenas o arquivo {os.path.basename(valid_urls[0])}")
+        # ---------------------------------
+        
         if not valid_urls:
             logging.warning(f"⚠️ Nenhum arquivo compatível (CSV/ZIP) encontrado para {key}")
 
-        for file_url in valid_urls:           
-            if tracker.is_processed(file_url):
-                print(f"⏩ Pulando: {os.path.basename(file_url)}")
+        for file_url in valid_urls:
+            filename = os.path.basename(file_url)
+            
+            # Checkpoint: Pula o download se o arquivo já estiver marcado como DONE
+            if tracker.is_processed(file_url, "DONE"):
+                print(f"⏩ Pulando (Arquivo já processado): {filename}")
                 continue
 
+            # Faz o download e prepara o CSV temporário
             success = fetcher.download_and_save(file_url, required_columns=req_cols)
+            
             if success:
                 try:
                     config['source']['path'] = "temp_stage.csv"
-                    orchestrator.run(config)
-                    tracker.mark_processed(file_url)
+                    # Roda o motor de ETL (Sanitização -> Dimensões -> Fato)
+                    orchestrator.run(config, file_url, tracker)
+                    orchestrator.print_db_status(filename)
+                    logging.info(f"✅ Processamento finalizado para: {filename}")
                 except Exception as e:
-                    logging.error(f"🔥 Erro no ETL: {e}")
-                
-                if os.path.exists("temp_stage.csv"): os.remove("temp_stage.csv")
+                    logging.error(f"🔥 Erro crítico no ETL ao processar {filename}: {e}")
+                finally:
+                    if os.path.exists("temp_stage.csv"): 
+                        os.remove("temp_stage.csv")
+            else:
+                logging.error(f"❌ Falha ao baixar ou extrair dados de: {file_url}")
             
             gc.collect()
-            time.sleep(1)
+            time.sleep(1) # Respiro para o banco e I/O
 
     # --- RELATÓRIO FINAL ---
     print("\n" + "="*40)
