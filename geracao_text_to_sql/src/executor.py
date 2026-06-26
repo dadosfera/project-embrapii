@@ -3,15 +3,25 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import create_engine
 from sqlalchemy import text
 import pandas as pd
+import threading
 import os
 
 class sqlExecutor():
 
-    def __init__(self, db_config):
+    def __init__(self, db_config=None):
+        self.engine = None
+        self.SGBD = None
+        self.db_uri = None
+
+        if db_config is not None:
+            self._set_database(db_config)
+    
+    def connect(self, db_config):
         self._set_database(db_config)
-        
-        
-    def execute_query(self, sql_query, t=None):
+
+    def execute_query_BKP(self, sql_query, t=None):
+        if self.engine is None:
+            return "Erro: Nenhum banco de dados conectado."
         try:
             with self.engine.connect() as connection:
                 
@@ -28,6 +38,114 @@ class sqlExecutor():
             return f"Erro de Banco de Dados: {e}"
         except Exception as e:
             return f"Erro genérico: {e}"
+
+    def execute_query_bkp2(self, sql_query, t=None):
+        if self.engine is None:
+            return "Erro: Nenhum banco de dados conectado."
+        try:
+            with self.engine.connect() as connection:
+                
+                if t is not None and self.SGBD == 'postgresql':
+                    timeout_ms = int(t * 1000)
+                    connection.execute(text(f"SET statement_timeout = {timeout_ms}"))
+                
+                result = connection.execute(sql_query)
+                df = pd.DataFrame(result.fetchall(), columns=result.keys())
+                return df
+                
+        except SQLAlchemyError as e:
+            if "statement timeout" in str(e).lower():
+                return f"Erro: A query excedeu o tempo limite de {t} segundos."
+            return f"Erro de Banco de Dados: {e}"
+        except Exception as e:
+            return f"Erro genérico: {e}"
+
+    def execute_query_bkp_bkp(self, sql_query, t=None):
+        if self.engine is None:
+            return "Erro: Nenhum banco de dados conectado."
+        
+        result_container = {"df": None, "error": None}
+
+        def run_query():
+            try:
+                with self.engine.connect() as connection:
+                    
+                    if t is not None and self.SGBD == 'postgresql':
+                        timeout_ms = int(t * 1000)
+                        connection.execute(text(f"SET statement_timeout = {timeout_ms}"))
+                    
+                    result = connection.execute(sql_query)
+                    df = pd.DataFrame(result.fetchall(), columns=result.keys())
+                    result_container["df"] = df
+
+            except SQLAlchemyError as e:
+                if "statement timeout" in str(e).lower():
+                    result_container["error"] = f"Erro: A query excedeu o tempo limite de {t} segundos."
+                else:
+                    result_container["error"] = f"Erro de Banco de Dados: {e}"
+            except Exception as e:
+                result_container["error"] = f"Erro genérico: {e}"
+
+        thread = threading.Thread(target=run_query)
+        thread.daemon = True  # morre junto com o processo principal
+        thread.start()
+        thread.join(timeout=t)  # espera no máximo t segundos
+
+        if thread.is_alive():
+            # thread ainda rodando = timeout estourou
+            return f"Erro: A query excedeu o tempo limite de {t} segundos."
+
+        if result_container["error"] is not None:
+            return result_container["error"]
+
+        return result_container["df"]
+
+    def execute_query(self, sql_query, t=60, max_rows=10000):
+        if self.engine is None:
+            return "Erro: Nenhum banco de dados conectado."
+
+        result_container = {"df": None, "error": None}
+        raw_conn_container = {"conn": None}
+
+        def run_query():
+            try:
+                with self.engine.connect() as connection:
+                    raw_conn_container["conn"] = connection.connection.dbapi_connection
+
+                    if self.SGBD == 'postgresql':
+                        timeout_ms = int((t or 60) * 1000)
+                        connection.execute(text(f"SET statement_timeout = {timeout_ms}"))
+
+                    result = connection.execute(sql_query)
+                    
+                    # Busca só as primeiras max_rows linhas
+                    rows = result.fetchmany(max_rows)
+                    df = pd.DataFrame(rows, columns=result.keys())
+                    result_container["df"] = df
+
+            except Exception as e:
+                result_container["error"] = f"Erro: {e}"
+
+        thread = threading.Thread(target=run_query)
+        thread.daemon = True
+        thread.start()
+        thread.join(timeout=t)
+
+        if thread.is_alive():
+            try:
+                raw_conn = raw_conn_container.get("conn")
+                if raw_conn and self.SGBD == "sqlite":
+                    raw_conn.interrupt()
+                elif raw_conn and self.SGBD == "postgresql":
+                    raw_conn.cancel()
+            except Exception:
+                pass
+            return f"Erro: A query excedeu o tempo limite de {t} segundos."
+
+        if result_container["error"] is not None:
+            return result_container["error"]
+
+        return result_container["df"]
 
     def evaluate_sql(self, generated_sql, gold_standard_sql):
         
@@ -48,26 +166,26 @@ class sqlExecutor():
 
     def _compare_dataframes(self, df1, df2):
         
-        # 1. Verificação de dimensões (Linhas e Colunas)
+        # Verificação de dimensões (Linhas e Colunas)
         if df1 is None or df2 is None:
             return df1 is df2
         
         if df1.shape != df2.shape:
             return False
 
-        # 2. Normalização de Metadados
+        # Normalização de Metadados
         d1 = df1.copy()
         d2 = df2.copy()
         
-        # Resetamos os nomes das colunas para 0, 1, 2... 
+        # Resetar os nomes das colunas
         d1.columns = range(d1.shape[1])
         d2.columns = range(d2.shape[1])
         
-        # Resetamos o índice para garantir que a comparação não falhe por labels de index
+        # Resetar os índices
         d1.reset_index(drop=True, inplace=True)
         d2.reset_index(drop=True, inplace=True)
 
-        # 3. Comparação de Valores
+        # Comparação de Valores
         try:
             # Verifica se os valores são idênticos na mesma posição
             return d1.equals(d2)
@@ -81,10 +199,15 @@ class sqlExecutor():
         elif db_config['SGBD'] == 'postgresql':
             self._set_database_postgresql(user=db_config['user'], password=db_config['password'], host=db_config['host'], port=db_config['port'], db_name=db_config['db_name'])
 
-    def _set_database_sqlite(self, db_path):
+    def _set_database_sqlite(self, db_path: str):
+        self.db_uri = f"sqlite:///{os.path.abspath(db_path)}"
+        self.engine = create_engine(self.db_uri)
+
+    def _set_database_sqlite_BKP(self, db_path):
         self.db_uri = f"sqlite:///{os.path.abspath(db_path)}"
         self.db = SQLDatabase.from_uri(self.db_uri) # Usado para pegar o schema
         self.db_schema = self.db.get_table_info()
+        self.engine = create_engine(self.db_uri)
 
     def _set_database_postgresql(self, user="datalake_user", password="senha123", host="localhost", port="5433", db_name="datalake_db"):
 

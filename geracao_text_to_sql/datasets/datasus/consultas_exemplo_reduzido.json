@@ -1,0 +1,458 @@
+[
+    {
+    "dataset_id": "datasus",
+    "question": "Quais são as 10 mantenedoras que mais gastaram em compras durante 2024? Mostre o id da mantenedora e o total gasto no ano.",
+    "difficulty": "simple",
+    "query_patterns": [
+      "aggregation",
+      "dialect_function",
+      "filter",
+      "ordering",
+      "select"
+    ],
+    "tables": [
+      "mantenedora_compra_produto"
+    ],
+    "id": "21fbd988-898d-4984-8ddc-46e9cb7c7c5a",
+    "parent_id": null,
+    "evidence": null,
+    "sql": "SELECT mantenedora_id, SUM(preco_total) AS total_gasto_2024 FROM mantenedora_compra_produto WHERE data_de_compra >= '2024-01-01' AND data_de_compra < '2025-01-01' AND preco_total IS NOT NULL GROUP BY mantenedora_id ORDER BY total_gasto_2024 DESC, mantenedora_id LIMIT 10;",
+    "persona": {
+      "role": "Cidadã Leiga",
+      "description": "Usuária leiga, sem formação técnica em saúde ou dados. Faz perguntas em linguagem cotidiana, utiliza termos informais e desconhece siglas e classificações técnicas. Busca respostas simples e diretas sobre medicamentos e hospitais em sua região."
+    }
+  },
+  {
+    "dataset_id": "datasus",
+    "question": "Retorne as 10 mantenedoras com maior soma de preco_total em compras no período de 2024 (data_de_compra >= '2024-01-01' e < '2025-01-01'), excluindo registros com preco_total nulo; informe mantenedora_id e total_gasto_2024, ordenado por total_gasto_2024 decrescente e por mantenedora_id como critério de desempate.",
+    "difficulty": "simple",
+    "query_patterns": [
+      "aggregation",
+      "dialect_function",
+      "filter",
+      "ordering",
+      "select"
+    ],
+    "tables": [
+      "mantenedora_compra_produto"
+    ],
+    "id": "5d569498-86c4-4b2b-8756-363075cd5d86",
+    "parent_id": null,
+    "evidence": null,
+    "sql": "SELECT mantenedora_id, SUM(preco_total) AS total_gasto_2024 FROM mantenedora_compra_produto WHERE data_de_compra >= '2024-01-01' AND data_de_compra < '2025-01-01' AND preco_total IS NOT NULL GROUP BY mantenedora_id ORDER BY total_gasto_2024 DESC, mantenedora_id LIMIT 10;",
+    "persona": {
+      "role": "Analista de Dados em Saúde",
+      "description": "Profissional com domínio de SQL e dos principais datasets do schema. Formula análises comparativas e temporais com terminologia técnica adequada e considera as limitações e lacunas dos dados disponíveis."
+    }
+  },
+  {
+    "dataset_id": "datasus",
+    "question": "Mostre as top 10 mantenedoras por gasto total em compras realizadas em 2024, indicando o id da mantenedora e o total gasto no ano.",
+    "difficulty": "simple",
+    "query_patterns": [
+      "aggregation",
+      "dialect_function",
+      "filter",
+      "ordering",
+      "select"
+    ],
+    "tables": [
+      "mantenedora_compra_produto"
+    ],
+    "id": "8919ad9c-4b36-4703-b59b-5b96caffd4de",
+    "parent_id": null,
+    "evidence": null,
+    "sql": "SELECT mantenedora_id, SUM(preco_total) AS total_gasto_2024 FROM mantenedora_compra_produto WHERE data_de_compra >= '2024-01-01' AND data_de_compra < '2025-01-01' AND preco_total IS NOT NULL GROUP BY mantenedora_id ORDER BY total_gasto_2024 DESC, mantenedora_id LIMIT 10;",
+    "persona": {
+      "role": "Médico Gestor Hospitalar",
+      "description": "Médico gestor hospitalar que faz perguntas estratégicas sobre estoques, preços e capacidade assistencial, utilizando terminologia do SUS, mas sem conhecimento técnico em banco de dados."
+    }
+  },
+  {
+    "dataset_id": "datasus",
+    "question": "Me mostre as 10 instituições com mais leitos gerais, informando só o ID da instituição e a quantidade de leitos (considerando apenas registros com número de leitos informado).",
+    "difficulty": "simple",
+    "query_patterns": [
+      "filter",
+      "ordering",
+      "select"
+    ],
+    "tables": [
+      "mv_leitos_mais_recente"
+    ],
+    "id": "882c9e39-ed40-43e2-b416-3cf32389cdc1",
+    "parent_id": null,
+    "evidence": null,
+    "sql": "SELECT instituicao_id, quantidade_leitos_gerais FROM mv_leitos_mais_recente WHERE quantidade_leitos_gerais IS NOT NULL ORDER BY quantidade_leitos_gerais DESC, instituicao_id LIMIT 10;",
+    "persona": {
+      "role": "Cidadã Leiga",
+      "description": "Usuária leiga, sem formação técnica em saúde ou dados. Faz perguntas em linguagem cotidiana, utiliza termos informais e desconhece siglas e classificações técnicas. Busca respostas simples e diretas sobre medicamentos e hospitais em sua região."
+    }
+  },
+  {
+    "dataset_id": "datasus",
+    "question": "Retorne os top 10 por quantidade_leitos_gerais da mv_leitos_mais_recente, projetando apenas instituicao_id e quantidade_leitos_gerais, excluindo registros com quantidade_leitos_gerais nula; ordenar por quantidade_leitos_gerais DESC e instituicao_id.",
+    "difficulty": "simple",
+    "query_patterns": [
+      "filter",
+      "ordering",
+      "select"
+    ],
+    "tables": [
+      "mv_leitos_mais_recente"
+    ],
+    "id": "61b48694-4828-4afd-ade1-80a0e10548d9",
+    "parent_id": null,
+    "evidence": null,
+    "sql": "SELECT instituicao_id, quantidade_leitos_gerais FROM mv_leitos_mais_recente WHERE quantidade_leitos_gerais IS NOT NULL ORDER BY quantidade_leitos_gerais DESC, instituicao_id LIMIT 10;",
+    "persona": {
+      "role": "Analista de Dados em Saúde",
+      "description": "Profissional com domínio de SQL e dos principais datasets do schema. Formula análises comparativas e temporais com terminologia técnica adequada e considera as limitações e lacunas dos dados disponíveis."
+    }
+  },
+  {
+    "dataset_id": "datasus",
+    "question": "Quais são as 10 instituições com maior número de leitos gerais na posição mais recente, exibindo apenas o identificador da instituição e a quantidade de leitos, excluindo entradas sem informação de leitos?",
+    "difficulty": "simple",
+    "query_patterns": [
+      "filter",
+      "ordering",
+      "select"
+    ],
+    "tables": [
+      "mv_leitos_mais_recente"
+    ],
+    "id": "085dfaa3-7c05-4084-976a-3c843f6aeaee",
+    "parent_id": null,
+    "evidence": null,
+    "sql": "SELECT instituicao_id, quantidade_leitos_gerais FROM mv_leitos_mais_recente WHERE quantidade_leitos_gerais IS NOT NULL ORDER BY quantidade_leitos_gerais DESC, instituicao_id LIMIT 10;",
+    "persona": {
+      "role": "Médico Gestor Hospitalar",
+      "description": "Médico gestor hospitalar que faz perguntas estratégicas sobre estoques, preços e capacidade assistencial, utilizando terminologia do SUS, mas sem conhecimento técnico em banco de dados."
+    }
+  },
+  {
+    "dataset_id": "datasus",
+    "question": "Quais são as 10 mantenedoras que mais gastaram em compras no ano de 2023? Mostre o ID da mantenedora, o nome, o total gasto, o preço unitário médio e quantos fornecedores diferentes venderam para cada uma.",
+    "difficulty": "medium",
+    "query_patterns": [
+      "aggregation",
+      "dialect_function",
+      "filter",
+      "join",
+      "ordering",
+      "select"
+    ],
+    "tables": [
+      "mantenedora",
+      "mantenedora_compra_produto"
+    ],
+    "id": "cd5970b3-bcf0-4d27-9533-303c8f1e174b",
+    "parent_id": null,
+    "evidence": null,
+    "sql": "SELECT m.mantenedora_id, m.nome_mantenedora, SUM(mc.preco_total) AS total_gasto, AVG(mc.preco_unitario) AS preco_unitario_medio, COUNT(DISTINCT mc.fornecedor_id) AS fornecedores_distintos FROM mantenedora_compra_produto mc JOIN mantenedora m ON m.mantenedora_id = mc.mantenedora_id WHERE mc.data_de_compra >= DATE '2023-01-01' AND mc.data_de_compra <= DATE '2023-12-31' AND mc.preco_total IS NOT NULL GROUP BY m.mantenedora_id, m.nome_mantenedora ORDER BY total_gasto DESC, m.mantenedora_id ASC LIMIT 10;",
+    "persona": {
+      "role": "Cidadã Leiga",
+      "description": "Usuária leiga, sem formação técnica em saúde ou dados. Faz perguntas em linguagem cotidiana, utiliza termos informais e desconhece siglas e classificações técnicas. Busca respostas simples e diretas sobre medicamentos e hospitais em sua região."
+    }
+  },
+  {
+    "dataset_id": "datasus",
+    "question": "Retorne as top 10 mantenedoras por gasto total em compras entre 2023-01-01 e 2023-12-31; para cada mantenedora inclua mantenedora_id, nome_mantenedora, total_gasto, preco_unitario_medio e número de fornecedores distintos. Excluir registros com preco_total nulo e ordenar por total_gasto desc, mantendo desempate por mantenedora_id asc.",
+    "difficulty": "medium",
+    "query_patterns": [
+      "aggregation",
+      "dialect_function",
+      "filter",
+      "join",
+      "ordering",
+      "select"
+    ],
+    "tables": [
+      "mantenedora",
+      "mantenedora_compra_produto"
+    ],
+    "id": "04e125d3-faaa-4e36-9a76-099c9e8fa7e3",
+    "parent_id": null,
+    "evidence": null,
+    "sql": "SELECT m.mantenedora_id, m.nome_mantenedora, SUM(mc.preco_total) AS total_gasto, AVG(mc.preco_unitario) AS preco_unitario_medio, COUNT(DISTINCT mc.fornecedor_id) AS fornecedores_distintos FROM mantenedora_compra_produto mc JOIN mantenedora m ON m.mantenedora_id = mc.mantenedora_id WHERE mc.data_de_compra >= DATE '2023-01-01' AND mc.data_de_compra <= DATE '2023-12-31' AND mc.preco_total IS NOT NULL GROUP BY m.mantenedora_id, m.nome_mantenedora ORDER BY total_gasto DESC, m.mantenedora_id ASC LIMIT 10;",
+    "persona": {
+      "role": "Analista de Dados em Saúde",
+      "description": "Profissional com domínio de SQL e dos principais datasets do schema. Formula análises comparativas e temporais com terminologia técnica adequada e considera as limitações e lacunas dos dados disponíveis."
+    }
+  },
+  {
+    "dataset_id": "datasus",
+    "question": "Preciso das 10 mantenedoras que mais gastaram nas aquisições durante 2023, indicando o identificador e o nome da mantenedora, o gasto total no ano, o preço unitário médio e o número de fornecedores distintos que lhes venderam no período.",
+    "difficulty": "medium",
+    "query_patterns": [
+      "aggregation",
+      "dialect_function",
+      "filter",
+      "join",
+      "ordering",
+      "select"
+    ],
+    "tables": [
+      "mantenedora",
+      "mantenedora_compra_produto"
+    ],
+    "id": "e227119b-11b0-4bd6-a2fb-5dcd957a928a",
+    "parent_id": null,
+    "evidence": null,
+    "sql": "SELECT m.mantenedora_id, m.nome_mantenedora, SUM(mc.preco_total) AS total_gasto, AVG(mc.preco_unitario) AS preco_unitario_medio, COUNT(DISTINCT mc.fornecedor_id) AS fornecedores_distintos FROM mantenedora_compra_produto mc JOIN mantenedora m ON m.mantenedora_id = mc.mantenedora_id WHERE mc.data_de_compra >= DATE '2023-01-01' AND mc.data_de_compra <= DATE '2023-12-31' AND mc.preco_total IS NOT NULL GROUP BY m.mantenedora_id, m.nome_mantenedora ORDER BY total_gasto DESC, m.mantenedora_id ASC LIMIT 10;",
+    "persona": {
+      "role": "Médico Gestor Hospitalar",
+      "description": "Médico gestor hospitalar que faz perguntas estratégicas sobre estoques, preços e capacidade assistencial, utilizando terminologia do SUS, mas sem conhecimento técnico em banco de dados."
+    }
+  },
+  {
+    "dataset_id": "datasus",
+    "question": "Quais municípios do estado de SP têm instituições de saúde (hospitais, postos, etc.) sem coordenadas geográficas (falta latitude ou longitude)? Quantas instituições em cada município? Traga até 50 municípios, ordenados pelos que têm mais instituições sem coordenadas.",
+    "difficulty": "medium",
+    "query_patterns": [
+      "aggregation",
+      "dialect_function",
+      "filter",
+      "join",
+      "ordering",
+      "select"
+    ],
+    "tables": [
+      "instituicao",
+      "v_endereco_completo"
+    ],
+    "id": "7f0f4ba0-7d59-4532-84da-cc702cafcdec",
+    "parent_id": null,
+    "evidence": null,
+    "sql": "SELECT v.municipio, v.codigo_do_municipio, COUNT(i.instituicao_id) AS instituicoes_sem_coordenadas FROM instituicao i JOIN v_endereco_completo v ON i.endereco_id = v.endereco_id WHERE (v.latitude IS NULL OR v.longitude IS NULL) AND v.sigla_unidade_federativa = 'SP' GROUP BY v.municipio, v.codigo_do_municipio HAVING COUNT(i.instituicao_id) > 0 ORDER BY instituicoes_sem_coordenadas DESC, v.codigo_do_municipio LIMIT 50;",
+    "persona": {
+      "role": "Cidadã Leiga",
+      "description": "Usuária leiga, sem formação técnica em saúde ou dados. Faz perguntas em linguagem cotidiana, utiliza termos informais e desconhece siglas e classificações técnicas. Busca respostas simples e diretas sobre medicamentos e hospitais em sua região."
+    }
+  },
+  {
+    "dataset_id": "datasus",
+    "question": "Para o estado 'SP', liste o nome do município e o código do município junto com a contagem de instituições cuja latitude OU longitude é nula; agrupe por município e código, inclua apenas municípios com contagem > 0, ordene por contagem decrescente e por código do município, limitando a 50 registros.",
+    "difficulty": "medium",
+    "query_patterns": [
+      "aggregation",
+      "dialect_function",
+      "filter",
+      "join",
+      "ordering",
+      "select"
+    ],
+    "tables": [
+      "instituicao",
+      "v_endereco_completo"
+    ],
+    "id": "ee1045fb-aa50-44a1-9392-d7ae59f3ae47",
+    "parent_id": null,
+    "evidence": null,
+    "sql": "SELECT v.municipio, v.codigo_do_municipio, COUNT(i.instituicao_id) AS instituicoes_sem_coordenadas FROM instituicao i JOIN v_endereco_completo v ON i.endereco_id = v.endereco_id WHERE (v.latitude IS NULL OR v.longitude IS NULL) AND v.sigla_unidade_federativa = 'SP' GROUP BY v.municipio, v.codigo_do_municipio HAVING COUNT(i.instituicao_id) > 0 ORDER BY instituicoes_sem_coordenadas DESC, v.codigo_do_municipio LIMIT 50;",
+    "persona": {
+      "role": "Analista de Dados em Saúde",
+      "description": "Profissional com domínio de SQL e dos principais datasets do schema. Formula análises comparativas e temporais com terminologia técnica adequada e considera as limitações e lacunas dos dados disponíveis."
+    }
+  },
+  {
+    "dataset_id": "datasus",
+    "question": "No estado de São Paulo, informe por município (nome e código) quantas instituições de saúde possuem coordenadas geográficas incompletas (latitude ou longitude ausente). Ordene pelas cidades com maior número dessas instituições e retorne as 50 primeiras.",
+    "difficulty": "medium",
+    "query_patterns": [
+      "aggregation",
+      "dialect_function",
+      "filter",
+      "join",
+      "ordering",
+      "select"
+    ],
+    "tables": [
+      "instituicao",
+      "v_endereco_completo"
+    ],
+    "id": "6cce2f8d-4614-4fb4-91fa-3855185c1d3c",
+    "parent_id": null,
+    "evidence": null,
+    "sql": "SELECT v.municipio, v.codigo_do_municipio, COUNT(i.instituicao_id) AS instituicoes_sem_coordenadas FROM instituicao i JOIN v_endereco_completo v ON i.endereco_id = v.endereco_id WHERE (v.latitude IS NULL OR v.longitude IS NULL) AND v.sigla_unidade_federativa = 'SP' GROUP BY v.municipio, v.codigo_do_municipio HAVING COUNT(i.instituicao_id) > 0 ORDER BY instituicoes_sem_coordenadas DESC, v.codigo_do_municipio LIMIT 50;",
+    "persona": {
+      "role": "Médico Gestor Hospitalar",
+      "description": "Médico gestor hospitalar que faz perguntas estratégicas sobre estoques, preços e capacidade assistencial, utilizando terminologia do SUS, mas sem conhecimento técnico em banco de dados."
+    }
+  },
+  {
+    "dataset_id": "datasus",
+    "question": "Quais são as 5 mantenedoras que mais mudaram seus gastos com produtos da categoria 1 no último ano em comparação com o ano anterior? Quero ver o nome da mantenedora, o ano, quanto gastaram no ano, quanto gastaram no ano anterior e a variação percentual.",
+    "difficulty": "hard",
+    "query_patterns": [
+      "aggregation",
+      "dialect_function",
+      "filter",
+      "join",
+      "ordering",
+      "select"
+    ],
+    "tables": [
+      "gastos_anuais",
+      "gastos_com_lag",
+      "mantenedora",
+      "mantenedora_compra_produto",
+      "produto"
+    ],
+    "id": "e8e05b68-7d14-4935-ad3b-646990feae92",
+    "parent_id": null,
+    "evidence": null,
+    "sql": "WITH gastos_anuais AS ( SELECT mcp.mantenedora_id, EXTRACT(YEAR FROM mcp.data_de_compra)::int AS ano, SUM(mcp.preco_total) AS total_gasto FROM mantenedora_compra_produto mcp JOIN produto p ON p.produto_id = mcp.produto_id WHERE p.catmat_id = 1 AND mcp.preco_total IS NOT NULL GROUP BY mcp.mantenedora_id, ano ), gastos_com_lag AS ( SELECT ga.*, LAG(ga.total_gasto) OVER (PARTITION BY ga.mantenedora_id ORDER BY ga.ano) AS gasto_ano_anterior FROM gastos_anuais ga ) SELECT g.mantenedora_id, mn.nome_mantenedora, g.ano, g.total_gasto, g.gasto_ano_anterior, CASE WHEN g.gasto_ano_anterior IS NULL THEN NULL WHEN g.gasto_ano_anterior = 0 THEN NULL ELSE (g.total_gasto - g.gasto_ano_anterior) / g.gasto_ano_anterior * 100 END AS pct_variacao FROM gastos_com_lag g LEFT JOIN mantenedora mn ON mn.mantenedora_id = g.mantenedora_id WHERE g.ano >= EXTRACT(YEAR FROM CURRENT_DATE) - 1 ORDER BY pct_variacao DESC NULLS LAST, g.mantenedora_id LIMIT 5;",
+    "persona": {
+      "role": "Cidadã Leiga",
+      "description": "Usuária leiga, sem formação técnica em saúde ou dados. Faz perguntas em linguagem cotidiana, utiliza termos informais e desconhece siglas e classificações técnicas. Busca respostas simples e diretas sobre medicamentos e hospitais em sua região."
+    }
+  },
+  {
+    "dataset_id": "datasus",
+    "question": "Liste as 5 mantenedoras com maior variação percentual ano a ano no total gasto com produtos (catmat_id = 1), considerando o último ano (ano >= EXTRACT(YEAR FROM CURRENT_DATE) - 1). Retorne mantenedora_id, nome_mantenedora, ano, total_gasto, gasto_ano_anterior e pct_variacao; ordene por pct_variacao desc (NULLs last) e limite 5.",
+    "difficulty": "hard",
+    "query_patterns": [
+      "aggregation",
+      "dialect_function",
+      "filter",
+      "join",
+      "ordering",
+      "select"
+    ],
+    "tables": [
+      "gastos_anuais",
+      "gastos_com_lag",
+      "mantenedora",
+      "mantenedora_compra_produto",
+      "produto"
+    ],
+    "id": "bcac108c-e7b6-4afa-bb81-77872dd0fa22",
+    "parent_id": null,
+    "evidence": null,
+    "sql": "WITH gastos_anuais AS ( SELECT mcp.mantenedora_id, EXTRACT(YEAR FROM mcp.data_de_compra)::int AS ano, SUM(mcp.preco_total) AS total_gasto FROM mantenedora_compra_produto mcp JOIN produto p ON p.produto_id = mcp.produto_id WHERE p.catmat_id = 1 AND mcp.preco_total IS NOT NULL GROUP BY mcp.mantenedora_id, ano ), gastos_com_lag AS ( SELECT ga.*, LAG(ga.total_gasto) OVER (PARTITION BY ga.mantenedora_id ORDER BY ga.ano) AS gasto_ano_anterior FROM gastos_anuais ga ) SELECT g.mantenedora_id, mn.nome_mantenedora, g.ano, g.total_gasto, g.gasto_ano_anterior, CASE WHEN g.gasto_ano_anterior IS NULL THEN NULL WHEN g.gasto_ano_anterior = 0 THEN NULL ELSE (g.total_gasto - g.gasto_ano_anterior) / g.gasto_ano_anterior * 100 END AS pct_variacao FROM gastos_com_lag g LEFT JOIN mantenedora mn ON mn.mantenedora_id = g.mantenedora_id WHERE g.ano >= EXTRACT(YEAR FROM CURRENT_DATE) - 1 ORDER BY pct_variacao DESC NULLS LAST, g.mantenedora_id LIMIT 5;",
+    "persona": {
+      "role": "Analista de Dados em Saúde",
+      "description": "Profissional com domínio de SQL e dos principais datasets do schema. Formula análises comparativas e temporais com terminologia técnica adequada e considera as limitações e lacunas dos dados disponíveis."
+    }
+  },
+  {
+    "dataset_id": "datasus",
+    "question": "Para insumos da categoria 1 (catmat_id = 1), mostre as cinco mantenedoras com maior variação percentual no gasto anual no último ano em relação ao ano anterior. Inclua o identificador e nome da mantenedora, o ano, o total gasto no ano, o gasto do ano anterior e a porcentagem de variação.",
+    "difficulty": "hard",
+    "query_patterns": [
+      "aggregation",
+      "dialect_function",
+      "filter",
+      "join",
+      "ordering",
+      "select"
+    ],
+    "tables": [
+      "gastos_anuais",
+      "gastos_com_lag",
+      "mantenedora",
+      "mantenedora_compra_produto",
+      "produto"
+    ],
+    "id": "468cd158-8c74-4d9d-8af3-9ad1f5143acb",
+    "parent_id": null,
+    "evidence": null,
+    "sql": "WITH gastos_anuais AS ( SELECT mcp.mantenedora_id, EXTRACT(YEAR FROM mcp.data_de_compra)::int AS ano, SUM(mcp.preco_total) AS total_gasto FROM mantenedora_compra_produto mcp JOIN produto p ON p.produto_id = mcp.produto_id WHERE p.catmat_id = 1 AND mcp.preco_total IS NOT NULL GROUP BY mcp.mantenedora_id, ano ), gastos_com_lag AS ( SELECT ga.*, LAG(ga.total_gasto) OVER (PARTITION BY ga.mantenedora_id ORDER BY ga.ano) AS gasto_ano_anterior FROM gastos_anuais ga ) SELECT g.mantenedora_id, mn.nome_mantenedora, g.ano, g.total_gasto, g.gasto_ano_anterior, CASE WHEN g.gasto_ano_anterior IS NULL THEN NULL WHEN g.gasto_ano_anterior = 0 THEN NULL ELSE (g.total_gasto - g.gasto_ano_anterior) / g.gasto_ano_anterior * 100 END AS pct_variacao FROM gastos_com_lag g LEFT JOIN mantenedora mn ON mn.mantenedora_id = g.mantenedora_id WHERE g.ano >= EXTRACT(YEAR FROM CURRENT_DATE) - 1 ORDER BY pct_variacao DESC NULLS LAST, g.mantenedora_id LIMIT 5;",
+    "persona": {
+      "role": "Médico Gestor Hospitalar",
+      "description": "Médico gestor hospitalar que faz perguntas estratégicas sobre estoques, preços e capacidade assistencial, utilizando terminologia do SUS, mas sem conhecimento técnico em banco de dados."
+    }
+  },
+  {
+    "dataset_id": "datasus",
+    "question": "Nos últimos 2 anos, mostre uma lista (até 50) das mantenedoras que mais gastaram: para cada mantenedora, quanto foi o gasto total, quantos itens foram comprados no total, qual o preço médio por item, quantos fornecedores e quantos fabricantes diferentes foram usados, e quais os 3 produtos que mais concentraram o gasto (mostrar a descrição do produto e o valor gasto em R$ com duas casas decimais). Ordene pelas que mais gastaram.",
+    "difficulty": "hard",
+    "query_patterns": [
+      "aggregation",
+      "dialect_function",
+      "filter",
+      "join",
+      "ordering",
+      "select"
+    ],
+    "tables": [
+      "compras_produto",
+      "mantenedora",
+      "mantenedora_compra_produto",
+      "mantenedora_metrics",
+      "prod_rank",
+      "produto",
+      "top3_produtos"
+    ],
+    "id": "fed0996d-5d8c-43d6-96d2-130928420832",
+    "parent_id": null,
+    "evidence": null,
+    "sql": "WITH compras_produto AS ( SELECT mcp.mantenedora_id, mcp.produto_id, SUM(COALESCE(mcp.preco_total, 0)) AS total_spent, SUM(COALESCE(mcp.quantidade_de_itens, 0)) AS total_qty FROM mantenedora_compra_produto mcp WHERE mcp.data_de_compra >= CURRENT_DATE - INTERVAL '2 years' GROUP BY mcp.mantenedora_id, mcp.produto_id ), prod_rank AS ( SELECT cp.*, ROW_NUMBER() OVER (PARTITION BY cp.mantenedora_id ORDER BY cp.total_spent DESC) AS produto_rank FROM compras_produto cp ), top3_produtos AS ( SELECT pr.mantenedora_id, string_agg( format('%s (R$ %s)', COALESCE(p.generico, p.anvisa, p.codigo_catmat, 'SEM_DESCRICAO'), to_char(pr.total_spent, 'FM999999990.00')), '; ' ORDER BY pr.produto_rank ) AS top_produtos_por_gasto, SUM(pr.total_spent) AS gasto_top3 FROM prod_rank pr JOIN produto p ON p.produto_id = pr.produto_id WHERE pr.produto_rank <= 3 GROUP BY pr.mantenedora_id ), mantenedora_metrics AS ( SELECT m.mantenedora_id, m.nome_mantenedora, SUM(COALESCE(mcp.preco_total, 0)) AS total_gasto, SUM(COALESCE(mcp.quantidade_de_itens, 0)) AS quantidade_total, CASE WHEN SUM(COALESCE(mcp.quantidade_de_itens, 0)) = 0 THEN NULL ELSE ROUND(SUM(COALESCE(mcp.preco_total, 0))::numeric / NULLIF(SUM(COALESCE(mcp.quantidade_de_itens, 0)), 0), 2) END AS preco_medio_unitario, COUNT(DISTINCT mcp.fornecedor_id) AS fornecedores_distintos, COUNT(DISTINCT mcp.fabricante_id) AS fabricantes_distintos FROM mantenedora_compra_produto mcp JOIN mantenedora m ON m.mantenedora_id = mcp.mantenedora_id WHERE mcp.data_de_compra >= CURRENT_DATE - INTERVAL '2 years' GROUP BY m.mantenedora_id, m.nome_mantenedora ) SELECT mm.mantenedora_id, mm.nome_mantenedora, mm.total_gasto, mm.quantidade_total, mm.preco_medio_unitario, mm.fornecedores_distintos, mm.fabricantes_distintos, COALESCE(t3.top_produtos_por_gasto, '') AS top_3_produtos_por_gasto, COALESCE(t3.gasto_top3, 0) AS gasto_top3 FROM mantenedora_metrics mm LEFT JOIN top3_produtos t3 ON t3.mantenedora_id = mm.mantenedora_id ORDER BY mm.total_gasto DESC NULLS LAST, mm.mantenedora_id LIMIT 50;",
+    "persona": {
+      "role": "Cidadã Leiga",
+      "description": "Usuária leiga, sem formação técnica em saúde ou dados. Faz perguntas em linguagem cotidiana, utiliza termos informais e desconhece siglas e classificações técnicas. Busca respostas simples e diretas sobre medicamentos e hospitais em sua região."
+    }
+  },
+  {
+    "dataset_id": "datasus",
+    "question": "Para as 50 mantenedoras com maior gasto nos últimos 2 anos, retorne mantenedora_id e nome, total_gasto, quantidade_total (soma de quantidade_de_itens), preço médio unitário ponderado (arredondado a 2 casas decimais), contagem de fornecedores distintos e de fabricantes distintos, a lista concatenada dos 3 produtos que mais geraram gasto (formato: descrição (R$ valor) com duas casas decimais) e o gasto total desses top‑3. Ordenar por total_gasto decrescente.",
+    "difficulty": "hard",
+    "query_patterns": [
+      "aggregation",
+      "dialect_function",
+      "filter",
+      "join",
+      "ordering",
+      "select"
+    ],
+    "tables": [
+      "compras_produto",
+      "mantenedora",
+      "mantenedora_compra_produto",
+      "mantenedora_metrics",
+      "prod_rank",
+      "produto",
+      "top3_produtos"
+    ],
+    "id": "a717a902-4408-44dd-9497-4584120f3a87",
+    "parent_id": null,
+    "evidence": null,
+    "sql": "WITH compras_produto AS ( SELECT mcp.mantenedora_id, mcp.produto_id, SUM(COALESCE(mcp.preco_total, 0)) AS total_spent, SUM(COALESCE(mcp.quantidade_de_itens, 0)) AS total_qty FROM mantenedora_compra_produto mcp WHERE mcp.data_de_compra >= CURRENT_DATE - INTERVAL '2 years' GROUP BY mcp.mantenedora_id, mcp.produto_id ), prod_rank AS ( SELECT cp.*, ROW_NUMBER() OVER (PARTITION BY cp.mantenedora_id ORDER BY cp.total_spent DESC) AS produto_rank FROM compras_produto cp ), top3_produtos AS ( SELECT pr.mantenedora_id, string_agg( format('%s (R$ %s)', COALESCE(p.generico, p.anvisa, p.codigo_catmat, 'SEM_DESCRICAO'), to_char(pr.total_spent, 'FM999999990.00')), '; ' ORDER BY pr.produto_rank ) AS top_produtos_por_gasto, SUM(pr.total_spent) AS gasto_top3 FROM prod_rank pr JOIN produto p ON p.produto_id = pr.produto_id WHERE pr.produto_rank <= 3 GROUP BY pr.mantenedora_id ), mantenedora_metrics AS ( SELECT m.mantenedora_id, m.nome_mantenedora, SUM(COALESCE(mcp.preco_total, 0)) AS total_gasto, SUM(COALESCE(mcp.quantidade_de_itens, 0)) AS quantidade_total, CASE WHEN SUM(COALESCE(mcp.quantidade_de_itens, 0)) = 0 THEN NULL ELSE ROUND(SUM(COALESCE(mcp.preco_total, 0))::numeric / NULLIF(SUM(COALESCE(mcp.quantidade_de_itens, 0)), 0), 2) END AS preco_medio_unitario, COUNT(DISTINCT mcp.fornecedor_id) AS fornecedores_distintos, COUNT(DISTINCT mcp.fabricante_id) AS fabricantes_distintos FROM mantenedora_compra_produto mcp JOIN mantenedora m ON m.mantenedora_id = mcp.mantenedora_id WHERE mcp.data_de_compra >= CURRENT_DATE - INTERVAL '2 years' GROUP BY m.mantenedora_id, m.nome_mantenedora ) SELECT mm.mantenedora_id, mm.nome_mantenedora, mm.total_gasto, mm.quantidade_total, mm.preco_medio_unitario, mm.fornecedores_distintos, mm.fabricantes_distintos, COALESCE(t3.top_produtos_por_gasto, '') AS top_3_produtos_por_gasto, COALESCE(t3.gasto_top3, 0) AS gasto_top3 FROM mantenedora_metrics mm LEFT JOIN top3_produtos t3 ON t3.mantenedora_id = mm.mantenedora_id ORDER BY mm.total_gasto DESC NULLS LAST, mm.mantenedora_id LIMIT 50;",
+    "persona": {
+      "role": "Analista de Dados em Saúde",
+      "description": "Profissional com domínio de SQL e dos principais datasets do schema. Formula análises comparativas e temporais com terminologia técnica adequada e considera as limitações e lacunas dos dados disponíveis."
+    }
+  },
+  {
+    "dataset_id": "datasus",
+    "question": "Considerando os últimos 2 anos, para cada mantenedora (limitar às 50 maiores por gasto), informe o id e nome da mantenedora, o gasto total, a quantidade total de itens adquiridos, o preço médio por unidade, quantos fornecedores e fabricantes distintos foram utilizados, e quais são os 3 produtos que mais concentraram o gasto (apresentar descrição do produto e valor em R$ com duas casas decimais). Ordenar pelas mantenedoras que mais gastaram.",
+    "difficulty": "hard",
+    "query_patterns": [
+      "aggregation",
+      "dialect_function",
+      "filter",
+      "join",
+      "ordering",
+      "select"
+    ],
+    "tables": [
+      "compras_produto",
+      "mantenedora",
+      "mantenedora_compra_produto",
+      "mantenedora_metrics",
+      "prod_rank",
+      "produto",
+      "top3_produtos"
+    ],
+    "id": "2fa4e593-3bde-4ab9-b443-4885180c4dde",
+    "parent_id": null,
+    "evidence": null,
+    "sql": "WITH compras_produto AS ( SELECT mcp.mantenedora_id, mcp.produto_id, SUM(COALESCE(mcp.preco_total, 0)) AS total_spent, SUM(COALESCE(mcp.quantidade_de_itens, 0)) AS total_qty FROM mantenedora_compra_produto mcp WHERE mcp.data_de_compra >= CURRENT_DATE - INTERVAL '2 years' GROUP BY mcp.mantenedora_id, mcp.produto_id ), prod_rank AS ( SELECT cp.*, ROW_NUMBER() OVER (PARTITION BY cp.mantenedora_id ORDER BY cp.total_spent DESC) AS produto_rank FROM compras_produto cp ), top3_produtos AS ( SELECT pr.mantenedora_id, string_agg( format('%s (R$ %s)', COALESCE(p.generico, p.anvisa, p.codigo_catmat, 'SEM_DESCRICAO'), to_char(pr.total_spent, 'FM999999990.00')), '; ' ORDER BY pr.produto_rank ) AS top_produtos_por_gasto, SUM(pr.total_spent) AS gasto_top3 FROM prod_rank pr JOIN produto p ON p.produto_id = pr.produto_id WHERE pr.produto_rank <= 3 GROUP BY pr.mantenedora_id ), mantenedora_metrics AS ( SELECT m.mantenedora_id, m.nome_mantenedora, SUM(COALESCE(mcp.preco_total, 0)) AS total_gasto, SUM(COALESCE(mcp.quantidade_de_itens, 0)) AS quantidade_total, CASE WHEN SUM(COALESCE(mcp.quantidade_de_itens, 0)) = 0 THEN NULL ELSE ROUND(SUM(COALESCE(mcp.preco_total, 0))::numeric / NULLIF(SUM(COALESCE(mcp.quantidade_de_itens, 0)), 0), 2) END AS preco_medio_unitario, COUNT(DISTINCT mcp.fornecedor_id) AS fornecedores_distintos, COUNT(DISTINCT mcp.fabricante_id) AS fabricantes_distintos FROM mantenedora_compra_produto mcp JOIN mantenedora m ON m.mantenedora_id = mcp.mantenedora_id WHERE mcp.data_de_compra >= CURRENT_DATE - INTERVAL '2 years' GROUP BY m.mantenedora_id, m.nome_mantenedora ) SELECT mm.mantenedora_id, mm.nome_mantenedora, mm.total_gasto, mm.quantidade_total, mm.preco_medio_unitario, mm.fornecedores_distintos, mm.fabricantes_distintos, COALESCE(t3.top_produtos_por_gasto, '') AS top_3_produtos_por_gasto, COALESCE(t3.gasto_top3, 0) AS gasto_top3 FROM mantenedora_metrics mm LEFT JOIN top3_produtos t3 ON t3.mantenedora_id = mm.mantenedora_id ORDER BY mm.total_gasto DESC NULLS LAST, mm.mantenedora_id LIMIT 50;",
+    "persona": {
+      "role": "Médico Gestor Hospitalar",
+      "description": "Médico gestor hospitalar que faz perguntas estratégicas sobre estoques, preços e capacidade assistencial, utilizando terminologia do SUS, mas sem conhecimento técnico em banco de dados."
+    }
+  }
+]
