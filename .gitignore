@@ -22,3 +22,6 @@ spark-warehouse/
 
 # Sistema
 .DS_Store
+dados_datasus/miniconda.sh
+dados_datasus/dados/BNAFAR_Last.csv
+dados_datasus/dados/delta/**/*.parquet
