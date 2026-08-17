@@ -1,0 +1,100 @@
+# Segredos — nunca versionar
+.env
+.env.*
+!.env.example
+credentials.json
+secrets.json
+*.key
+*.pem
+
+# Ambiente virtual e cache Python
+.venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.py[cod]
+*.pyo
+
+# Cobertura, logs e temporários locais
+.coverage
+.coverage.*
+coverage/
+htmlcov/
+coverage.xml
+*.log
+logs/
+*.tmp
+*.bak
+*.backup
+*.old
+*.orig
+*_bkp
+*_backup
+*.rej
+
+# Modelos locais (vários GB, baixados sob demanda)
+local_models/
+
+# Artefatos de execução — gerados em runtime, apagados entre runs
+vanna_storage/
+premsql/
+
+# Cache local do Hugging Face dentro do repositório
+.hf_cache/
+
+# Saídas do pipeline (parquets gerados)
+resources/out/
+resources/out_bkp/
+
+# Estado operacional local da interface (journal e workspaces efêmeros)
+interface/.runtime/
+
+# Backups locais
+BKP/
+bkp/
+backup/
+backups/
+*_bkp/
+*_backup/
+
+# Datasets fora do entregável empresarial
+datasets/pm-USP/
+datasets/spider-pt/
+datasets/datasus/queries/pt/ground_truth.json
+datasets/datasus/transforma.ipynb
+
+# Datasets binários e pesados (zips e dumps)
+datasets/sih_database/sih_rs_dump.zip
+datasets/sih_database/queries/pt/sih_rs_dump/
+datasets/zip/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+
+# Frontend gerado
+node_modules/
+dist/
+
+# Ferramentas e notas locais de desenvolvimento
+.agents/
+.claude/
+.codex/
+.impeccable/
+AGENTS.md
+CLAUDE.md
+CODEX_HANDOFF.md
+DESIGN.md
+PRODUCT.md
+RELATORIO_ANALISE.md
+TODO.md
+interface/IMPLEMENTATION_PLAN.md
+interface/INTERFACE_SPEC.md

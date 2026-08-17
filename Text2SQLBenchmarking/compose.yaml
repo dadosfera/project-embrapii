@@ -1,0 +1,178 @@
+name: text2sql-benchmarking
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: text2sql-backend:local
+    runtime: nvidia
+    network_mode: host
+    init: true
+    user: "${HOST_UID:?HOST_UID obrigatório}:${HOST_GID:?HOST_GID obrigatório}"
+    working_dir: /app
+    command:
+      - uvicorn
+      - interface.backend.api.app:create_app
+      - --factory
+      - --host
+      - 127.0.0.1
+      - --port
+      - "8000"
+      - --workers
+      - "1"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      HOME: /tmp
+      USER: appuser
+      LOGNAME: appuser
+      TMPDIR: /tmp
+      HF_HOME: /tmp/huggingface
+      NVIDIA_VISIBLE_DEVICES: "${NVIDIA_VISIBLE_DEVICES:-nvidia.com/gpu=all}"
+      NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+      PYTHONUNBUFFERED: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+
+    volumes:
+      # ================================================================
+      # Dados e artefatos persistentes
+      # ================================================================
+
+      - type: bind
+        source: ${PROJECT_ROOT:-.}/local_models
+        target: /app/local_models
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${PROJECT_ROOT:-.}/resources/out
+        target: /app/resources/out
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${PROJECT_ROOT:-.}/interface/.runtime
+        target: /app/interface/.runtime
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${PROJECT_ROOT:-.}/interface/.runtime/chroma-cache
+        target: /tmp/.cache/chroma
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${PROJECT_ROOT:-.}/datasets
+        target: /app/datasets
+        read_only: true
+        bind:
+          create_host_path: false
+
+      # ================================================================
+      # Código-fonte e scripts
+      #
+      # Estes bind mounts fazem com que alterações realizadas no host
+      # fiquem imediatamente disponíveis em novos containers backend,
+      # sem necessidade de reconstruir a imagem.
+      # ================================================================
+
+      - type: bind
+        source: ${PROJECT_ROOT:-.}/src
+        target: /app/src
+        read_only: true
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${PROJECT_ROOT:-.}/bash
+        target: /app/bash
+        read_only: true
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${PROJECT_ROOT:-.}/interface/backend
+        target: /app/interface/backend
+        read_only: true
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${PROJECT_ROOT:-.}/interface/tools
+        target: /app/interface/tools
+        read_only: true
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${PROJECT_ROOT:-.}/run_sql_generate.py
+        target: /app/run_sql_generate.py
+        read_only: true
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${PROJECT_ROOT:-.}/run_sql_execution.py
+        target: /app/run_sql_execution.py
+        read_only: true
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${PROJECT_ROOT:-.}/run_analise.ipynb
+        target: /app/run_analise.ipynb
+        read_only: true
+        bind:
+          create_host_path: false
+
+    shm_size: "16gb"
+    cap_drop:
+      - ALL
+
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - --fail
+        - --silent
+        - --show-error
+        - http://127.0.0.1:8000/api/v1/health
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./interface/frontend
+      dockerfile: Dockerfile
+    image: text2sql-frontend:local
+    network_mode: host
+
+    depends_on:
+      backend:
+        condition: service_healthy
+
+    init: true
+    read_only: true
+
+    cap_drop:
+      - ALL
+
+    tmpfs:
+      - /tmp
+
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - --quiet
+        - --output-document=/dev/null
+        - http://127.0.0.1:5173/
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
