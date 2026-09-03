@@ -2,6 +2,7 @@
 This repository is designed to maintain a curated list of references related Text-to-SQL including State-Of-The-Art, other repositories, code samples and innovative techniques
 
 
+
 ## Views
 - **Nascimento, E.R., García, G., Izquierdo, Y.T. et al.**  
   *LLM-Based Text-to-SQL for Real-World Databases.*  
