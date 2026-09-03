@@ -1,0 +1,227 @@
+[
+  {
+    "dataset_id": "datasus",
+    "question": "Na tabela de leitos, retornar os top 10 instituicao_id com maior quantidade_leitos_gerais para data_de_competencia = 2023-12-01. Excluir registros com quantidade_leitos_gerais nula; retornar apenas instituicao_id e quantidade_leitos_gerais, ordenados por quantidade_leitos_gerais DESC e instituicao_id ASC.",
+    "difficulty": "simple",
+    "query_patterns": [
+      "dialect_function",
+      "filter",
+      "ordering",
+      "select"
+    ],
+    "tables": [
+      "leitos"
+    ],
+    "id": "a66efc7c-7d72-419b-ba9d-54018ed450a8",
+    "parent_id": null,
+    "evidence": null,
+    "sql": "SELECT instituicao_id, quantidade_leitos_gerais FROM leitos WHERE data_de_competencia = DATE '2023-12-01' AND quantidade_leitos_gerais IS NOT NULL ORDER BY quantidade_leitos_gerais DESC, instituicao_id ASC LIMIT 10;",
+    "persona": {
+      "role": "Analista de Dados em Saúde",
+      "description": "Profissional com domínio de SQL e dos principais datasets do schema. Formula análises comparativas e temporais com terminologia técnica adequada e considera as limitações e lacunas dos dados disponíveis."
+    }
+  },
+  {
+    "dataset_id": "datasus",
+    "question": "Quais municípios têm mais de uma mantenedora e quantas mantenedoras há em cada um? Ordene do que tem mais para o que tem menos.",
+    "difficulty": "simple",
+    "query_patterns": [
+      "aggregation",
+      "dialect_function",
+      "ordering",
+      "select"
+    ],
+    "tables": [
+      "mantenedora"
+    ],
+    "id": "1bb1ce89-de49-45da-a2db-8b46891bbe64",
+    "parent_id": null,
+    "evidence": null,
+    "sql": "SELECT municipio_id, COUNT(*) AS num_mantenedoras FROM mantenedora GROUP BY municipio_id HAVING COUNT(*) > 1 ORDER BY num_mantenedoras DESC, municipio_id ASC;",
+    "persona": {
+      "role": "Cidadã Leiga",
+      "description": "Usuária leiga, sem formação técnica em saúde ou dados. Faz perguntas em linguagem cotidiana, utiliza termos informais e desconhece siglas e classificações técnicas. Busca respostas simples e diretas sobre medicamentos e hospitais em sua região."
+    }
+  },
+  {
+    "dataset_id": "datasus",
+    "question": "Quero uma lista das 100 categorias de material (catmat_id) com mais produtos; para cada categoria, informe quantos produtos existem e quantos códigos ANVISA diferentes estão associados a esses produtos.",
+    "difficulty": "simple",
+    "query_patterns": [
+      "aggregation",
+      "dialect_function",
+      "ordering",
+      "select"
+    ],
+    "tables": [
+      "produto"
+    ],
+    "id": "5357cd05-418d-4fad-ae9b-680f2acd8bdc",
+    "parent_id": null,
+    "evidence": null,
+    "sql": "SELECT catmat_id, COUNT(*) AS num_produtos, COUNT(DISTINCT anvisa) AS num_anvisa FROM produto GROUP BY catmat_id ORDER BY num_produtos DESC, catmat_id ASC LIMIT 100;",
+    "persona": {
+      "role": "Cidadã Leiga",
+      "description": "Usuária leiga, sem formação técnica em saúde ou dados. Faz perguntas em linguagem cotidiana, utiliza termos informais e desconhece siglas e classificações técnicas. Busca respostas simples e diretas sobre medicamentos e hospitais em sua região."
+    }
+  },
+  {
+    "dataset_id": "datasus",
+    "question": "Para cada trimestre de 2020, quais foram as 5 instituições que concentraram o maior número de leitos destinados ao SUS? Para cada trimestre, apresente o código da instituição, o nome da unidade e o total de leitos SUS disponíveis naquele período",
+    "difficulty": "medium",
+    "query_patterns": [
+      "aggregation",
+      "dialect_function",
+      "filter",
+      "join",
+      "ordering",
+      "select"
+    ],
+    "tables": [
+      "agg_inst",
+      "instituicao",
+      "latest_three",
+      "leitos",
+      "leitos_trim",
+      "ratio_trim"
+    ],
+    "id": "386cb2f1-a924-4327-93c6-1ff25c77a6e6",
+    "parent_id": null,
+    "evidence": null,
+    "sql": "WITH base AS ( SELECT instituicao_id, date_trunc('quarter', data_de_competencia)::date AS trimestre, SUM(COALESCE(quantidade_leitos_sus, 0)) AS total_leitos_sus FROM leitos WHERE date_part('year', data_de_competencia) = 2020 GROUP BY instituicao_id, date_trunc('quarter', data_de_competencia) ), ranked AS ( SELECT instituicao_id, trimestre, total_leitos_sus, ROW_NUMBER() OVER ( PARTITION BY trimestre ORDER BY total_leitos_sus DESC, instituicao_id ) AS rn FROM base ) SELECT r.trimestre, r.instituicao_id, i.nome_instituicao, r.total_leitos_sus FROM ranked r JOIN instituicao i USING (instituicao_id) WHERE r.rn <= 5 ORDER BY r.trimestre, r.total_leitos_sus DESC;",
+    "persona": {
+      "role": "Médico Gestor Hospitalar",
+      "description": "Médico gestor hospitalar que faz perguntas estratégicas sobre estoques, preços e capacidade assistencial, utilizando terminologia do SUS, mas sem conhecimento técnico em banco de dados."
+    }
+  },
+  {
+    "dataset_id": "datasus",
+    "question": "Considerando o cenário ao final de 2025, mostre as 20 instituições ou hospitais com maior percentual de leitos de UTI em relação aos leitos gerais. Inclua id e nome da instituição, a data de competência desse último registro do ano, quantidade de leitos gerais, quantidade de leitos de UTI e a proporção UTI/geral. Considere somente instituições com mais de 0 leitos gerais operacionais e ordene do maior para o menor.",
+    "difficulty": "medium",
+    "query_patterns": [
+      "dialect_function",
+      "filter",
+      "join",
+      "ordering",
+      "select"
+    ],
+    "tables": [
+      "instituicao",
+      "mv_leitos_mais_recente"
+    ],
+    "id": "4006d303-228e-4dd5-9a3e-6665c72aafcd",
+    "parent_id": null,
+    "evidence": null,
+    "sql": "SELECT i.instituicao_id, i.nome_instituicao, mv.data_de_competencia, mv.quantidade_leitos_gerais, mv.quantidade_leitos_uti, (CASE WHEN mv.quantidade_leitos_gerais > 0 THEN (mv.quantidade_leitos_uti::numeric / mv.quantidade_leitos_gerais::numeric) ELSE NULL END) AS proporcao_uti_por_leito_geral FROM mv_leitos_mais_recente mv JOIN instituicao i ON i.instituicao_id = mv.instituicao_id WHERE mv.quantidade_leitos_gerais IS NOT NULL AND mv.quantidade_leitos_gerais > 0 ORDER BY proporcao_uti_por_leito_geral DESC NULLS LAST, i.instituicao_id LIMIT 20;",
+    "persona": {
+      "role": "Médico Gestor Hospitalar",
+      "description": "Médico gestor hospitalar que faz perguntas estratégicas sobre estoques, preços e capacidade assistencial, utilizando terminologia do SUS, mas sem conhecimento técnico em banco de dados."
+    }
+  },
+  {
+    "dataset_id": "datasus",
+    "question": "Listar as 20 instituições com maior proporção (quantidade_leitos_uti / quantidade_leitos_gerais) calculada a partir do último registro consolidado no final de 2025 (mv_leitos_mais_recente). Retornar instituicao_id, nome_instituicao, data_de_competencia, quantidade_leitos_gerais, quantidade_leitos_uti e proporcao_uti_por_leito_geral. Excluir registros com quantidade_leitos_gerais NULL ou <= 0; ordenar por proporcao decrescente e, em caso de empate, por instituicao_id. Limitar a 20.",
+    "difficulty": "medium",
+    "query_patterns": [
+      "dialect_function",
+      "filter",
+      "join",
+      "ordering",
+      "select"
+    ],
+    "tables": [
+      "instituicao",
+      "mv_leitos_mais_recente"
+    ],
+    "id": "198fcbcb-4474-4421-b062-0646765dfbe5",
+    "parent_id": null,
+    "evidence": null,
+    "sql": "SELECT i.instituicao_id, i.nome_instituicao, mv.data_de_competencia, mv.quantidade_leitos_gerais, mv.quantidade_leitos_uti, (CASE WHEN mv.quantidade_leitos_gerais > 0 THEN (mv.quantidade_leitos_uti::numeric / mv.quantidade_leitos_gerais::numeric) ELSE NULL END) AS proporcao_uti_por_leito_geral FROM mv_leitos_mais_recente mv JOIN instituicao i ON i.instituicao_id = mv.instituicao_id WHERE mv.quantidade_leitos_gerais IS NOT NULL AND mv.quantidade_leitos_gerais > 0 ORDER BY proporcao_uti_por_leito_geral DESC NULLS LAST, i.instituicao_id LIMIT 20;",
+    "persona": {
+      "role": "Analista de Dados em Saúde",
+      "description": "Profissional com domínio de SQL e dos principais datasets do schema. Formula análises comparativas e temporais com terminologia técnica adequada e considera as limitações e lacunas dos dados disponíveis."
+    }
+  },
+  {
+    "dataset_id": "datasus",
+    "question": "No período de 2023 e 2024, quais foram os 10 fornecedores que mais diversificaram o fornecimento de insumos e medicamentos para a mantenedora? Para cada fornecedor, apresente o código, o nome, a quantidade de produtos diferentes fornecidos e o valor mediano por unidade praticado nesse intervalo. Organize a lista começando pelos fornecedores com maior diversidade de itens.",
+    "difficulty": "hard",
+    "query_patterns": [
+      "aggregation",
+      "dialect_function",
+      "filter",
+      "join",
+      "ordering",
+      "select"
+    ],
+    "tables": [
+      "compras_2anos",
+      "fornecedor",
+      "fornecedor_estat",
+      "mantenedora_compra_produto"
+    ],
+    "id": "c60de183-ae2a-4f39-97ac-46b8bb883383",
+    "parent_id": null,
+    "evidence": null,
+    "sql": "WITH compras_2anos AS ( SELECT fornecedor_id, produto_id, preco_unitario FROM mantenedora_compra_produto WHERE data_de_compra >= DATE '2023-01-01' AND data_de_compra < DATE '2025-01-01' AND fornecedor_id IS NOT NULL ), estat AS ( SELECT fornecedor_id, COUNT(DISTINCT produto_id) AS produtos_distintos, percentile_cont(0.5) WITHIN GROUP (ORDER BY preco_unitario) FILTER (WHERE preco_unitario IS NOT NULL) AS mediana_preco_unitario FROM compras_2anos GROUP BY fornecedor_id ) SELECT e.fornecedor_id, f.nome_fornecedor, e.produtos_distintos, ROUND(e.mediana_preco_unitario::numeric, 2) AS mediana_preco_unitario FROM estat e LEFT JOIN fornecedor f USING (fornecedor_id) ORDER BY e.produtos_distintos DESC LIMIT 10;",
+    "persona": {
+      "role": "Médico Gestor Hospitalar",
+      "description": "Médico gestor hospitalar que faz perguntas estratégicas sobre estoques, preços e capacidade assistencial, utilizando terminologia do SUS, mas sem conhecimento técnico em banco de dados."
+    }
+  },
+  {
+    "dataset_id": "datasus",
+    "question": "Considerando o período de 01/01/2023 a 31/12/2024, identifique os 10 fornecedores com maior contagem de produto_id distintos registrados na tabela de compras da mantenedora. Para cada fornecedor, retorne fornecedor_id, nome_fornecedor, total de produtos distintos fornecidos e a mediana de preco_unitario (arredondada para duas casas decimais). Ordene por produtos_distintos em ordem decrescente.",
+    "difficulty": "hard",
+    "query_patterns": [
+      "aggregation",
+      "dialect_function",
+      "filter",
+      "join",
+      "ordering",
+      "select"
+    ],
+    "tables": [
+      "compras_2anos",
+      "fornecedor",
+      "fornecedor_estat",
+      "mantenedora_compra_produto"
+    ],
+    "id": "699fc5aa-e618-4bb0-8058-a6f4c5257101",
+    "parent_id": null,
+    "evidence": null,
+    "sql": "WITH compras_2anos AS ( SELECT fornecedor_id, produto_id, preco_unitario FROM mantenedora_compra_produto WHERE data_de_compra >= DATE '2023-01-01' AND data_de_compra < DATE '2025-01-01' AND fornecedor_id IS NOT NULL ), estat AS ( SELECT fornecedor_id, COUNT(DISTINCT produto_id) AS produtos_distintos, percentile_cont(0.5) WITHIN GROUP (ORDER BY preco_unitario) FILTER (WHERE preco_unitario IS NOT NULL) AS mediana_preco_unitario FROM compras_2anos GROUP BY fornecedor_id ) SELECT e.fornecedor_id, f.nome_fornecedor, e.produtos_distintos, ROUND(e.mediana_preco_unitario::numeric, 2) AS mediana_preco_unitario FROM estat e LEFT JOIN fornecedor f USING (fornecedor_id) ORDER BY e.produtos_distintos DESC LIMIT 10;",
+    "persona": {
+      "role": "Analista de Dados em Saúde",
+      "description": "Profissional com domínio de SQL e dos principais datasets do schema. Formula análises comparativas e temporais com terminologia técnica adequada e considera as limitações e lacunas dos dados disponíveis."
+    }
+  },
+  {
+    "dataset_id": "datasus",
+    "question": "Listar as 5 UFs com maior média de quantidade_leitos_gerais entre instituições que declaram ter centro cirúrgico. Retornar código da unidade federativa, nome da unidade federativa, contagem de instituições com centro cirúrgico e média de leitos gerais (arredondada a 2 casas decimais). Considerar somente UFs com >=10 instituições com centro cirúrgico e utilizar mv_leitos_mais_recente como fonte de leitos; ordenar por média decrescente e por código da UF.",
+    "difficulty": "hard",
+    "query_patterns": [
+      "aggregation",
+      "dialect_function",
+      "filter",
+      "join",
+      "ordering",
+      "select"
+    ],
+    "tables": [
+      "inst_com_cirurgico",
+      "instituicao",
+      "leitos_atuais",
+      "mv_leitos_mais_recente",
+      "v_endereco_completo"
+    ],
+    "id": "a15086d1-4863-4ba8-85fd-3dffc634b38b",
+    "parent_id": null,
+    "evidence": null,
+    "sql": "WITH inst_com_cirurgico AS ( SELECT i.instituicao_id, i.nome_instituicao, v.codigo_da_unidade_federativa::int AS uf_id, v.unidade_federativa FROM instituicao i JOIN v_endereco_completo v ON v.endereco_id = i.endereco_id WHERE lower(coalesce(i.tem_centro_cirurgico,'nao')) IN ('sim','s','yes','y') ), leitos_atuais AS ( SELECT m.instituicao_id, COALESCE(m.quantidade_leitos_gerais,0)::int AS leitos_gerais FROM mv_leitos_mais_recente m ) SELECT ic.uf_id AS codigo_da_unidade_federativa, ic.unidade_federativa, COUNT(ic.instituicao_id) AS num_instituicoes_com_cirurgico, round(AVG(l.leitos_gerais)::numeric,2) AS media_leitos_gerais FROM inst_com_cirurgico ic LEFT JOIN leitos_atuais l ON l.instituicao_id = ic.instituicao_id GROUP BY ic.uf_id, ic.unidade_federativa HAVING COUNT(ic.instituicao_id) >= 10 ORDER BY media_leitos_gerais DESC, codigo_da_unidade_federativa LIMIT 5;",
+    "persona": {
+      "role": "Analista de Dados em Saúde",
+      "description": "Profissional com domínio de SQL e dos principais datasets do schema. Formula análises comparativas e temporais com terminologia técnica adequada e considera as limitações e lacunas dos dados disponíveis."
+    }
+  }
+]
