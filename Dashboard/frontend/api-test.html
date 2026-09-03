@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Teste da API - Medicamentos</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f5f7fa;
+      color: #1f2937;
+    }
+
+    .container {
+      width: min(1200px, 94%);
+      margin: 32px auto;
+    }
+
+    h1 {
+      margin-bottom: 8px;
+    }
+
+    .subtitulo {
+      margin-top: 0;
+      color: #6b7280;
+    }
+
+    .painel {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .linha {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: end;
+    }
+
+    .campo {
+      flex: 1;
+      min-width: 220px;
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    input,
+    select,
+    button {
+      width: 100%;
+      min-height: 42px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      padding: 8px 10px;
+      font-size: 14px;
+    }
+
+    button {
+      width: auto;
+      cursor: pointer;
+      border: none;
+      background: #2563eb;
+      color: white;
+      font-weight: bold;
+      padding-left: 18px;
+      padding-right: 18px;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    button:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+    }
+
+    .status-geral {
+      margin-top: 14px;
+      padding: 10px 12px;
+      background: #f8fafc;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .rotas {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    .rota {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .rota-cabecalho {
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .rota-nome {
+      font-weight: bold;
+    }
+
+    .rota-url {
+      margin-top: 4px;
+      color: #64748b;
+      font-family: Consolas, monospace;
+      font-size: 13px;
+      word-break: break-all;
+    }
+
+    .badge {
+      white-space: nowrap;
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .aguardando {
+      background: #e2e8f0;
+      color: #475569;
+    }
+
+    .carregando {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    .sucesso {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .erro {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    pre {
+      margin: 0;
+      padding: 16px;
+      overflow: auto;
+      max-height: 420px;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .resumo {
+      margin-top: 20px;
+    }
+
+    .resumo strong {
+      margin-right: 12px;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="container">
+    <h1>Teste da API — Medicamentos</h1>
+
+    <p class="subtitulo">
+      Página temporária para testar as rotas do FastAPI antes da criação do frontend React.
+    </p>
+
+    <section class="painel">
+      <div class="linha">
+        <div class="campo">
+          <label for="apiBase">URL da API</label>
+          <input
+            id="apiBase"
+            type="text"
+            value="http://127.0.0.1:8000"
+          />
+        </div>
+
+        <div>
+          <button id="btnHealth" type="button">
+            Testar conexão
+          </button>
+        </div>
+      </div>
+
+      <div id="healthStatus" class="status-geral">
+        API ainda não testada.
+      </div>
+    </section>
+
+    <section class="painel">
+      <div class="linha">
+        <div class="campo">
+          <label for="busca">Medicamento ou código CATMAT</label>
+
+          <input
+            id="busca"
+            type="text"
+            placeholder="Ex.: dipirona, insulina, BR0267203..."
+          />
+        </div>
+
+        <div>
+          <button id="btnBuscar" type="button">
+            Buscar
+          </button>
+        </div>
+      </div>
+
+      <div style="margin-top: 16px;">
+        <label for="resultadoBusca">CATMAT encontrado</label>
+
+        <select id="resultadoBusca" disabled>
+          <option value="">
+            Faça uma busca primeiro
+          </option>
+        </select>
+      </div>
+
+      <div style="margin-top: 16px;">
+        <button id="btnTestarTudo" type="button" disabled>
+          Testar todas as rotas
+        </button>
+      </div>
+
+      <div id="buscaStatus" class="status-geral">
+        Digite um produto e clique em Buscar.
+      </div>
+    </section>
+
+    <section>
+      <h2>Resultados dos endpoints</h2>
+
+      <div id="resultados" class="rotas">
+        <div class="painel">
+          Nenhum teste executado.
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const apiBaseInput = document.getElementById("apiBase");
+    const buscaInput = document.getElementById("busca");
+    const resultadoBusca = document.getElementById("resultadoBusca");
+
+    const btnHealth = document.getElementById("btnHealth");
+    const btnBuscar = document.getElementById("btnBuscar");
+    const btnTestarTudo = document.getElementById("btnTestarTudo");
+
+    const healthStatus = document.getElementById("healthStatus");
+    const buscaStatus = document.getElementById("buscaStatus");
+    const resultados = document.getElementById("resultados");
+
+
+    function apiBase() {
+      return apiBaseInput.value.trim().replace(/\/+$/, "");
+    }
+
+
+    function formatarJSON(valor) {
+      return JSON.stringify(valor, null, 2);
+    }
+
+
+    async function requisicao(url) {
+      const inicio = performance.now();
+
+      try {
+        const response = await fetch(url);
+
+        const tempo = Math.round(
+          performance.now() - inicio
+        );
+
+        let data;
+
+        try {
+          data = await response.json();
+        } catch {
+          data = await response.text();
+        }
+
+        return {
+          ok: response.ok,
+          status: response.status,
+          tempo,
+          data
+        };
+      } catch (erro) {
+        return {
+          ok: false,
+          status: "ERRO",
+          tempo: Math.round(
+            performance.now() - inicio
+          ),
+          data: {
+            erro: erro.message
+          }
+        };
+      }
+    }
+
+
+    async function testarHealth() {
+      healthStatus.textContent = "Testando API...";
+
+      const url = `${apiBase()}/health/database`;
+      const resposta = await requisicao(url);
+
+      if (resposta.ok) {
+        healthStatus.textContent =
+          `API e PostgreSQL conectados — HTTP ${resposta.status} — ${resposta.tempo} ms`;
+      } else {
+        healthStatus.textContent =
+          `Falha — HTTP ${resposta.status} — ${resposta.tempo} ms — ${formatarJSON(resposta.data)}`;
+      }
+    }
+
+
+    async function buscarMedicamento() {
+      const termo = buscaInput.value.trim();
+
+      if (!termo) {
+        buscaStatus.textContent =
+          "Digite o nome ou código CATMAT.";
+        return;
+      }
+
+      btnBuscar.disabled = true;
+      btnTestarTudo.disabled = true;
+      resultadoBusca.disabled = true;
+
+      buscaStatus.textContent =
+        `Buscando "${termo}"...`;
+
+      const url =
+        `${apiBase()}/api/medicamentos/busca?q=${encodeURIComponent(termo)}`;
+
+      const resposta = await requisicao(url);
+
+      resultadoBusca.innerHTML = "";
+
+      if (!resposta.ok) {
+        buscaStatus.textContent =
+          `Erro na busca — HTTP ${resposta.status}: ${formatarJSON(resposta.data)}`;
+
+        resultadoBusca.innerHTML =
+          `<option value="">Erro ao buscar</option>`;
+
+        btnBuscar.disabled = false;
+        return;
+      }
+
+      const itens = resposta.data;
+
+      if (!Array.isArray(itens) || itens.length === 0) {
+        buscaStatus.textContent =
+          "Nenhum CATMAT encontrado.";
+
+        resultadoBusca.innerHTML =
+          `<option value="">Nenhum resultado</option>`;
+
+        btnBuscar.disabled = false;
+        return;
+      }
+
+      for (const item of itens) {
+        const option = document.createElement("option");
+
+        option.value = item.catmat_id;
+
+        option.textContent =
+          `${item.descricao_catmat ?? "Sem descrição"} — CATMAT ${item.codigo_catmat ?? "sem código"} — id ${item.catmat_id}`;
+
+        resultadoBusca.appendChild(option);
+      }
+
+      resultadoBusca.disabled = false;
+      btnTestarTudo.disabled = false;
+      btnBuscar.disabled = false;
+
+      buscaStatus.textContent =
+        `${itens.length} resultado(s) encontrado(s). Escolha um CATMAT e teste as rotas.`;
+    }
+
+
+    function criarCard(nome, url) {
+      const card = document.createElement("article");
+      card.className = "rota";
+
+      card.innerHTML = `
+        <div class="rota-cabecalho">
+          <div>
+            <div class="rota-nome">${nome}</div>
+            <div class="rota-url">${url}</div>
+          </div>
+
+          <span class="badge carregando">
+            carregando...
+          </span>
+        </div>
+
+        <pre>Executando requisição...</pre>
+      `;
+
+      resultados.appendChild(card);
+
+      return card;
+    }
+
+
+    function atualizarCard(card, resposta) {
+      const badge = card.querySelector(".badge");
+      const pre = card.querySelector("pre");
+
+      if (resposta.ok) {
+        badge.className = "badge sucesso";
+        badge.textContent =
+          `HTTP ${resposta.status} · ${resposta.tempo} ms`;
+      } else {
+        badge.className = "badge erro";
+        badge.textContent =
+          `HTTP ${resposta.status} · ${resposta.tempo} ms`;
+      }
+
+      pre.textContent = formatarJSON(resposta.data);
+    }
+
+
+    async function testarRota(nome, caminho) {
+      const url = `${apiBase()}${caminho}`;
+      const card = criarCard(nome, url);
+
+      const resposta = await requisicao(url);
+
+      atualizarCard(card, resposta);
+
+      return resposta;
+    }
+
+
+    async function testarTodasRotas() {
+      const catmatId = resultadoBusca.value;
+
+      if (!catmatId) {
+        buscaStatus.textContent =
+          "Escolha um CATMAT antes de testar.";
+        return;
+      }
+
+      btnTestarTudo.disabled = true;
+
+      resultados.innerHTML = "";
+
+      const rotas = [
+        {
+          nome: "Produtos vinculados",
+          caminho: `/api/medicamentos/${catmatId}/produtos`
+        },
+        {
+          nome: "Resumo / KPIs",
+          caminho: `/api/medicamentos/${catmatId}/resumo`
+        },
+        {
+          nome: "Lotes vencendo em 90 dias",
+          caminho: `/api/medicamentos/${catmatId}/lotes-vencendo?dias=90`
+        },
+        {
+          nome: "Estoque por UF",
+          caminho: `/api/medicamentos/${catmatId}/estoque-por-uf`
+        },
+        {
+          nome: "Evolução do preço de compra",
+          caminho: `/api/medicamentos/${catmatId}/compras/evolucao-preco`
+        },
+        {
+          nome: "Principais fornecedores",
+          caminho: `/api/medicamentos/${catmatId}/compras/fornecedores?limite=15`
+        },
+        {
+          nome: "Principais fabricantes",
+          caminho: `/api/medicamentos/${catmatId}/compras/fabricantes?limite=15`
+        },
+        {
+          nome: "Histórico de compras",
+          caminho: `/api/medicamentos/${catmatId}/compras?limite=20&offset=0`
+        }
+      ];
+
+      let sucessos = 0;
+      let erros = 0;
+
+      for (const rota of rotas) {
+        const resposta = await testarRota(
+          rota.nome,
+          rota.caminho
+        );
+
+        if (resposta.ok) {
+          sucessos++;
+        } else {
+          erros++;
+        }
+      }
+
+      const resumo = document.createElement("div");
+      resumo.className = "painel resumo";
+
+      resumo.innerHTML = `
+        <strong>Teste concluído</strong>
+        <span>Sucessos: ${sucessos}</span>
+        <span>Erros: ${erros}</span>
+      `;
+
+      resultados.prepend(resumo);
+
+      btnTestarTudo.disabled = false;
+    }
+
+
+    btnHealth.addEventListener(
+      "click",
+      testarHealth
+    );
+
+    btnBuscar.addEventListener(
+      "click",
+      buscarMedicamento
+    );
+
+    btnTestarTudo.addEventListener(
+      "click",
+      testarTodasRotas
+    );
+
+    buscaInput.addEventListener(
+      "keydown",
+      (event) => {
+        if (event.key === "Enter") {
+          buscarMedicamento();
+        }
+      }
+    );
+  </script>
+</body>
+</html>

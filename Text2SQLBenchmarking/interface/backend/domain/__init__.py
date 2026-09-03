@@ -1,0 +1,51 @@
+"""Contratos de domínio da interface."""
+
+from .artifacts import (
+    ArtifactColumn,
+    ArtifactKind,
+    ArtifactMetadata,
+    ArtifactValidationError,
+    InvalidArtifactCode,
+    ParquetArtifact,
+    is_historical_timeout,
+    normalize_timeout_message,
+)
+from .errors import (
+    PUBLIC_ERROR_DEFINITIONS,
+    ModelLoadCause,
+    ModelLoadClassification,
+    PublicErrorCode,
+    PublicErrorPayload,
+    classify_execution_subprocess_error,
+    classify_generation_subprocess_error,
+    classify_loading_model_error,
+    classify_model_load_error,
+    classify_query_execution_error,
+    http_status_for,
+    iter_exception_chain,
+    public_error,
+)
+
+__all__ = [
+    "ArtifactColumn",
+    "ArtifactKind",
+    "ArtifactMetadata",
+    "ArtifactValidationError",
+    "InvalidArtifactCode",
+    "ParquetArtifact",
+    "is_historical_timeout",
+    "normalize_timeout_message",
+    "PUBLIC_ERROR_DEFINITIONS",
+    "ModelLoadCause",
+    "ModelLoadClassification",
+    "PublicErrorCode",
+    "PublicErrorPayload",
+    "classify_execution_subprocess_error",
+    "classify_generation_subprocess_error",
+    "classify_loading_model_error",
+    "classify_model_load_error",
+    "classify_query_execution_error",
+    "http_status_for",
+    "iter_exception_chain",
+    "public_error",
+]

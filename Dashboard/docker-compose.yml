@@ -1,0 +1,64 @@
+name: dashboard-dadosfera
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DB_HOST: "${DB_HOST:?Defina DB_HOST no arquivo .env da raiz}"
+      DB_PORT: "${DB_PORT:-5433}"
+      DB_NAME: "${DB_NAME:?Defina DB_NAME no arquivo .env da raiz}"
+      DB_USER: "${DB_USER:?Defina DB_USER no arquivo .env da raiz}"
+      DB_PASSWORD: "${DB_PASSWORD:?Defina DB_PASSWORD no arquivo .env da raiz}"
+      CORS_ORIGINS: "${CORS_ORIGINS:-http://localhost:8080}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    expose:
+      - "8000"
+    restart: unless-stopped
+    init: true
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - dashboard
+
+  frontend:
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ""
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${DASHBOARD_PORT:-8080}:80"
+    restart: unless-stopped
+    init: true
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - --quiet
+        - --tries=1
+        - --spider
+        - http://127.0.0.1/health
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - dashboard
+
+networks:
+  dashboard:
+    driver: bridge
