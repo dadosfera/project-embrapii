@@ -1,10 +1,6 @@
 # Text-to-SQL-References
 This repository is designed to maintain a curated list of references related Text-to-SQL including State-Of-The-Art, other repositories, code samples and innovative techniques
 
-## Repository Structure
-- `dados_datasus/`: DataSUS ingestion, schema, and JDBC-based access (see its README for DB tunnel/test steps).
-- `analises/`: Exploratory data analysis notebooks.
-- `PAIRS`: Persona-Aware Intents for Real-world SQL, a tool for generating and curating NL-SQL pairs.
 
 
 ## Views
