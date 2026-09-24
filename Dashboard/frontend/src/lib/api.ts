@@ -65,9 +65,9 @@ export interface CompraMedicamento {
   data_de_compra: string | null;
   modalidade_de_compra: string | null;
   tipo_da_compra: string | null;
-  quantidade_de_itens: number;
-  preco_unitario: number;
-  preco_total: number;
+  quantidade_de_itens: number | null;
+  preco_unitario: number | null;
+  preco_total: number | null;
   nome_fornecedor: string | null;
   nome_fabricante: string | null;
   nome_mantenedora: string | null;
@@ -180,9 +180,9 @@ export interface CompraRecente {
   descricao_catmat: string | null;
   modalidade_de_compra: string | null;
   tipo_da_compra: string | null;
-  quantidade_de_itens: number;
-  preco_unitario: number;
-  preco_total: number;
+  quantidade_de_itens: number | null;
+  preco_unitario: number | null;
+  preco_total: number | null;
   nome_fornecedor: string | null;
   nome_fabricante: string | null;
   nome_mantenedora: string | null;

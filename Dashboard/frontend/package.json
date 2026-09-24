@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "e2e:prefix": "E2E_BASE_URL=http://localhost:8000/pbp-test_8000/ playwright test"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",
