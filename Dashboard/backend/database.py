@@ -85,12 +85,20 @@ def _run(engine: str, sql: str, params: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 
 def _execute(query: Union[str, Q], params: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    from backend.cache import query_cache
+
     q = query if isinstance(query, Q) else Q(pg=query)
     engine = get_engine()
     sql = q.for_engine(engine)
     _assert_read_only(sql)
-    rows = _run(engine, sql, params or {})
-    return [{str(k).lower(): v for k, v in row.items()} for row in rows]
+    p = params or {}
+    key = (engine, sql, tuple(sorted((k, str(v)) for k, v in p.items())))
+
+    def load() -> List[Dict[str, Any]]:
+        rows = _run(engine, sql, p)
+        return [{str(k).lower(): v for k, v in row.items()} for row in rows]
+
+    return query_cache.get_or_load(key, load)
 
 
 def fetch_all(query: Union[str, Q], params: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
