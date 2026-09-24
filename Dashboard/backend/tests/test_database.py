@@ -43,3 +43,32 @@ def test_fetch_all_normaliza_chaves(monkeypatch):
 def test_fetch_one_vazio(monkeypatch):
     monkeypatch.setattr(database, "_run", lambda engine, sql, params: [])
     assert database.fetch_one("SELECT 1") is None
+
+
+def test_cache_bypass_com_cache_false(monkeypatch):
+    monkeypatch.setattr(database.query_cache, "ttl", 3600)
+    calls = []
+
+    def fake_run(engine, sql, params):
+        calls.append(1)
+        return [{"result": len(calls)}]
+
+    monkeypatch.setattr(database, "_run", fake_run)
+    assert database.fetch_one("SELECT 1", cache=False) == {"result": 1}
+    assert database.fetch_one("SELECT 1", cache=False) == {"result": 2}
+    assert len(calls) == 2
+
+
+def test_cache_key_usa_repr_para_diferenciar_tipos(monkeypatch):
+    """1 (int) e "1" (str) não podem colidir na chave do cache."""
+    monkeypatch.setattr(database.query_cache, "ttl", 3600)
+    calls = []
+
+    def fake_run(engine, sql, params):
+        calls.append(params)
+        return [{"n": params["v"]}]
+
+    monkeypatch.setattr(database, "_run", fake_run)
+    assert database.fetch_one("SELECT 1", {"v": 1}) == {"n": 1}
+    assert database.fetch_one("SELECT 1", {"v": "1"}) == {"n": "1"}
+    assert len(calls) == 2

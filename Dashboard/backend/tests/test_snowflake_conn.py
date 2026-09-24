@@ -1,0 +1,115 @@
+import pytest
+
+from backend import snowflake_conn as sc
+
+
+class FakeCursor:
+    def __init__(self, behavior):
+        self.behavior = behavior
+        self.description = [("N",)]
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc_info):
+        return False
+
+    def execute(self, sql, params):
+        if isinstance(self.behavior, Exception):
+            raise self.behavior
+
+    def fetchall(self):
+        return [(self.behavior,)]
+
+
+class FakeConn:
+    def __init__(self, behavior):
+        self.behavior = behavior
+        self.closed = False
+
+    def cursor(self):
+        return FakeCursor(self.behavior)
+
+    def close(self):
+        self.closed = True
+
+
+@pytest.fixture(autouse=True)
+def _reset_conn():
+    sc._conn = None
+    yield
+    sc._conn = None
+
+
+def test_reconecta_apos_erro_stale_e_tem_sucesso(monkeypatch):
+    conns = [FakeConn(Exception("Session no longer exists")), FakeConn(1)]
+    calls = []
+
+    def fake_connect():
+        calls.append(1)
+        return conns.pop(0)
+
+    monkeypatch.setattr(sc, "_connect", fake_connect)
+    result = sc.run("SELECT 1", {})
+    assert result == [{"N": 1}]
+    assert len(calls) == 2
+    assert sc._conn is not None
+
+
+def test_stale_case_insensitive(monkeypatch):
+    conns = [FakeConn(Exception("SESSION NO LONGER EXISTS")), FakeConn(7)]
+    monkeypatch.setattr(sc, "_connect", lambda: conns.pop(0))
+    assert sc.run("SELECT 1", {}) == [{"N": 7}]
+
+
+def test_codigo_250002_e_stale(monkeypatch):
+    conns = [FakeConn(Exception("250002: token expired")), FakeConn(9)]
+    monkeypatch.setattr(sc, "_connect", lambda: conns.pop(0))
+    assert sc.run("SELECT 1", {}) == [{"N": 9}]
+
+
+def test_erro_nao_stale_propaga_sem_reconectar(monkeypatch):
+    conns = [FakeConn(ValueError("erro de sintaxe SQL"))]
+    calls = []
+    monkeypatch.setattr(sc, "_connect", lambda: calls.append(1) or conns.pop(0))
+    with pytest.raises(ValueError):
+        sc.run("SELECT 1", {})
+    assert len(calls) == 1
+
+
+def test_reconexao_falha_nao_deixa_conexao_fechada_pendurada(monkeypatch):
+    """Se _connect() falhar durante a reconexão, a próxima chamada tenta reconectar de novo."""
+    attempts = {"n": 0}
+
+    def fake_connect():
+        attempts["n"] += 1
+        if attempts["n"] == 1:
+            return FakeConn(Exception("connection is closed"))
+        if attempts["n"] == 2:
+            raise RuntimeError("rede indisponível")
+        return FakeConn(42)
+
+    monkeypatch.setattr(sc, "_connect", fake_connect)
+
+    with pytest.raises(RuntimeError):
+        sc.run("SELECT 1", {})
+    assert sc._conn is None
+
+    result = sc.run("SELECT 1", {})
+    assert result == [{"N": 42}]
+    assert attempts["n"] == 3
+
+
+def test_secret_file_ausente_gera_runtimeerror_claro(monkeypatch, tmp_path):
+    caminho = str(tmp_path / "nao-existe.json")
+    monkeypatch.setenv("SNOWFLAKE_SECRET_FILE", caminho)
+    monkeypatch.delenv("SNOWFLAKE_SECRET_ID", raising=False)
+    with pytest.raises(RuntimeError, match="SNOWFLAKE_SECRET_FILE não encontrado"):
+        sc._secret()
+
+
+def test_sem_secret_file_nem_secret_id_gera_runtimeerror_claro(monkeypatch):
+    monkeypatch.delenv("SNOWFLAKE_SECRET_FILE", raising=False)
+    monkeypatch.delenv("SNOWFLAKE_SECRET_ID", raising=False)
+    with pytest.raises(RuntimeError):
+        sc._secret()

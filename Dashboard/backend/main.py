@@ -42,7 +42,7 @@ app.include_router(leitos_router)
 app.include_router(fornecedores_router)
 
 
-@app.get("/")
+@app.get("/api")
 def root():
     return {
         "message": "Dashboard IC API",
@@ -62,7 +62,7 @@ def database_health():
     """Testa a comunicação da API com o banco do engine ativo."""
     engine = get_engine()
     try:
-        row = fetch_one(Q(pg="SELECT 1 AS result", sf="SELECT 1 AS result"))
+        row = fetch_one(Q(pg="SELECT 1 AS result", sf="SELECT 1 AS result"), cache=False)
         return {"status": "ok", "engine": engine, "result": row["result"] if row else None}
     except (DatabaseError, RuntimeError) as exc:
         raise HTTPException(status_code=503, detail=f"Banco indisponível ({engine}): {exc}") from exc

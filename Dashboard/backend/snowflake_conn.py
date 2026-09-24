@@ -13,17 +13,24 @@ from typing import Any, Dict
 
 _lock = threading.Lock()
 _conn = None
-STALE = ("390114", "390111", "Session no longer exists", "connection is closed", "251005",
-         "Authentication token has expired")
+STALE = ("390114", "390111", "session no longer exists", "connection is closed", "251005",
+         "authentication token has expired", "250002")
 
 
 def _secret() -> Dict[str, Any]:
     f = os.getenv("SNOWFLAKE_SECRET_FILE")
-    if f and Path(f).exists():
-        return json.loads(Path(f).read_text())
-    import boto3
+    if f:
+        path = Path(f)
+        if not path.exists():
+            raise RuntimeError(f"SNOWFLAKE_SECRET_FILE não encontrado: {f}")
+        return json.loads(path.read_text())
 
-    sid = os.environ["SNOWFLAKE_SECRET_ID"]
+    sid = os.getenv("SNOWFLAKE_SECRET_ID")
+    if not sid:
+        raise RuntimeError(
+            "Defina SNOWFLAKE_SECRET_FILE (JSON local) ou SNOWFLAKE_SECRET_ID (AWS Secrets Manager)."
+        )
+    import boto3
 
     def get() -> str:
         client = boto3.client("secretsmanager", region_name=os.getenv("AWS_REGION", "us-east-1"))
@@ -64,27 +71,49 @@ def _connect():
     return snowflake.connector.connect(**{k: v for k, v in cfg.items() if v})
 
 
-def run(sql: str, params: Dict[str, Any]):
-    """Executa e devolve lista de dicts. Reconecta uma vez se a sessão expirou."""
+def _is_stale(exc: Exception) -> bool:
+    text = str(exc).lower()
+    return any(marker.lower() in text for marker in STALE)
+
+
+def _get_conn():
+    """Devolve a conexão ativa, abrindo uma se preciso. Só a criação/troca é protegida pelo lock."""
     global _conn
-
-    def once():
-        with _conn.cursor() as cur:
-            cur.execute(sql, params)
-            cols = [c[0] for c in cur.description]
-            return [dict(zip(cols, row)) for row in cur.fetchall()]
-
     with _lock:
         if _conn is None:
             _conn = _connect()
-        try:
-            return once()
-        except Exception as exc:
-            if not any(m in str(exc) for m in STALE):
-                raise
+        return _conn
+
+
+def _reconnect():
+    """Fecha a conexão presa (se houver) e abre uma nova. Se `_connect()` falhar, `_conn` fica
+    `None` para que a próxima chamada tente reconectar de novo, em vez de reusar algo quebrado."""
+    global _conn
+    with _lock:
+        if _conn is not None:
             try:
                 _conn.close()
             except Exception:
                 pass
-            _conn = _connect()
-            return once()
+        _conn = None
+        _conn = _connect()
+        return _conn
+
+
+def run(sql: str, params: Dict[str, Any]):
+    """Executa e devolve lista de dicts. Reconecta uma vez se a sessão expirou."""
+
+    def once(conn):
+        with conn.cursor() as cur:
+            cur.execute(sql, params)
+            cols = [c[0] for c in cur.description]
+            return [dict(zip(cols, row)) for row in cur.fetchall()]
+
+    conn = _get_conn()
+    try:
+        return once(conn)
+    except Exception as exc:
+        if not _is_stale(exc):
+            raise
+        conn = _reconnect()
+        return once(conn)

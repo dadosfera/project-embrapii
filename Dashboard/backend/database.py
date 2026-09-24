@@ -7,6 +7,8 @@ from typing import Any, Dict, List, Optional, Union
 
 from dotenv import load_dotenv
 
+from backend.cache import query_cache
+
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 load_dotenv(BASE_DIR.parent / ".env")
@@ -84,29 +86,35 @@ def _run(engine: str, sql: str, params: Dict[str, Any]) -> List[Dict[str, Any]]:
         raise DatabaseError(str(exc)) from exc
 
 
-def _execute(query: Union[str, Q], params: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    from backend.cache import query_cache
-
+def _execute(
+    query: Union[str, Q], params: Optional[Dict[str, Any]], cache: bool = True
+) -> List[Dict[str, Any]]:
     q = query if isinstance(query, Q) else Q(pg=query)
     engine = get_engine()
     sql = q.for_engine(engine)
     _assert_read_only(sql)
     p = params or {}
-    key = (engine, sql, tuple(sorted((k, str(v)) for k, v in p.items())))
+    key = (engine, sql, tuple(sorted((k, repr(v)) for k, v in p.items())))
 
     def load() -> List[Dict[str, Any]]:
         rows = _run(engine, sql, p)
         return [{str(k).lower(): v for k, v in row.items()} for row in rows]
 
+    if not cache:
+        return load()
     return query_cache.get_or_load(key, load)
 
 
-def fetch_all(query: Union[str, Q], params: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+def fetch_all(
+    query: Union[str, Q], params: Optional[Dict[str, Any]] = None, cache: bool = True
+) -> List[Dict[str, Any]]:
     """Executa um SELECT e retorna todas as linhas como dicionários."""
-    return _execute(query, params)
+    return _execute(query, params, cache=cache)
 
 
-def fetch_one(query: Union[str, Q], params: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+def fetch_one(
+    query: Union[str, Q], params: Optional[Dict[str, Any]] = None, cache: bool = True
+) -> Optional[Dict[str, Any]]:
     """Executa um SELECT e retorna uma única linha como dicionário."""
-    rows = _execute(query, params)
+    rows = _execute(query, params, cache=cache)
     return rows[0] if rows else None
