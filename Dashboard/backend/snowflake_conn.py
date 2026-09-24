@@ -85,14 +85,23 @@ def _get_conn():
         return _conn
 
 
-def _reconnect():
-    """Fecha a conexão presa (se houver) e abre uma nova. Se `_connect()` falhar, `_conn` fica
-    `None` para que a próxima chamada tente reconectar de novo, em vez de reusar algo quebrado."""
+def _reconnect(failed):
+    """Substitui `failed` por uma conexão nova, com compare-and-swap sob o lock.
+
+    Várias threads podem ver a mesma conexão expirar ao mesmo tempo; só a primeira a
+    entrar no lock deve fechá-la e reconectar. Se, quando uma thread entra no lock,
+    `_conn` já não é mais `failed` (outra thread já trocou), ela reaproveita a conexão
+    nova em vez de fechá-la e abrir outra. Se `_connect()` falhar, `_conn` fica `None`
+    para que a próxima chamada tente reconectar de novo, em vez de reusar algo quebrado.
+    """
     global _conn
     with _lock:
-        if _conn is not None:
+        if _conn is not None and _conn is not failed:
+            # outra thread já reconectou nesse meio-tempo: reusa o que ela abriu.
+            return _conn
+        if failed is not None:
             try:
-                _conn.close()
+                failed.close()
             except Exception:
                 pass
         _conn = None
@@ -115,5 +124,5 @@ def run(sql: str, params: Dict[str, Any]):
     except Exception as exc:
         if not _is_stale(exc):
             raise
-        conn = _reconnect()
+        conn = _reconnect(conn)
         return once(conn)

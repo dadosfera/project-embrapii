@@ -1,3 +1,6 @@
+import threading
+import time
+
 import pytest
 
 from backend import snowflake_conn as sc
@@ -98,6 +101,74 @@ def test_reconexao_falha_nao_deixa_conexao_fechada_pendurada(monkeypatch):
     result = sc.run("SELECT 1", {})
     assert result == [{"N": 42}]
     assert attempts["n"] == 3
+
+
+def test_reconexao_concorrente_sem_corrida(monkeypatch):
+    """8 threads batem numa sessão expirada ao mesmo tempo: só uma deve reconectar,
+    nenhuma conexão saudável pode ser fechada por engano, e todas as 8 devem ter sucesso."""
+    made = []
+    made_lock = threading.Lock()
+
+    class RaceConn:
+        def __init__(self, i):
+            self.i = i
+            self.closed = False
+            self.expired = i == 0
+
+        def cursor(self):
+            return RaceCursor(self)
+
+        def close(self):
+            self.closed = True
+
+    class RaceCursor:
+        def __init__(self, conn):
+            self.conn = conn
+            self.description = [("N",)]
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc_info):
+            return False
+
+        def execute(self, sql, params):
+            time.sleep(0.05)
+            if self.conn.expired:
+                raise Exception("390114: Authentication token has expired")
+            if self.conn.closed:
+                raise Exception("250002 (08003): Connection is closed")
+
+        def fetchall(self):
+            return [(self.conn.i,)]
+
+    def fake_connect():
+        with made_lock:
+            conn = RaceConn(len(made))
+            made.append(conn)
+        time.sleep(0.02)
+        return conn
+
+    monkeypatch.setattr(sc, "_connect", fake_connect)
+    sc._get_conn()  # abre a primeira conexão (expirada) antes das threads
+
+    results = []
+
+    def worker():
+        try:
+            results.append(sc.run("SELECT 1", {}))
+        except Exception as exc:  # pragma: no cover - só em caso de falha do teste
+            results.append(exc)
+
+    threads = [threading.Thread(target=worker) for _ in range(8)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert len(made) == 2, f"esperava exatamente 1 reconexão (2 connects), teve {len(made)}"
+    assert not any(c.closed for c in made[1:]), "uma conexão saudável foi fechada por engano"
+    assert results == [[{"N": made[1].i}]] * 8
 
 
 def test_secret_file_ausente_gera_runtimeerror_claro(monkeypatch, tmp_path):

@@ -30,10 +30,17 @@ class TTLCache:
                 return hit[1]
         value = load()
         with self._lock:
-            self._evict_expired_locked()
-            self._data[key] = (self.clock(), value)
-            self._evict_oldest_locked()
+            self._store_locked(key, value)
         return value
+
+    def _store_locked(self, key: Hashable, value: Any) -> None:
+        self._evict_expired_locked()
+        # Remove antes de reinserir: se a chave já existia (ex.: duas cargas concorrentes
+        # da mesma chave), isso a move para o fim, contando como a mais recente para a
+        # eviction por `max_entries` — senão ela manteria a posição antiga do dict.
+        self._data.pop(key, None)
+        self._data[key] = (self.clock(), value)
+        self._evict_oldest_locked()
 
     def _evict_expired_locked(self) -> None:
         now = self.clock()
