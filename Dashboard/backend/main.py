@@ -1,6 +1,5 @@
 import os
 
-import psycopg
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from backend.api.fornecedores import router as fornecedores_router
@@ -8,7 +7,7 @@ from backend.api.fornecedores import router as fornecedores_router
 from backend.api.medicamentos import router as medicamentos_router
 from backend.api.compras import router as compras_router
 from backend.api.leitos import router as leitos_router
-from backend.database import get_connection
+from backend.database import DatabaseError, Q, fetch_one, get_engine
 
 
 app = FastAPI(
@@ -60,21 +59,15 @@ def health():
 
 @app.get("/health/database")
 def database_health():
-    """Testa a comunicação da API com o PostgreSQL."""
+    """Testa a comunicação da API com o banco do engine ativo."""
+    engine = get_engine()
     try:
-        with get_connection() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute("SELECT 1 AS result;")
-                result = cursor.fetchone()
+        row = fetch_one(Q(pg="SELECT 1 AS result", sf="SELECT 1 AS result"))
+        return {"status": "ok", "engine": engine, "result": row["result"] if row else None}
+    except (DatabaseError, RuntimeError) as exc:
+        raise HTTPException(status_code=503, detail=f"Banco indisponível ({engine}): {exc}") from exc
 
-        return {
-            "status": "ok",
-            "database": "connected",
-            "result": result["result"] if result else None,
-        }
 
-    except (psycopg.Error, RuntimeError) as exc:
-        raise HTTPException(
-            status_code=503,
-            detail=f"Não foi possível conectar ao PostgreSQL: {exc}",
-        ) from exc
+from backend import static  # noqa: E402
+
+static.install(app)
