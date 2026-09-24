@@ -6,7 +6,7 @@ cd "$(dirname "$0")/.."
 
 env_var() {
   local key="$1"
-  grep -E "^${key}=" .env | tail -n1 | cut -d'=' -f2- | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/^"\(.*\)"$/\1/' -e "s/^'\(.*\)'\$/\1/"
+  { grep -E "^${key}=" .env || true; } | tail -n1 | cut -d'=' -f2- | sed -e 's/\r$//' -e 's/^"\(.*\)"$/\1/' -e "s/^'\(.*\)'\$/\1/"
 }
 
 SSH_HOST="$(env_var SSH_HOST)"
@@ -31,7 +31,7 @@ exec expect -c '
   expect {
     -re "(?i)password:" { send -- "$pw\r" }
     timeout { puts "NO PASSWORD PROMPT"; exit 3 }
-    eof { puts "SSH EXITED"; catch wait r; exit [lindex $r 3] }
+    eof { puts "SSH EXITED: $expect_out(buffer)"; catch wait r; exit [lindex $r 3] }
   }
   log_user 1
   expect {
@@ -40,4 +40,6 @@ exec expect -c '
     eof { puts "SSH EXITED"; catch wait r; exit [lindex $r 3] }
   }
   set timeout -1
-  expect eof'
+  expect eof
+  catch wait r
+  exit [lindex $r 3]'
