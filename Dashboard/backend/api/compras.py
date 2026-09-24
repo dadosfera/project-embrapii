@@ -1,10 +1,9 @@
 from datetime import date, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
-import psycopg
 from fastapi import APIRouter, HTTPException, Query
 
-from backend.database import fetch_all, fetch_one
+from backend.database import DatabaseError, Q, fetch_all, fetch_one
 
 
 router = APIRouter(
@@ -22,7 +21,7 @@ TIPOS_COMPRA = {
 def _database_error(exc: Exception) -> HTTPException:
     return HTTPException(
         status_code=503,
-        detail=f"Erro ao consultar o PostgreSQL: {exc}",
+        detail=f"Erro ao consultar o banco: {exc}",
     )
 
 
@@ -150,7 +149,7 @@ def get_kpis_compras(
             "numero_fabricantes": 0,
             "numero_mantenedoras": 0,
         }
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -202,7 +201,7 @@ def get_compras_por_mes(
 
     try:
         return fetch_all(query, parametros)
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -267,7 +266,7 @@ def get_top_fornecedores_compras(
 
     try:
         return fetch_all(query, parametros)
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -332,7 +331,7 @@ def get_top_fabricantes_compras(
 
     try:
         return fetch_all(query, parametros)
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -390,7 +389,7 @@ def get_compras_por_modalidade(
 
     try:
         return fetch_all(query, parametros)
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -448,7 +447,7 @@ def get_compras_por_tipo(
 
     try:
         return fetch_all(query, parametros)
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -510,5 +509,5 @@ def get_compras_recentes(
 
     try:
         return fetch_all(query, parametros)
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc

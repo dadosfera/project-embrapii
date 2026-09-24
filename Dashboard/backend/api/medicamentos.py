@@ -1,7 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
-import psycopg
 
-from backend.database import fetch_all, fetch_one
+from backend.database import DatabaseError, Q, fetch_all, fetch_one
 
 
 router = APIRouter(
@@ -13,7 +12,7 @@ router = APIRouter(
 def _database_error(exc: Exception) -> HTTPException:
     return HTTPException(
         status_code=503,
-        detail=f"Erro ao consultar o PostgreSQL: {exc}",
+        detail=f"Erro ao consultar o banco: {exc}",
     )
 
 
@@ -55,7 +54,7 @@ def buscar_medicamentos(
                 "limite": limite,
             },
         )
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -81,7 +80,7 @@ def listar_produtos_do_catmat(catmat_id: int):
             query,
             {"catmat_id": catmat_id},
         )
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -159,7 +158,7 @@ def resumo_medicamento(catmat_id: int):
             "instituicoes_estoque_zerado": 0,
             "preco_medio_compra": None,
         }
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -234,7 +233,7 @@ def lotes_vencendo(
             "quantidade_lotes": len(items),
             "items": items,
         }
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -285,7 +284,7 @@ def estoque_por_uf(catmat_id: int):
             query,
             {"catmat_id": catmat_id},
         )
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -318,7 +317,7 @@ def evolucao_preco_compra(catmat_id: int):
             query,
             {"catmat_id": catmat_id},
         )
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -367,7 +366,7 @@ def compras_por_fornecedor(
                 "limite": limite,
             },
         )
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -416,7 +415,7 @@ def compras_por_fabricante(
                 "limite": limite,
             },
         )
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -478,5 +477,5 @@ def historico_compras(
             "offset": offset,
             "items": items,
         }
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc

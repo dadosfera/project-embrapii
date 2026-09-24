@@ -3,10 +3,9 @@ from functools import lru_cache
 from time import monotonic
 from typing import Any, Dict, List, Optional, Tuple
 
-import psycopg
 from fastapi import APIRouter, HTTPException, Query
 
-from backend.database import fetch_all, fetch_one
+from backend.database import DatabaseError, Q, fetch_all, fetch_one
 
 
 router = APIRouter(
@@ -40,7 +39,7 @@ def _cache_bucket() -> int:
 def _database_error(exc: Exception) -> HTTPException:
     return HTTPException(
         status_code=503,
-        detail=f"Erro ao consultar o PostgreSQL: {exc}",
+        detail=f"Erro ao consultar o banco: {exc}",
     )
 
 
@@ -150,7 +149,7 @@ def get_intervalo_competencias():
             "data_minima": None,
             "data_maxima": None,
         }
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -179,7 +178,7 @@ def get_ufs():
 
     try:
         return fetch_all(query)
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -252,7 +251,7 @@ def get_kpis(
             "competencia_minima": None,
             "competencia_maxima": None,
         }
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -329,7 +328,7 @@ def get_leitos_por_uf(
 
     try:
         return fetch_all(query, parametros)
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -454,7 +453,7 @@ def get_tipos_uti(
 
     try:
         return fetch_all(query, parametros)
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -530,7 +529,7 @@ def get_evolucao(
 
     try:
         return fetch_all(query, parametros)
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -619,7 +618,7 @@ def get_instituicoes(
 
     try:
         return fetch_all(query, parametros)
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -707,7 +706,7 @@ def get_opcoes_leitos():
         return _buscar_opcoes_cache(
             _cache_bucket(),
         )
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -1202,7 +1201,7 @@ def get_painel_leitos(
             _cache_bucket(),
         )
     except (
-        psycopg.Error,
+        DatabaseError,
         RuntimeError,
         ValueError,
     ) as exc:

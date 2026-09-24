@@ -1,9 +1,8 @@
 from datetime import date
 
-import psycopg
 from fastapi import APIRouter, HTTPException, Query
 
-from backend.database import fetch_all, fetch_one
+from backend.database import DatabaseError, Q, fetch_all, fetch_one
 
 
 router = APIRouter(
@@ -15,7 +14,7 @@ router = APIRouter(
 def _database_error(exc: Exception) -> HTTPException:
     return HTTPException(
         status_code=503,
-        detail=f"Erro ao consultar o PostgreSQL: {exc}",
+        detail=f"Erro ao consultar o banco: {exc}",
     )
 
 
@@ -138,7 +137,7 @@ def get_mapa_fornecedores_por_uf(
 
     try:
         linhas = fetch_all(query, parametros)
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
     resultado = []
@@ -250,7 +249,7 @@ def get_ranking_fornecedores(
 
     try:
         return fetch_all(query, parametros)
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -332,5 +331,5 @@ def get_top_fornecedor_por_uf(
 
     try:
         return fetch_all(query, parametros)
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
