@@ -6,6 +6,7 @@ import {
   setThemePreference,
   type ThemePreference,
 } from "../theme";
+import { assetUrl } from "../lib/base";
 
 type LayoutProps = {
   children: ReactNode;
@@ -48,13 +49,13 @@ export function Layout({ children }: LayoutProps) {
             aria-label="Dadosfera — Início"
           >
             <img
-              src="/logos/logodadosfera.png"
+              src={assetUrl("logos/logodadosfera.png")}
               alt=""
               className="brand-logo brand-logo-light"
               aria-hidden="true"
             />
             <img
-              src="/logos/dadosferabranco.png"
+              src={assetUrl("logos/dadosferabranco.png")}
               alt=""
               className="brand-logo brand-logo-dark"
               aria-hidden="true"
