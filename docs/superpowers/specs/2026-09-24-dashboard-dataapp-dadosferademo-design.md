@@ -10,7 +10,8 @@ Fora do escopo: PAIRS (projeto separado, depois), Text2SQLBenchmarking, carga re
 
 ## Contexto encontrado
 
-- O backend lê um PostgreSQL da UFMG (`150.164.2.13:5432`, `datalake_db`) acessível só por túnel SSH no bastion `150.164.2.44`. O cluster não alcança essa rede.
+- O backend lê um PostgreSQL 14 da UFMG (`150.164.2.13:5432`) acessível só por túnel SSH no bastion `150.164.2.44`. O cluster não alcança essa rede. O servidor tem `datalake_db` a `datalake_db4`; **o do Dashboard é o `datalake_db2`** (40 GB), o único com todas as tabelas citadas pelos routers, inclusive `cnpj_enriquecido`. Usuário `datalake_user` (confirmado em 24/09/2026 pelo túnel).
+- Do `datalake_db2`, 39 GB são uma tabela só: `instituicao_estoca_produto` (248 M linhas). O resto soma ~1,2 GB.
 - 28 endpoints em 4 routers (`compras`, `fornecedores`, `leitos`, `medicamentos`), ~2,5 mil linhas de SQL com sintaxe Postgres (`FILTER`, `JOIN LATERAL`, `BTRIM`, `::date`, `%(x)s`).
 - `frontend/src/lib/api.ts` nunca foi commitado: a regra `lib/` do `Dashboard/.gitignore` (bloco Python) o ignora. O front não builda a partir do repo.
 - O `BrowserRouter` não tem `basename` e o GeoJSON é buscado em `/maps/...` com caminho absoluto. Os dois quebram sob o prefixo `/pbp-service-…/` do Orchest.
@@ -49,9 +50,10 @@ Arquivos novos ou alterados (tudo dentro de `Dashboard/`, sem repo novo):
 ## 1. Dados: Postgres → Snowflake
 
 - **Tabelas:** o conjunto de tabelas e views citadas em `FROM`/`JOIN` nos routers. A lista é extraída por script e fixada em `scripts/tables.txt`, e o sync falha se um router citar algo fora dela. Views do Postgres viram tabelas no Snowflake. As CTEs (`kpis`, `ranqueado`, `snapshot_leitos` etc.) não são tabelas e ficam fora.
+- **Recorte de `instituicao_estoca_produto`:** os três usos no backend (`medicamentos.py`: `resumo`, `lotes-vencendo`, `estoque-por-uf`) fazem `DISTINCT ON (instituicao_id)` ordenado por `data_de_posicao_no_estoque DESC NULLS LAST, instituicao_estoca_produto_id DESC`, então só a posição mais recente importa. O sync copia `SELECT DISTINCT ON (instituicao_id, produto_id) * ... ORDER BY instituicao_id, produto_id, data_de_posicao_no_estoque DESC NULLS LAST, instituicao_estoca_produto_id DESC` (~3,3 M linhas) com o mesmo nome de tabela. O resultado é exato: a linha que o backend escolhe por instituição é também a mais recente do seu par (instituição, produto) e sempre sobrevive ao recorte. O `mv_estoque_mais_recente` **não** serve: não tem a coluna `id` nem o desempate por `id`, e o `DESC` dele deixa NULLs primeiro. O sync grava o recorte em `sync_report.json` com as linhas de origem (total e recortado).
 - **Fluxo:** para cada tabela, `COPY (SELECT *) TO` → parquet local → `PUT` no stage do schema → `CREATE OR REPLACE TABLE ... USING TEMPLATE` + `COPY INTO`. Nomes de colunas em minúscula no Postgres viram MAIÚSCULA sem aspas no Snowflake.
 - **Idempotência:** cada execução recria as tabelas (`CREATE OR REPLACE`) e grava `scripts/sync_report.json` com as linhas na origem e no destino por tabela. O script termina com erro se alguma contagem divergir.
-- **Credenciais:** SSH e Postgres vêm de `Dashboard/.env` (gitignored): `SSH_HOST`, `SSH_USER`, `SSH_PASSWORD`, `DB_*`. O Snowflake usa o secret da org Dadosfera `prd/root/snowflake_credentials/dadosferademo`. Nenhuma credencial de cliente ou da UFMG entra no repo nem no Orchest.
+- **Credenciais:** SSH e Postgres vêm de `Dashboard/.env` (gitignored): `SSH_HOST`, `SSH_USER`, `SSH_PASSWORD`, `DB_*` com `DB_NAME=datalake_db2`. O Snowflake usa o secret da org Dadosfera `prd/root/snowflake_credentials/dadosferademo`. Nenhuma credencial de cliente ou da UFMG entra no repo nem no Orchest.
 - **Schema:** `EMBRAPII_DATASUS`. O app usa o role do secret e o `database.py` recusa qualquer statement que não comece com `SELECT` ou `WITH`; não há role dedicado nesta entrega.
 
 ## 2. Backend dual-engine
@@ -117,5 +119,5 @@ Arquivos novos ou alterados (tudo dentro de `Dashboard/`, sem repo novo):
 
 - **Túnel instável** (o README da UFMG avisa sobre timeout): o sync é por tabela e retomável, pulando as tabelas já carregadas com contagem batendo.
 - **`JOIN LATERAL`/semântica de NULL** divergindo no porte: coberto pela paridade; nenhum endpoint vai para o deploy sem estar verde.
-- **Volume do Postgres desconhecido:** o sync mede o tamanho das tabelas antes da carga; acima de 5 GB no total, para e consulta o Allan.
+- **Volume:** medido em 24/09/2026 (~1,2 GB + recorte do estoque). O sync mede de novo antes da carga e, se passar de 5 GB, para e consulta o Allan. O `DISTINCT ON` sobre 248 M linhas usa o índice `idx_iep_inst_prod_data` e roda no servidor via `COPY (query) TO STDOUT`, então só o recorte trafega pelo túnel.
 - **Futuro do cluster demo2** (housecleaning): o deploy é por script e idempotente, então a republicação em outro cluster é trocar a URL do Orchest.
