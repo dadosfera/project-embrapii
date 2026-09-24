@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 import psycopg
 from dotenv import load_dotenv
@@ -52,7 +52,7 @@ def get_connection():
     )
 
 
-def fetch_all(query: str, params: dict[str, Any] | None = None) -> list[dict]:
+def fetch_all(query: str, params: Optional[Dict[str, Any]] = None) -> List[dict]:
     """Executa um SELECT e retorna todas as linhas como dicionários."""
     with get_connection() as connection:
         with connection.cursor() as cursor:
@@ -60,7 +60,7 @@ def fetch_all(query: str, params: dict[str, Any] | None = None) -> list[dict]:
             return cursor.fetchall()
 
 
-def fetch_one(query: str, params: dict[str, Any] | None = None) -> dict | None:
+def fetch_one(query: str, params: Optional[Dict[str, Any]] = None) -> Optional[dict]:
     """Executa um SELECT e retorna uma única linha como dicionário."""
     with get_connection() as connection:
         with connection.cursor() as cursor:

@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from typing import Any, Dict, List, Optional, Tuple
 
 import psycopg
 from fastapi import APIRouter, HTTPException, Query
@@ -28,9 +29,9 @@ def _database_error(exc: Exception) -> HTTPException:
 def _montar_filtros(
     data_inicio: date,
     data_fim: date,
-    catmat_id: int | None,
+    catmat_id: Optional[int],
     tipo_compra: str,
-) -> tuple[str, dict]:
+) -> Tuple[str, Dict]:
     """
     Reproduz os filtros usados pela página Streamlit de compras.
 
@@ -84,7 +85,7 @@ def _montar_filtros(
 def _params_comuns(
     data_inicio: date,
     data_fim: date,
-    catmat_id: int | None,
+    catmat_id: Optional[int],
     tipo_compra: str,
 ):
     return _montar_filtros(
@@ -99,7 +100,7 @@ def _params_comuns(
 def get_kpis_compras(
     data_inicio: date,
     data_fim: date,
-    catmat_id: int | None = Query(default=None, ge=1),
+    catmat_id: Optional[int] = Query(default=None, ge=1),
     tipo_compra: str = Query(default=""),
 ):
     where_sql, parametros = _params_comuns(
@@ -157,7 +158,7 @@ def get_kpis_compras(
 def get_compras_por_mes(
     data_inicio: date,
     data_fim: date,
-    catmat_id: int | None = Query(default=None, ge=1),
+    catmat_id: Optional[int] = Query(default=None, ge=1),
     tipo_compra: str = Query(default=""),
 ):
     where_sql, parametros = _params_comuns(
@@ -209,7 +210,7 @@ def get_compras_por_mes(
 def get_top_fornecedores_compras(
     data_inicio: date,
     data_fim: date,
-    catmat_id: int | None = Query(default=None, ge=1),
+    catmat_id: Optional[int] = Query(default=None, ge=1),
     tipo_compra: str = Query(default=""),
     limite: int = Query(default=15, ge=1, le=100),
 ):
@@ -274,7 +275,7 @@ def get_top_fornecedores_compras(
 def get_top_fabricantes_compras(
     data_inicio: date,
     data_fim: date,
-    catmat_id: int | None = Query(default=None, ge=1),
+    catmat_id: Optional[int] = Query(default=None, ge=1),
     tipo_compra: str = Query(default=""),
     limite: int = Query(default=15, ge=1, le=100),
 ):
@@ -339,7 +340,7 @@ def get_top_fabricantes_compras(
 def get_compras_por_modalidade(
     data_inicio: date,
     data_fim: date,
-    catmat_id: int | None = Query(default=None, ge=1),
+    catmat_id: Optional[int] = Query(default=None, ge=1),
     tipo_compra: str = Query(default=""),
 ):
     where_sql, parametros = _params_comuns(
@@ -397,7 +398,7 @@ def get_compras_por_modalidade(
 def get_compras_por_tipo(
     data_inicio: date,
     data_fim: date,
-    catmat_id: int | None = Query(default=None, ge=1),
+    catmat_id: Optional[int] = Query(default=None, ge=1),
     tipo_compra: str = Query(default=""),
 ):
     where_sql, parametros = _params_comuns(
@@ -455,7 +456,7 @@ def get_compras_por_tipo(
 def get_compras_recentes(
     data_inicio: date,
     data_fim: date,
-    catmat_id: int | None = Query(default=None, ge=1),
+    catmat_id: Optional[int] = Query(default=None, ge=1),
     tipo_compra: str = Query(default=""),
     limite: int = Query(default=500, ge=1, le=500),
 ):

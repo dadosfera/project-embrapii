@@ -1,6 +1,7 @@
 from datetime import date
 from functools import lru_cache
 from time import monotonic
+from typing import Any, Dict, List, Optional, Tuple
 
 import psycopg
 from fastapi import APIRouter, HTTPException, Query
@@ -123,7 +124,7 @@ def _cte_snapshot_leitos(modo: str) -> str:
 
 def _filtro_uf(
     uf: str,
-) -> tuple[str, dict]:
+) -> Tuple[str, Dict]:
     uf_normalizada = uf.strip().upper()
 
     if not uf_normalizada:
@@ -713,7 +714,7 @@ def get_opcoes_leitos():
 def _query_painel(
     modo: str,
     uf: str,
-) -> tuple[str, dict]:
+) -> Tuple[str, Dict]:
     cte = _cte_snapshot_leitos(
         modo,
     )
