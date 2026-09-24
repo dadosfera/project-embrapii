@@ -38,11 +38,11 @@ Arquivos novos ou alterados (tudo dentro de `Dashboard/`, sem repo novo):
 |---|---|
 | `scripts/sync_snowflake.py` | Carga única Postgres → Snowflake |
 | `backend/database.py` | Seleção de engine; `fetch_all`/`fetch_one` com a mesma assinatura |
-| `backend/sql/<router>/<endpoint>.{pg,sf}.sql` | SQL por engine |
+| `backend/api/*.py` | SQL por engine no próprio router: `Q(pg=..., sf=...)` |
 | `backend/cache.py` | Cache em memória com TTL + warm-up |
 | `backend/main.py` | Serve `frontend/dist` com fallback SPA e injeta o prefixo |
 | `tests/parity/` | Teste e relatório de paridade Postgres × Snowflake |
-| `frontend/src/lib/api.ts` | Cliente reconstruído, porta única para a API |
+| `frontend/src/lib/api.ts`, `frontend/src/lib/fornecedoresApi.ts` | Clientes reconstruídos (os dois foram perdidos pelo `.gitignore`), porta única para a API |
 | `frontend/src/index.css`, `components/Layout.tsx` | Tokens e shell Beast |
 | `docs/ux-review/` | Report da revisão de UX (gate) |
 | `deploy/` | `deploy_service.py`, `dadosfera_client.py`, `environment_setup.sh`, `manifest.json`, `verify.py` (padrão do OIC) |
@@ -59,7 +59,7 @@ Arquivos novos ou alterados (tudo dentro de `Dashboard/`, sem repo novo):
 ## 2. Backend dual-engine
 
 - `DB_ENGINE=postgres` (default, comportamento atual para a UFMG) ou `snowflake`.
-- O `.pg.sql` é o SQL atual copiado sem alteração. O `.sf.sql` é o porte: o sqlglot gera o rascunho e cada arquivo é revisado à mão. Regras de porte:
+- Cada query vira `Q(pg=..., sf=...)` no próprio router (decisão do plano: tirar 2,5 mil linhas de SQL para arquivos deixaria o diff ilegível para a UFMG). O `pg` é o SQL atual sem alteração. O `sf` é o porte: o sqlglot gera o rascunho e cada arquivo é revisado à mão. Regras de porte:
 
 | Postgres | Snowflake |
 |---|---|
@@ -69,10 +69,10 @@ Arquivos novos ou alterados (tudo dentro de `Dashboard/`, sem repo novo):
 | `JOIN LATERAL (...)` | `QUALIFY ROW_NUMBER() OVER (...) = 1` ou `LATERAL` suportado |
 | `%(nome)s` | `%(nome)s` (connector em `paramstyle=pyformat`) |
 
-- Fragmentos de filtro montados por concatenação (ex.: `filtro_uf`) viram fragmentos por engine no mesmo arquivo de SQL do endpoint, via marcadores `-- @filtro_uf`.
+- Fragmentos de filtro montados por concatenação (ex.: `filtro_uf`) viram funções que recebem o `engine`.
 - As chaves das linhas são normalizadas para minúscula no retorno do Snowflake, para que o JSON da API seja idêntico entre engines. `Decimal` e datas são serializados como hoje.
 - **Compatibilidade com Python 3.9:** `from __future__ import annotations` nos módulos, `Optional` onde a anotação é avaliada em runtime (FastAPI/pydantic) e pins compatíveis (`fastapi==0.104.1`, `uvicorn==0.24.0`, `snowflake-connector-python>=3.7,<5`). O `psycopg` fica em extra opcional.
-- **Cache:** respostas em memória por (endpoint, parâmetros), com TTL de 3600 s (`QUERY_CACHE_TTL_SECONDS`). No startup, o warm-up chama os endpoints da Home. Pool de conexões Snowflake de tamanho 4.
+- **Cache:** respostas em memória por (endpoint, parâmetros), com TTL de 3600 s (`QUERY_CACHE_TTL_SECONDS`). No startup, o warm-up chama os endpoints da Home. Uma conexão Snowflake com lock (o cache absorve a carga da demo); pool só se a latência pedir.
 - **Erros:** falha no banco → HTTP 503 com a mensagem do engine ativo, sem fallback para outro engine. `/health/database` informa `{"engine": ..., "status": ...}`.
 
 ### Paridade
