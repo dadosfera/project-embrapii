@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Revisão de UX · Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --color-primary-500: #1700a2;
+  --color-primary-600: #12007f;
+  --color-primary-100: #d1ccec;
+  --color-primary-50: #f0eefa;
+  --color-secondary-500: #28a1ce;
+  --color-info-500: #3bbff0;
+  --color-success-500: #4db04f;
+  --color-warning-500: #ff9800;
+  --color-danger-500: #ef4444;
+  --color-basic-100: #ffffff;
+  --color-basic-200: #f9f9f9;
+  --color-basic-300: #f2f2f2;
+  --color-basic-500: #dfdfdf;
+  --color-basic-700: #6b6b6b;
+  --color-basic-900: #333333;
+  --color-basic-1000: #222222;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: 'Quicksand', 'Open Sans', Helvetica, Arial, sans-serif; font-size: 16px; line-height: 1.6; color: var(--color-basic-1000); background: var(--color-basic-200); }
+a { color: var(--color-primary-500); }
+.report-hero { position: relative; min-height: 300px; background: url('https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=1600&q=80') center/cover; display: flex; align-items: flex-end; padding: 24px 24px 36px; }
+.report-hero::before { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(13,0,59,.92) 0%, rgba(13,0,59,.55) 50%, rgba(0,0,0,.15) 85%); }
+.report-hero__logo { position: absolute; top: 24px; right: 24px; height: 40px; filter: brightness(0) invert(1); }
+.report-hero__content { position: relative; z-index: 1; max-width: 1080px; margin: 0 auto; width: 100%; }
+.report-hero__title { margin: 0; font-size: 2.3rem; font-weight: 700; color: #fff; line-height: 1.15; }
+.report-hero__subtitle { margin: 10px 0 0; color: rgba(255,255,255,.92); font-size: 1rem; }
+main { max-width: 1080px; margin: 0 auto; padding: 8px 16px 64px; }
+nav.toc { background: #fff; border: 1px solid var(--color-basic-500); border-radius: 10px; padding: 14px 18px; margin: 24px 0; font-size: .92rem; }
+nav.toc a { margin-right: 14px; white-space: nowrap; font-weight: 600; text-decoration: none; }
+h2 { font-size: 1.6rem; color: var(--color-primary-500); border-left: 4px solid var(--color-primary-500); padding-left: 12px; margin: 48px 0 12px; }
+h3 { font-size: 1.15rem; color: var(--color-basic-900); margin: 28px 0 8px; }
+p { margin: .4em 0 .9em; }
+.lead { font-size: 1.05rem; }
+table { width: 100%; border-collapse: collapse; background: #fff; font-size: .9rem; margin: 10px 0 18px; border: 1px solid var(--color-basic-500); }
+th { background: var(--color-primary-500); color: #fff; text-align: left; padding: 8px 10px; font-weight: 600; }
+td { padding: 8px 10px; border-top: 1px solid var(--color-basic-500); vertical-align: top; }
+tr:nth-child(even) td { background: var(--color-basic-200); }
+td.id { font-weight: 700; color: var(--color-primary-500); white-space: nowrap; }
+.esf { display: inline-block; min-width: 22px; text-align: center; font-weight: 700; border-radius: 4px; padding: 0 6px; font-size: .8rem; }
+.esf-P { background: #e3f4e4; color: #2c6b2e; }
+.esf-M { background: #fff1db; color: #8a5200; }
+.esf-G { background: #fde2e2; color: #9b1c1c; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0; }
+.kpi { background: #fff; border: 1px solid var(--color-basic-500); border-radius: 10px; padding: 14px 16px; }
+.kpi b { display: block; font-size: 1.6rem; color: var(--color-primary-500); line-height: 1.2; }
+.kpi span { font-size: .85rem; color: var(--color-basic-700); }
+.top5 { counter-reset: t; list-style: none; padding: 0; }
+.top5 li { counter-increment: t; background: #fff; border: 1px solid var(--color-basic-500); border-radius: 10px; padding: 12px 16px 12px 56px; margin-bottom: 8px; position: relative; }
+.top5 li::before { content: counter(t); position: absolute; left: 16px; top: 12px; width: 28px; height: 28px; border-radius: 50%; background: var(--color-primary-500); color: #fff; font-weight: 700; display: grid; place-items: center; }
+.shots { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 12px 0; }
+.shots > * { min-width: 0; }
+.mock { overflow-x: auto; }
+figure { margin: 0; background: #fff; border: 1px solid var(--color-basic-500); border-radius: 10px; overflow: hidden; }
+figure a.img { display: block; max-height: 460px; overflow: hidden; border-bottom: 1px solid var(--color-basic-500); }
+figure img { display: block; width: 100%; height: auto; }
+figcaption { padding: 8px 12px; font-size: .82rem; color: var(--color-basic-700); }
+.proposta { background: var(--color-primary-50); border: 1px solid var(--color-primary-100); border-radius: 10px; padding: 14px 18px; margin: 12px 0 8px; }
+.proposta h4 { margin: 0 0 6px; color: var(--color-primary-500); font-size: 1rem; }
+.proposta ul { margin: 4px 0; padding-left: 20px; }
+code { font-size: .86em; background: var(--color-basic-300); padding: 1px 5px; border-radius: 4px; }
+.note { font-size: .88rem; color: var(--color-basic-700); }
+/* ---------- mockups (tokens Beast) ---------- */
+.mock { border: 2px dashed var(--color-primary-100); border-radius: 12px; background: #fff; padding: 16px; margin: 12px 0; font-family: 'Quicksand', sans-serif; }
+.mock-label { font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--color-primary-500); margin-bottom: 10px; }
+.m-header { display: flex; align-items: center; gap: 16px; border-bottom: 1px solid var(--color-basic-500); padding-bottom: 10px; flex-wrap: wrap; }
+.m-header img { height: 26px; }
+.m-proj { font-size: .8rem; color: var(--color-basic-700); border-left: 1px solid var(--color-basic-500); padding-left: 12px; line-height: 1.25; }
+.m-proj b { display: block; color: var(--color-basic-1000); font-size: .88rem; }
+.m-nav { display: flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+.m-nav span { font-size: .82rem; font-weight: 600; padding: 6px 10px; border-radius: 6px; color: var(--color-basic-900); display: inline-flex; align-items: center; gap: 6px; }
+.m-nav span.on { background: var(--color-primary-500); color: #fff; }
+.eva { width: 14px; height: 14px; display: inline-block; }
+.m-search { display: flex; align-items: center; gap: 8px; border: 1px solid var(--color-primary-500); border-radius: 6px; padding: 8px 12px; box-shadow: 0 0 0 3px var(--color-primary-100); font-size: .9rem; }
+.m-list { border: 1px solid var(--color-basic-500); border-radius: 6px; margin-top: 4px; font-size: .84rem; }
+.m-list div { padding: 7px 12px; display: flex; justify-content: space-between; gap: 10px; border-top: 1px solid var(--color-basic-300); }
+.m-list div:first-child { border-top: 0; background: var(--color-primary-50); }
+.m-list small { color: var(--color-basic-700); }
+.tag { font-size: .7rem; font-weight: 700; padding: 1px 7px; border-radius: 10px; white-space: nowrap; }
+.tag-ok { background: #e3f4e4; color: #2c6b2e; }
+.tag-no { background: var(--color-basic-300); color: var(--color-basic-700); }
+.m-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.m-kpi { border: 1px solid var(--color-basic-500); border-radius: 8px; padding: 10px; }
+.m-kpi span { font-size: .72rem; color: var(--color-basic-700); display: block; }
+.m-kpi b { font-size: 1.25rem; color: var(--color-basic-1000); }
+.m-kpi.hero { border-color: var(--color-primary-500); }
+.m-kpi.hero b { color: var(--color-primary-500); }
+.m-bars { display: flex; align-items: flex-end; gap: 14px; height: 130px; padding: 8px 4px 0; border-bottom: 1px solid var(--color-basic-500); margin-top: 12px; }
+.m-bars div { flex: 1; background: var(--color-primary-500); border-radius: 4px 4px 0 0; position: relative; }
+.m-bars div.out { background: repeating-linear-gradient(45deg, var(--color-primary-500), var(--color-primary-500) 5px, #5b48c4 5px, #5b48c4 10px); }
+.m-bars div em { position: absolute; top: -18px; left: 0; right: 0; text-align: center; font-size: .68rem; font-style: normal; color: var(--color-basic-900); }
+.m-axis { display: flex; gap: 14px; padding: 2px 4px; font-size: .72rem; color: var(--color-basic-700); }
+.m-axis span { flex: 1; text-align: center; }
+.m-seg { display: inline-flex; border: 1px solid var(--color-basic-500); border-radius: 6px; overflow: hidden; font-size: .78rem; font-weight: 600; }
+.m-seg span { padding: 5px 10px; }
+.m-seg span.on { background: var(--color-primary-500); color: #fff; }
+.m-empty { display: flex; gap: 12px; align-items: flex-start; border: 1px solid var(--color-basic-500); border-radius: 8px; padding: 14px; background: var(--color-basic-200); }
+.m-empty .ic { width: 32px; height: 32px; border-radius: 50%; background: var(--color-primary-100); display: grid; place-items: center; flex: none; }
+.m-empty b { display: block; }
+.m-empty p { margin: 4px 0 8px; font-size: .86rem; color: var(--color-basic-900); }
+.m-btn { display: inline-block; font-size: .8rem; font-weight: 600; padding: 5px 12px; border-radius: 6px; border: 1px solid var(--color-primary-500); color: var(--color-primary-500); margin-right: 6px; }
+.m-btn.pri { background: var(--color-primary-500); color: #fff; }
+.m-legend { display: flex; gap: 0; margin-top: 8px; font-size: .72rem; }
+.m-legend div { flex: 1; text-align: center; }
+.m-legend i { display: block; height: 12px; }
+.m-table { width: 100%; border-collapse: collapse; font-size: .82rem; border: 0; margin: 8px 0 0; }
+.m-table th { background: var(--color-basic-300); color: var(--color-basic-900); font-weight: 700; }
+.m-table td.n, .m-table th.n { text-align: right; font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+.checklist { list-style: none; padding: 0; counter-reset: d; }
+.checklist li { counter-increment: d; background: #fff; border: 1px solid var(--color-basic-500); border-radius: 8px; padding: 10px 14px 10px 64px; margin-bottom: 6px; position: relative; font-size: .93rem; }
+.checklist li::before { content: "D" counter(d); position: absolute; left: 14px; top: 10px; font-weight: 700; color: var(--color-primary-500); }
+.checklist .box { float: right; font-size: .78rem; color: var(--color-basic-700); margin-left: 12px; white-space: nowrap; }
+footer { max-width: 1080px; margin: 0 auto; padding: 20px 16px 40px; font-size: .85rem; color: var(--color-basic-700); border-top: 1px solid var(--color-basic-500); }
+@media (max-width: 760px) {
+  .shots { grid-template-columns: 1fr; }
+  .m-kpis { grid-template-columns: 1fr 1fr; }
+  .report-hero__title { font-size: 1.7rem; }
+  table { font-size: .82rem; display: block; overflow-x: auto; }
+  .m-seg { flex-wrap: wrap; }
+  .checklist .box { float: none; display: block; margin: 0 0 4px; }
+}
+</style>
+</head>
+<body>
+
+<header class="report-hero">
+  <img class="report-hero__logo" src="assets/DF-LogoHRZ.svg" alt="Dadosfera" onerror="this.style.display='none'">
+  <div class="report-hero__content">
+    <h1 class="report-hero__title">Dashboard EMBRAPII: revisão de UX</h1>
+    <p class="report-hero__subtitle">Gate de aprovação antes do redesign Beast (Plano B) · Projeto EMBRAPII · DCC/UFMG · 24/09/2026</p>
+  </div>
+</header>
+
+<main>
+<nav class="toc">
+  <a href="#resumo">Resumo</a>
+  <a href="#global">Transversais</a>
+  <a href="#home">Início</a>
+  <a href="#medicamentos">Medicamentos</a>
+  <a href="#compras">Compras</a>
+  <a href="#leitos">Leitos</a>
+  <a href="#mapa">Mapa</a>
+  <a href="#fornecedores">Fornecedores</a>
+  <a href="#beast">Identidade Beast</a>
+  <a href="#pendencias">Fora do escopo</a>
+  <a href="#decisoes">Decisões</a>
+</nav>
+
+<!-- ============================================================ -->
+<h2 id="resumo">1. Resumo</h2>
+<p class="lead">O Dashboard é o data app React (Vite, Tailwind, Recharts, mapa em D3) servido pelo FastAPI, que reescreve o painel Streamlit da UFMG. São seis páginas: Início, Medicamentos, Compras, Leitos, Mapa e Fornecedores. O backend responde a Postgres ou a Snowflake com as mesmas rotas.</p>
+
+<div class="kpis">
+  <div class="kpi"><b>47/47</b><span>endpoints em paridade Postgres × Snowflake (<code>tests/parity/report.md</code>)</span></div>
+  <div class="kpi"><b>No ar</b><span>Módulo de Inteligência <strong>demo2</strong>, via Snowflake</span></div>
+  <div class="kpi"><b>41</b><span>achados nesta revisão: 11 transversais e 30 por página</span></div>
+  <div class="kpi"><b>31 P · 10 M</b><span>esforço estimado (nenhum G)</span></div>
+</div>
+
+<p>Publicado em <a href="https://app-intelligence-dadosferademo2.dadosfera.ai/pbp-service-dataapp-f21f18a5-b92c-4b04146b3b33-56c0-44c6_8000/">app-intelligence-dadosferademo2 …/pbp-service-dataapp-…_8000/</a> (exige SSO Dadosfera). Os prints foram feitos em 24/09/2026 com o app local contra o Snowflake, em 1440×900, e também em 1024 px (largura do embed no Catálogo) e 390 px (celular). O script é <code>docs/ux-review/capture.ts</code> e as medições ficam em <a href="shots/notas.json"><code>shots/notas.json</code></a>.</p>
+
+<h3>As 5 recomendações que mais mudam a experiência</h3>
+<ol class="top5">
+  <li><strong>Consertar a busca de medicamentos.</strong> A busca diferencia acento ("acido" traz 32 itens, "ácido" traz 200 e corta o resto) e ordena por byte: nenhum dos 200 resultados de "ácido" começa com "ÁCIDO". Propomos busca sem acento, prefixo primeiro, ordem em pt-BR e um campo único com autocomplete no lugar de "Buscar → select → Pesquisar".</li>
+  <li><strong>Compras abre zerada.</strong> O filtro padrão (últimos 12 meses) não tem nenhuma compra, porque a base só tem datas em 1º de janeiro de 2020 a 2025. Propomos abrir em 2020–2025, filtrar por ano e trocar "Evolução mensal" por barras anuais.</li>
+  <li><strong>Estados vazios que expliquem o que aconteceu.</strong> O primeiro resultado de "dipirona" (CATMAT 5176) não tem estoque e o usuário cai em KPIs 0/0/0, com o valor nulo exibido como 0. Propomos mensagem com causa e próximo passo, "sem dado" no lugar do nulo e um selo "com estoque" na lista.</li>
+  <li><strong>Shell e tipografia Beast.</strong> Header com logo Dadosfera e "Projeto EMBRAPII · DCC/UFMG", Quicksand, primário #1700a2, ícones Eva no lugar de emoji, números compactos (R$ 50,9 bi) e tabelas sem fonte mono nos nomes.</li>
+  <li><strong>Um padrão só de filtro e carga.</strong> Hoje cada página faz de um jeito: Fornecedores carrega sozinha, Compras e Leitos esperam clique mesmo com filtros prontos, Medicamentos e Mapa pedem três passos. Propomos carregar com o padrão ao abrir e aplicar mudanças com um botão "Aplicar". O mesmo pacote inclui code-split por rota (o JS hoje é um arquivo único de 787 kB).</li>
+</ol>
+
+<!-- ============================================================ -->
+<h2 id="global">2. Achados transversais</h2>
+<p>Valem para várias páginas. Cada item tem um código (G1…G11) que as seções de página e o checklist final referenciam.</p>
+<table>
+  <tr><th>#</th><th>Problema</th><th>Impacto</th><th>Evidência</th><th>Esf.</th></tr>
+  <tr><td class="id">G1</td><td>Identidade fora da Beast: paleta azul #28638f e teal, fontes Space Grotesk/Inter, título da aba "Dashboard". O header não diz de que projeto é o painel.</td><td>No Catálogo da Dadosfera o app parece um produto de terceiros. Com várias abas abertas, "Dashboard" não identifica nada.</td><td><code>src/index.css</code>, <code>index.html</code>, todos os prints</td><td><span class="esf esf-M">M</span></td></tr>
+  <tr><td class="id">G2</td><td>Emoji como ícone nos títulos e cards (💊 🛒 🛏️ 🗺️). O Mapa usa rótulo "VISÃO GEOGRÁFICA" em vez de emoji e Fornecedores não usa nenhum dos dois.</td><td>Renderização muda por sistema operacional; visual informal para um painel institucional.</td><td><code>home.png</code>, <code>compras.png</code>, <code>fornecedores.png</code></td><td><span class="esf esf-P">P</span></td></tr>
+  <tr><td class="id">G3</td><td>Toda célula de tabela usa JetBrains Mono (<code>tbody td</code>), inclusive razão social em caixa alta.</td><td>Nomes longos ficam difíceis de ler e empurram as colunas numéricas para fora da tela (ver F3).</td><td><code>fornecedores.png</code>, <code>compras-2020-2025.png</code></td><td><span class="esf esf-P">P</span></td></tr>
+  <tr><td class="id">G4</td><td>Valores grandes sem abreviação. O KPI "R$ 50.941.327.779,40" quebra em duas linhas; eixos Y cortam o rótulo ("0.000.000.000,00").</td><td>A ordem de grandeza, que é o que o leitor precisa, some.</td><td><code>compras-2020-2025.png</code></td><td><span class="esf esf-P">P</span></td></tr>
+  <tr><td class="id">G5</td><td>Linhas com curva suavizada (<code>type="monotone"</code>) ligando pontos anuais. A curva inventa vales e picos entre os anos e os pontos não caem sobre os rótulos do eixo X.</td><td>Sugere variação intra-ano que não existe na base.</td><td><code>medicamentos-85.png</code>, <code>compras-2020-2025.png</code></td><td><span class="esf esf-P">P</span></td></tr>
+  <tr><td class="id">G6</td><td>Cada página carrega de um jeito. Fornecedores carrega ao abrir; Compras e Leitos só depois de clicar "Pesquisar"/"Aplicar filtros"; Medicamentos e Mapa pedem digitar, "Buscar", escolher num select e clicar de novo. A página Compras manda clicar em "Aplicar filtros", mas o botão se chama "Pesquisar".</td><td>Quem abre Compras ou Leitos vê só o formulário e um aviso cinza.</td><td><code>compras.png</code>, <code>leitos.png</code>, <code>Compras.tsx:1513</code></td><td><span class="esf esf-M">M</span></td></tr>
+  <tr><td class="id">G7</td><td>Busca CATMAT: <code>ILIKE</code> diferencia acento e o <code>ORDER BY</code> é por byte (<code>COLLATE "C"</code> no Postgres, padrão no Snowflake). Palavras com letra acentuada no início vão para depois do Z e o limite de 200 as corta. A mesma descrição aparece com códigos diferentes (4× "DIPIRONA SÓDICA 500 MG COMPRIMIDO": BR…, BRB…, BRO…, BRS…) sem explicação da diferença.</td><td>"ácido" traz 200 itens e nenhum é "ÁCIDO …"; "ácido fólico" começa por "FERRO … ÁCIDO FÓLICO". "dipirona" começa por CARISOPRODOL (5176, sem estoque) e DEXAMETASONA; o item 85, usado como referência nos testes, é o 55º de 68.</td><td><code>GET /api/medicamentos/busca?q=acido</code> (32) × <code>q=ácido</code> (200); <code>notas.json › med_opcoes</code></td><td><span class="esf esf-M">M</span></td></tr>
+  <tr><td class="id">G8</td><td>Em 390 px o menu rola na horizontal sem indicação e esconde Mapa e Fornecedores. Em Medicamentos, o campo de busca encolhe para ~20 px de altura.</td><td>No celular, duas páginas parecem não existir e a busca fica difícil de tocar.</td><td><code>home-390.png</code>, <code>medicamentos-85-390.png</code></td><td><span class="esf esf-P">P</span></td></tr>
+  <tr><td class="id">G9</td><td>Em 1024 px (embed no Catálogo) as tabelas largas escondem colunas atrás de rolagem interna. Em Compras só "Fornecedor" e "Valor total" ficam visíveis.</td><td>Participação %, compras e itens não aparecem sem rolar a tabela de lado.</td><td><code>compras-2021-1024.png</code></td><td><span class="esf esf-P">P</span></td></tr>
+  <tr><td class="id">G10</td><td>Acessibilidade: botão desabilitado com texto branco sobre #dedfdd (1,34:1); placeholder a 3,57:1; mapas mostram valor só no hover ("Passe o mouse sobre uma UF"); abas com <code>role="tab"</code> sem <code>aria-controls</code> nem setas; séries azul #28638f e teal #067782 quase iguais (1,17:1 entre si).</td><td>Falha WCAG AA em contraste. Mapa inacessível por teclado e toque. Legenda de Leitos não separa as séries.</td><td>cálculo de contraste; <code>mapa-85.png</code>, <code>leitos-aplicado.png</code></td><td><span class="esf esf-M">M</span></td></tr>
+  <tr><td class="id">G11</td><td>Um único bundle JS de 787 kB (Recharts, D3, TanStack e as 6 páginas).</td><td>Primeira carga mais lenta dentro do proxy do Orchest; quem só usa Leitos baixa o mapa inteiro.</td><td><code>dist/assets/index-DnOgpyC2.js</code> (787.102 bytes)</td><td><span class="esf esf-P">P</span></td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="home">3. Início</h2>
+<div class="shots">
+  <figure><a class="img" href="shots/home.png"><img src="shots/home.png" alt="Início em 1440 px"></a><figcaption>Padrão, 1440 px</figcaption></figure>
+  <figure><a class="img" href="shots/home-1024.png"><img src="shots/home-1024.png" alt="Início em 1024 px"></a><figcaption>1024 px: o hero ocupa a primeira dobra inteira</figcaption></figure>
+</div>
+<table>
+  <tr><th>#</th><th>Problema</th><th>Impacto</th><th>Evidência</th><th>Esf.</th></tr>
+  <tr><td class="id">H1</td><td>O texto diz "a partir dos dados armazenados no PostgreSQL"; o app publicado lê do Snowflake.</td><td>Informação errada na primeira tela.</td><td><code>Home.tsx</code>, <code>home.png</code></td><td><span class="esf esf-P">P</span></td></tr>
+  <tr><td class="id">H2</td><td>A grade "Módulos" tem 4 cards; o menu tem 5 páginas. Falta Fornecedores.</td><td>A página mais nova não aparece no ponto de entrada.</td><td><code>home.png</code></td><td><span class="esf esf-P">P</span></td></tr>
+  <tr><td class="id">H3</td><td>"Ver módulos" (<code>href="#modulos"</code>) recarrega o documento inteiro sob o prefixo do Orchest quando o usuário voltou ao Início pelo menu ou pelo logo: o router gera a URL sem barra final e o <code>&lt;base href&gt;</code> resolve a âncora para outra URL.</td><td>Recarga de 1 a 2 s e perda de estado, justo no botão de navegação da Home.</td><td><code>notas.json</code>: <code>modulos_url_apos_inicio …/pbp-test_8000</code> → <code>…/pbp-test_8000/#modulos</code>, <code>modulos_recarregou: true</code></td><td><span class="esf esf-P">P</span></td></tr>
+  <tr><td class="id">H4</td><td>Hero genérico ("Explore os dados…") sem nenhum número. Selo "Disponível" repetido em todos os cards.</td><td>A Home não mostra cobertura nem atualidade dos dados, e o selo não diferencia nada.</td><td><code>home.png</code></td><td><span class="esf esf-P">P</span></td></tr>
+</table>
+<div class="proposta">
+  <h4>Proposta</h4>
+  <ul>
+    <li>Hero curto com três números de cobertura vindos de endpoints que já existem: período das compras (2020–2025), competência de leitos (01/2026) e registros de compra. Texto corrigido para "Snowflake / Dadosfera".</li>
+    <li>Cinco cards (entra Fornecedores), ícone Eva, sem selo "Disponível".</li>
+    <li>"Ver módulos" com <code>scrollIntoView</code> no clique, sem depender da âncora.</li>
+  </ul>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="medicamentos">4. Medicamentos</h2>
+<div class="shots">
+  <figure><a class="img" href="shots/medicamentos-5176-vazio.png"><img src="shots/medicamentos-5176-vazio.png" alt="Medicamentos com CATMAT 5176"></a><figcaption>"dipirona" → 1º resultado (CATMAT 5176): estoque 0, instituições 0, preço R$ 3,06</figcaption></figure>
+  <figure><a class="img" href="shots/medicamentos-85.png"><img src="shots/medicamentos-85.png" alt="Medicamentos com CATMAT 85"></a><figcaption>CATMAT 85 (dipirona sódica injetável): 124.109 unidades em 213 instituições</figcaption></figure>
+</div>
+<table>
+  <tr><th>#</th><th>Problema</th><th>Impacto</th><th>Evidência</th><th>Esf.</th></tr>
+  <tr><td class="id">M1</td><td>Três passos para ver um item: digitar e "Buscar"; escolher num <code>&lt;select&gt;</code> de até 200 opções, com descrições de 150+ caracteres cortadas; clicar "Pesquisar". Antes da escolha, o botão desabilitado fica ilegível (G10).</td><td>O fluxo mais usado do app é o mais lento. No select nativo não dá para filtrar nem ler a descrição inteira.</td><td><code>medicamentos-5176-vazio.png</code></td><td><span class="esf esf-M">M</span></td></tr>
+  <tr><td class="id">M2</td><td>O primeiro resultado de "dipirona" (5176) não tem estoque. A tela mostra 0 / 0 / 0 e "R$ 3,06". "Instituições com estoque zerado" mostra 0 quando a API devolve <code>null</code>. Nenhuma mensagem explica que o item não tem registro de estoque.</td><td>Parece defeito do painel; o usuário não sabe que precisa escolher outro item.</td><td><code>GET /api/medicamentos/5176/resumo</code> → <code>instituicoes_estoque_zerado: null</code></td><td><span class="esf esf-P">P</span></td></tr>
+  <tr><td class="id">M3</td><td>Ordem dos resultados (G7): associações vêm antes do princípio ativo puro e não há sinal de quais itens têm dados.</td><td>O usuário escolhe às cegas e costuma cair num item vazio.</td><td><code>notas.json › med_opcoes</code></td><td><span class="esf esf-M">M</span></td></tr>
+  <tr><td class="id">M4</td><td>"Evolução de preço" com curva suavizada (G5) e sem unidade: R$ por unidade de fornecimento? por ampola?</td><td>O salto para R$ 21 em 2023–2024 do item 85 pode ser troca de apresentação, e o gráfico não permite saber.</td><td><code>medicamentos-85.png</code></td><td><span class="esf esf-P">P</span></td></tr>
+  <tr><td class="id">M5</td><td>"Estoque por UF" mostra 20 barras e, ao lado, uma tabela paginada de 10 linhas com o mesmo dado.</td><td>É preciso paginar para ver na tabela o que o gráfico já mostra.</td><td><code>medicamentos-85.png</code></td><td><span class="esf esf-P">P</span></td></tr>
+</table>
+<div class="proposta">
+  <h4>Proposta</h4>
+  <ul>
+    <li>Campo único com autocomplete (debounce de 300 ms). Cada resultado mostra descrição em duas linhas, código CATMAT e selo "com estoque" ou "sem estoque". A carga começa ao escolher, sem botão extra.</li>
+    <li>Busca sem acento, com prefixo primeiro e ordem pt-BR (G7). É mudança de SQL nas rotas atuais, sem endpoint novo. O selo de estoque depende de dado que a busca não traz hoje e está em <a href="#pendencias">Fora do escopo</a>; sem ele, o mock fica só com a ordem nova.</li>
+    <li>Estado vazio com causa e saída: "Este CATMAT não tem posição de estoque. O histórico de compras está abaixo." KPI nulo mostra "sem dado".</li>
+    <li>Preço como linha reta com marcador por ano e unidade no título ("R$ por unidade de fornecimento"). Tabela de UF sem paginação (27 linhas cabem) ou só o gráfico.</li>
+  </ul>
+</div>
+<div class="mock">
+  <div class="mock-label">Mock · busca com autocomplete e estado vazio</div>
+  <div class="m-search"><svg class="eva" viewBox="0 0 24 24" fill="#1700a2"><path d="M20.71 19.29l-3.4-3.39A7.92 7.92 0 0019 11a8 8 0 10-8 8 7.92 7.92 0 004.9-1.69l3.39 3.4a1 1 0 001.42-1.42zM5 11a6 6 0 116 6 6 6 0 01-6-6z"/></svg> dipirona<span style="margin-left:auto;font-size:.75rem;color:#6b6b6b">68 itens</span></div>
+  <div class="m-list">
+    <div><span>DIPIRONA SÓDICA 500 MG COMPRIMIDO<br><small>CATMAT BR0267203U0042</small></span><span class="tag tag-ok">com estoque</span></div>
+    <div><span>DIPIRONA SÓDICA 500 MG/ML SOLUÇÃO INJETÁVEL<br><small>CATMAT BR0268252 · 26 produtos</small></span><span class="tag tag-ok">com estoque</span></div>
+    <div><span>DIPIRONA SÓDICA 500 MG/ML SOLUÇÃO ORAL 10 ML<br><small>CATMAT BR0267205U0063</small></span><span class="tag tag-ok">com estoque</span></div>
+    <div><span>CARISOPRODOL, C/ DIPIRONA + PIRIDOXINA…<br><small>CATMAT BR0278650</small></span><span class="tag tag-no">sem estoque</span></div>
+  </div>
+  <div class="m-empty" style="margin-top:14px">
+    <div class="ic"><svg class="eva" viewBox="0 0 24 24" fill="#1700a2"><path d="M12 2a10 10 0 1010 10A10 10 0 0012 2zm1 15h-2v-2h2zm0-4h-2V7h2z"/></svg></div>
+    <div><b>Sem posição de estoque para este CATMAT</b><p>Nenhuma instituição informou estoque deste item. O histórico de compras continua disponível abaixo.</p><span class="m-btn pri">Ver compras</span><span class="m-btn">Escolher outro item</span></div>
+  </div>
+  <p class="note" style="margin:8px 0 0">Os selos dependem de dado que a busca não traz hoje (ver Fora do escopo). Sem eles, fica só a ordem nova.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="compras">5. Compras</h2>
+<div class="shots">
+  <figure><a class="img" href="shots/compras-padrao-zerado.png"><img src="shots/compras-padrao-zerado.png" alt="Compras com filtro padrão"></a><figcaption>Filtro padrão (24/09/2025 a 24/09/2026): "Nenhuma compra foi encontrada"</figcaption></figure>
+  <figure><a class="img" href="shots/compras-2021.png"><img src="shots/compras-2021.png" alt="Compras em 2021"></a><figcaption>2021: a "evolução mensal" vira um ponto solto (ver também <a href="shots/compras-2020-2025.png">2020–2025</a> e <a href="shots/compras-2021-1024.png">1024 px</a>)</figcaption></figure>
+</div>
+<table>
+  <tr><th>#</th><th>Problema</th><th>Impacto</th><th>Evidência</th><th>Esf.</th></tr>
+  <tr><td class="id">C1</td><td>O padrão é "últimos 12 meses até hoje" e a base só tem compras de 2020 a 2025. A página abre (depois do clique) com zero resultado.</td><td>Primeira impressão de página quebrada.</td><td><code>GET /api/compras/kpis?data_inicio=2025-09-24&amp;data_fim=2026-09-24</code> → tudo 0</td><td><span class="esf esf-P">P</span></td></tr>
+  <tr><td class="id">C2</td><td>Toda compra está datada em 1º de janeiro. "Evolução mensal" e "por mês" mostram um ponto por ano, e os filtros de data por dia sugerem uma precisão que a base não tem.</td><td>Filtrar "março a junho" devolve vazio; o gráfico de 1 ano mostra um ponto só.</td><td><code>GET /api/compras/por-mes?2020…2025</code> → 6 linhas, todas <code>AAAA-01-01</code></td><td><span class="esf esf-M">M</span></td></tr>
+  <tr><td class="id">C3</td><td>Um registro de R$ 22,7 bi (MEDICAL MERCANTIL, 2025) responde por 44,6% do valor de 2020–2025 e por 98% do valor de 2025, que tem 2.474 compras.</td><td>Achata o gráfico de fornecedores e distorce o KPI "Valor total". Se for erro de carga, o painel propaga o erro.</td><td><code>GET /api/compras/fornecedores?2025</code>: 1 compra, R$ 22.702.930.272</td><td><span class="esf esf-P">P</span></td></tr>
+  <tr><td class="id">C4</td><td>O KPI de valor quebra em duas linhas; eixos cortados (G4).</td><td>Leitura difícil do número principal.</td><td><code>compras-2020-2025.png</code></td><td><span class="esf esf-P">P</span></td></tr>
+  <tr><td class="id">C5</td><td>Rótulos do gráfico de fornecedores cortados em três linhas de ~10 caracteres ("MEDICAL MERCANTIL D…").</td><td>Não dá para ler quem é quem sem ir à tabela.</td><td><code>compras-2020-2025.png</code></td><td><span class="esf esf-P">P</span></td></tr>
+  <tr><td class="id">C6</td><td>Dois formulários para um filtro: "Buscar CATMAT" preenche o select "Produto", e só depois vem "Pesquisar". Opções de tipo em caixa alta (ADMINISTRATIVA, JUDICIAL).</td><td>Mesmo atrito de M1.</td><td><code>compras.png</code></td><td><span class="esf esf-P">P</span></td></tr>
+</table>
+<div class="proposta">
+  <h4>Proposta</h4>
+  <ul>
+    <li>Abrir já carregado em <strong>2020–2025</strong>, sem clique. Os limites vêm de <code>/api/compras/por-mes</code> com intervalo amplo, rota que já existe.</li>
+    <li>Trocar as datas por seletor de <strong>ano</strong> (de/até, ou "todos"). Os dois gráficos viram barras anuais com rótulo de valor.</li>
+    <li>Números compactos (R$ 50,9 bi), com o valor exato no tooltip.</li>
+    <li>Registro que sozinho passe de 20% do total ganha barra hachurada e nota ("1 registro = 44,6% do valor"). A correção do dado fica com a UFMG (Fora do escopo).</li>
+    <li>Gráfico de fornecedores com top 10 e nome inteiro à esquerda; filtro de produto no mesmo autocomplete de Medicamentos.</li>
+  </ul>
+</div>
+<div class="mock">
+  <div class="mock-label">Mock · Compras com período anual e números compactos</div>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+    <span class="m-seg"><span class="on">2020–2025</span><span>2020</span><span>2021</span><span>2022</span><span>2023</span><span>2024</span><span>2025</span></span>
+    <span class="m-seg"><span class="on">Todos</span><span>Administrativa</span><span>Judicial</span></span>
+  </div>
+  <div class="m-kpis">
+    <div class="m-kpi hero"><span>Valor comprado</span><b>R$ 50,9 bi</b></div>
+    <div class="m-kpi"><span>Registros de compra</span><b>263,6 mil</b></div>
+    <div class="m-kpi"><span>Itens</span><b>25,5 bi</b></div>
+    <div class="m-kpi"><span>Fornecedores</span><b>3.109</b></div>
+  </div>
+  <div class="m-bars">
+    <div style="height:2%"><em>0,2 bi</em></div>
+    <div style="height:57%"><em>13,4 bi</em></div>
+    <div style="height:3%"><em>0,6 bi</em></div>
+    <div style="height:30%"><em>7,1 bi</em></div>
+    <div style="height:28%"><em>6,5 bi</em></div>
+    <div class="out" style="height:100%"><em>23,2 bi*</em></div>
+  </div>
+  <div class="m-axis"><span>2020</span><span>2021</span><span>2022</span><span>2023</span><span>2024</span><span>2025</span></div>
+  <p class="note" style="margin:6px 0 0">* 1 registro (MEDICAL MERCANTIL) = R$ 22,7 bi, 98% do ano. Valores reais de <code>/api/compras/por-mes</code>.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="leitos">6. Leitos</h2>
+<div class="shots">
+  <figure><a class="img" href="shots/leitos.png"><img src="shots/leitos.png" alt="Leitos padrão"></a><figcaption>Ao abrir: só o formulário e o aviso "clique em Aplicar filtros"</figcaption></figure>
+  <figure><a class="img" href="shots/leitos-aplicado.png"><img src="shots/leitos-aplicado.png" alt="Leitos com filtros aplicados"></a><figcaption>Depois de aplicar: 6 KPIs com o mesmo peso e barras por UF</figcaption></figure>
+</div>
+<table>
+  <tr><th>#</th><th>Problema</th><th>Impacto</th><th>Evidência</th><th>Esf.</th></tr>
+  <tr><td class="id">L1</td><td>Os filtros vêm prontos (competência mais recente, todas as UFs), mas nada carrega até o clique (G6).</td><td>Um clique a mais para ver o óbvio.</td><td><code>leitos.png</code></td><td><span class="esf esf-P">P</span></td></tr>
+  <tr><td class="id">L2</td><td>"Início da evolução" padrão em 02/01/2024: o código subtrai 730 dias em vez de 24 meses.</td><td>Detalhe, mas soa como erro de dado.</td><td><code>Leitos.tsx</code> (<code>subtrairDias(…, 730)</code>)</td><td><span class="esf esf-P">P</span></td></tr>
+  <tr><td class="id">L3</td><td>Barras horizontais agrupadas para 27 UFs, com rótulo em uma de cada quatro (RJ, PR, GO…). As duas séries têm cores quase iguais (1,17:1).</td><td>O gráfico principal da página não se lê; só a tabela responde "qual UF".</td><td><code>leitos-aplicado.png</code></td><td><span class="esf esf-M">M</span></td></tr>
+  <tr><td class="id">L4</td><td>Seis KPIs em grade 3×2 com o mesmo peso; "Participação do SUS" é o único com explicação.</td><td>Não há leitura principal.</td><td><code>leitos-aplicado.png</code></td><td><span class="esf esf-P">P</span></td></tr>
+  <tr><td class="id">L5</td><td>As datas ficam no bloco de filtros gerais, mas só afetam a aba "Evolução histórica" (o aviso diz isso em letra pequena).</td><td>O usuário muda o período e nada muda nas outras abas.</td><td><code>leitos.png</code></td><td><span class="esf esf-P">P</span></td></tr>
+</table>
+<div class="proposta">
+  <h4>Proposta</h4>
+  <ul>
+    <li>Carregar com o padrão ao abrir; datas movidas para dentro da aba Evolução. Início em 24 meses exatos.</li>
+    <li>KPIs em dois níveis: Leitos gerais e % SUS em destaque; UTI, UTI SUS e instituições em linha secundária.</li>
+    <li>Por UF: um gráfico só, barras empilhadas SUS / não SUS ordenadas por total, as 27 UFs rotuladas, altura de 22 px por barra e seletor "Gerais | UTI". Cores Beast primária e secundária (#1700a2 / #28a1ce).</li>
+  </ul>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="mapa">7. Mapa</h2>
+<div class="shots">
+  <figure><a class="img" href="shots/mapa-5176-vazio.png"><img src="shots/mapa-5176-vazio.png" alt="Mapa com CATMAT 5176"></a><figcaption>"dipirona" → 5176: uma linha cinza "Não há dados de estoque"</figcaption></figure>
+  <figure><a class="img" href="shots/mapa-85.png"><img src="shots/mapa-85.png" alt="Mapa com CATMAT 85"></a><figcaption>CATMAT 85: AL (49.690) escurece e o resto do país fica no mesmo tom</figcaption></figure>
+</div>
+<p class="note">Aba de leitos: <a href="shots/mapa-leitos.png">mapa-leitos.png</a>.</p>
+<table>
+  <tr><th>#</th><th>Problema</th><th>Impacto</th><th>Evidência</th><th>Esf.</th></tr>
+  <tr><td class="id">MP1</td><td>Mesmo caminho vazio de M2: o primeiro resultado não tem estoque e a resposta é uma linha cinza sem sugestão.</td><td>Primeira interação termina em beco sem saída.</td><td><code>mapa-5176-vazio.png</code></td><td><span class="esf esf-P">P</span></td></tr>
+  <tr><td class="id">MP2</td><td>Escala contínua linear de 0 ao máximo, com legenda "0 … 49.690" sem faixas. Um outlier apaga a variação do resto. UF com estoque 0 e UF sem nenhum registro recebem a mesma cor (AC: 3 instituições com 0; AP: nenhuma instituição).</td><td>O mapa não responde "onde há mais estoque" além do primeiro lugar e mistura "zerado" com "sem dado".</td><td><code>mapa-85.png</code>, tabela da mesma tela</td><td><span class="esf esf-M">M</span></td></tr>
+  <tr><td class="id">MP3</td><td>O painel "Estado" ocupa cerca de 15% da largura e fica vazio até o hover. Não funciona com teclado nem toque (G10).</td><td>Espaço perdido; no celular o valor por UF não aparece.</td><td><code>mapa-85.png</code></td><td><span class="esf esf-P">P</span></td></tr>
+  <tr><td class="id">MP4</td><td>Leitos em número absoluto: o mapa repete a distribuição da população (SP escuro).</td><td>Não informa disponibilidade relativa.</td><td><code>mapa-leitos.png</code></td><td><span class="esf esf-P">P</span></td></tr>
+  <tr><td class="id">MP5</td><td>A página repete conteúdo: estoque por UF já existe em Medicamentos e leitos por UF em Leitos, com outra visualização.</td><td>Dois lugares para a mesma pergunta, com respostas visuais diferentes.</td><td>comparação <code>medicamentos-85.png</code> × <code>mapa-85.png</code></td><td><span class="esf esf-M">M</span></td></tr>
+</table>
+<div class="proposta">
+  <h4>Proposta</h4>
+  <ul>
+    <li>Escala por quantis em 5 classes, com legenda de faixas; hachura cinza para "sem registro", distinta de "0".</li>
+    <li>Tooltip no hover e clique ou Enter fixa a UF. Sem UF escolhida, o painel lateral mostra as 5 maiores.</li>
+    <li>Leitos: métrica padrão "% SUS" (já vem da API); leitos por habitante fica em Fora do escopo.</li>
+    <li>Decisão pedida (D17): transformar o mapa em componente dentro de Medicamentos e Leitos e tirar a página do menu, ou manter a página.</li>
+  </ul>
+</div>
+<div class="mock">
+  <div class="mock-label">Mock · legenda por quantis com "sem registro"</div>
+  <div class="m-legend">
+    <div><i style="background:repeating-linear-gradient(45deg,#dfdfdf,#dfdfdf 3px,#fff 3px,#fff 6px)"></i>sem registro</div>
+    <div><i style="background:#f0eefa"></i>0</div>
+    <div><i style="background:#d1ccec"></i>1–500</div>
+    <div><i style="background:#9f94dc"></i>501–1.500</div>
+    <div><i style="background:#5b48c4"></i>1.501–5.000</div>
+    <div><i style="background:#1700a2"></i>5.001–49.690</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="fornecedores">8. Fornecedores</h2>
+<div class="shots">
+  <figure><a class="img" href="shots/fornecedores.png"><img src="shots/fornecedores.png" alt="Fornecedores padrão"></a><figcaption>Padrão, 1440 px: a tabela passa da borda direita</figcaption></figure>
+  <div class="mock" style="margin:0">
+    <div class="mock-label">Mock · ranking com valor antes do CNPJ</div>
+    <table class="m-table">
+      <tr><th>Fornecedor</th><th class="n">Valor</th><th class="n">Part.</th><th>Origem</th></tr>
+      <tr><td>Medical Mercantil de Aparelhagem Médica</td><td class="n">R$ 22,7 bi</td><td class="n">44,6%</td><td><span class="tag tag-no">Nacional</span></td></tr>
+      <tr><td>Unique Distribuidora de Medicamentos</td><td class="n">R$ 2,2 bi</td><td class="n">4,3%</td><td><span class="tag tag-no">Nacional</span></td></tr>
+      <tr><td>AstraZeneca do Brasil<br><small style="color:#6b6b6b">sócio no exterior: AstraZeneca Continent…</small></td><td class="n">R$ 1,9 bi</td><td class="n">3,7%</td><td><span class="tag" style="background:#fff1db;color:#8a5200">Subsidiária estrangeira</span></td></tr>
+    </table>
+    <p class="note" style="margin:8px 0 0">CNPJ formatado vai para uma linha de detalhe ou tooltip.</p>
+  </div>
+</div>
+<table>
+  <tr><th>#</th><th>Problema</th><th>Impacto</th><th>Evidência</th><th>Esf.</th></tr>
+  <tr><td class="id">F1</td><td>Layout diferente das outras cinco páginas: sem ícone nem rótulo, filtros compactos em linha, carga automática.</td><td>Parece outro app (é a página que veio de outro autor).</td><td><code>fornecedores.png</code></td><td><span class="esf esf-P">P</span></td></tr>
+  <tr><td class="id">F2</td><td>A data final padrão usa <code>toISOString()</code> (UTC). Depois das 21h em Brasília, mostra o dia seguinte.</td><td>O print de 24/09 às 22h mostra 25/09/2026.</td><td><code>Fornecedores.tsx:66</code>, <code>fornecedores.png</code></td><td><span class="esf esf-P">P</span></td></tr>
+  <tr><td class="id">F3</td><td>A 1440 px a tabela transborda: Valor total, Itens e Nº de compras ficam fora da tela, e "Sócio no exterior" aparece cortado. CNPJ sem máscara.</td><td>A coluna que ordena o ranking não aparece sem rolagem lateral.</td><td><code>fornecedores.png</code></td><td><span class="esf esf-P">P</span></td></tr>
+  <tr><td class="id">F4</td><td>Mapa com legenda "0 … 65" sem unidade (é %). Com a mesma escala linear de MP2, só o CE (65%) se destaca. Os KPIs somam "itens" de apresentações diferentes (24,5 bi).</td><td>Lê-se mal; soma de unidades heterogêneas não tem significado físico.</td><td><code>fornecedores.png</code></td><td><span class="esf esf-P">P</span></td></tr>
+  <tr><td class="id">F5</td><td>O rótulo "UF (tabela)" explica em parênteses que o filtro não afeta o mapa. Período padrão começa em 2015; a base começa em 2020.</td><td>Filtro com escopo parcial e período padrão sem motivo aparente.</td><td><code>fornecedores.png</code></td><td><span class="esf esf-P">P</span></td></tr>
+</table>
+<div class="proposta">
+  <h4>Proposta</h4>
+  <ul>
+    <li>Mesmo cabeçalho e barra de filtros das demais páginas; período padrão 2020–2025, por ano, igual a Compras; data local em vez de UTC.</li>
+    <li>Tabela: Fornecedor, Valor, Participação e Origem. CNPJ e sócio no exterior vão para a linha de detalhe. Nomes em Quicksand, números alinhados à direita.</li>
+    <li>Mapa com legenda em faixas de % e unidade; clicar numa UF filtra a tabela, o que substitui o select "UF (tabela)".</li>
+  </ul>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="beast">9. Identidade Beast</h2>
+<p>O Dashboard continua em React. A proposta troca os valores da camada semântica que já existe em <code>src/index.css</code> (o <code>@theme inline</code> remapeia <code>teal-*</code> e <code>slate-*</code> para variáveis). Quase nenhum componente precisa mudar para trocar a pele.</p>
+<table>
+  <tr><th>Variável atual</th><th>Hoje</th><th>Token Beast</th><th>Valor</th></tr>
+  <tr><td><code>--color-brand-blue</code> (botões, aba ativa, links)</td><td>#28638f</td><td><code>color-primary-500</code></td><td>#1700a2</td></tr>
+  <tr><td><code>--color-cta</code> (CTA teal da Home)</td><td>#0f766e</td><td><code>color-primary-500</code> (um CTA só)</td><td>#1700a2</td></tr>
+  <tr><td><code>--step-5</code> (2ª série dos gráficos)</td><td>#067782</td><td><code>color-secondary-500</code></td><td>#28a1ce</td></tr>
+  <tr><td><code>--bg</code> / <code>--panel</code> / <code>--border</code></td><td>#f4f4f2 / #fff / #dedfdd</td><td><code>basic-200</code> / <code>basic-100</code> / <code>basic-500</code></td><td>#f9f9f9 / #fff / #dfdfdf</td></tr>
+  <tr><td><code>--text</code> / <code>--text-muted</code></td><td>#0b0e27 / #62656f</td><td><code>basic-1000</code> / <code>basic-700</code></td><td>#222 / #939393 (escurecer para ≥ 4,5:1)</td></tr>
+  <tr><td><code>--success</code> / <code>--warning</code> / <code>--danger</code></td><td>#047857 / #b45309 / #b91c1c</td><td><code>success</code> / <code>warning</code> / <code>danger-500</code></td><td>#4db04f / #ff9800 / #ef4444 (texto em tom 700)</td></tr>
+  <tr><td><code>--font-display</code> / <code>--font-body</code></td><td>Space Grotesk / Inter</td><td>fonte Beast</td><td>Quicksand (Open Sans de fallback)</td></tr>
+  <tr><td><code>--font-mono</code></td><td>JetBrains Mono em toda célula</td><td>(sem token)</td><td>só números: <code>tabular-nums</code>, alinhados à direita</td></tr>
+  <tr><td>Ícones</td><td>emoji + caracteres ◐ ☀ ☾</td><td>Eva Icons</td><td><code>eva-icons</code> (SVG) ou o pacote React</td></tr>
+</table>
+<h3>O que muda no shell</h3>
+<div class="mock">
+  <div class="mock-label">Mock · header Beast</div>
+  <div class="m-header">
+    <img src="assets/DF-LogoHRZ.svg" alt="Dadosfera">
+    <div class="m-proj"><b>Projeto EMBRAPII</b>DCC/UFMG · Saúde</div>
+    <div class="m-nav">
+      <span>Início</span>
+      <span class="on"><svg class="eva" viewBox="0 0 24 24" fill="#fff"><path d="M19.5 4.5a5.12 5.12 0 00-7.24 0L4.5 12.26a5.12 5.12 0 007.24 7.24l7.76-7.76a5.12 5.12 0 000-7.24zM10.33 18.09a3.12 3.12 0 01-4.42-4.42L9.79 9.8l4.41 4.41z"/></svg>Medicamentos</span>
+      <span>Compras</span><span>Leitos</span><span>Mapa</span><span>Fornecedores</span>
+    </div>
+  </div>
+  <p class="note" style="margin:10px 0 0">Aba do navegador: "Dashboard EMBRAPII · Dadosfera". Em 390 px o menu vira um botão com ícone Eva <code>menu-outline</code> (G8).</p>
+</div>
+<ul>
+  <li>Header com logo Dadosfera oficial e o bloco "Projeto EMBRAPII · DCC/UFMG". Título da aba com o nome do projeto.</li>
+  <li>Cabeçalho de página padrão (ícone Eva + título + uma linha de descrição) nas seis páginas, incluindo Fornecedores.</li>
+  <li>Componentes comuns extraídos: <code>PageHeader</code>, <code>FilterBar</code>, <code>KpiCard</code> com formato compacto, <code>EmptyState</code>, <code>ChoroplethLegend</code>. Hoje cada página repete as mesmas classes Tailwind longas.</li>
+  <li>O tema escuro existe e funciona. Ver D19.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="pendencias">10. Pendências fora do escopo</h2>
+<p>Precisam de endpoint novo, dado novo ou decisão da UFMG. Ficam listadas aqui e não entram no Plano B.</p>
+<table>
+  <tr><th>Item</th><th>Por que depende de algo novo</th><th>Relacionado a</th></tr>
+  <tr><td>Selo "com estoque / com compras" nos resultados da busca e ordenação por presença de dados</td><td>A busca lê só o <code>catmat</code>; exige um join ou flag pré-calculada e novo campo na resposta.</td><td>M1, M3, MP1</td></tr>
+  <tr><td>Rota de intervalo de datas de Compras (<code>/api/compras/intervalo</code>)</td><td>Dá para contornar com <code>por-mes</code> (proposta C1); a rota dedicada é mais limpa.</td><td>C1</td></tr>
+  <tr><td>Data efetiva da compra (hoje sempre 1º de janeiro)</td><td>Dado de origem; sem ele não existe série mensal.</td><td>C2</td></tr>
+  <tr><td>Validação do registro de R$ 22,7 bi (MEDICAL MERCANTIL, 2025) e regra de outliers</td><td>Qualidade de dado; decisão com a UFMG.</td><td>C3</td></tr>
+  <tr><td>Leitos por 1.000 habitantes</td><td>Precisa da população IBGE por UF e de uma rota nova.</td><td>MP4</td></tr>
+  <tr><td>Participação estrangeira por valor (R$) em vez de itens</td><td><code>mapa-por-uf</code> agrega itens; exige outra agregação.</td><td>F4</td></tr>
+  <tr><td>"Dados atualizados em …" no rodapé</td><td>Não há rota de metadados da carga.</td><td>H4</td></tr>
+</table>
+<p class="note">A busca sem acento e com ordem pt-BR (G7) <strong>não</strong> é endpoint novo: muda o SQL da rota atual nas duas versões (<code>Q(pg, sf)</code>). No Snowflake, <code>COLLATE 'pt-ai'</code>; no Postgres, extensão <code>unaccent</code> ou collation ICU. O teste de paridade da busca precisa ser atualizado junto.</p>
+
+<!-- ============================================================ -->
+<h2 id="decisoes">11. Decisões pedidas ao Allan</h2>
+<p>Marque aprovar ou rejeitar em cada item. O Plano B é escrito só com os aprovados.</p>
+<ol class="checklist">
+  <li><span class="box">☐ aprovar ☐ rejeitar</span><strong>Shell Beast</strong>: tokens da seção 9, Quicksand, header com logo e "Projeto EMBRAPII · DCC/UFMG", título da aba (G1). <span class="esf esf-M">M</span></li>
+  <li><span class="box">☐ aprovar ☐ rejeitar</span><strong>Eva Icons no lugar de emoji</strong> e cabeçalho de página padrão nas 6 páginas (G2, F1). <span class="esf esf-P">P</span></li>
+  <li><span class="box">☐ aprovar ☐ rejeitar</span><strong>Tabelas legíveis</strong>: mono só em números, valores à direita, colunas prioritárias primeiro, sem transbordar em 1024 px (G3, G9, F3). <span class="esf esf-P">P</span></li>
+  <li><span class="box">☐ aprovar ☐ rejeitar</span><strong>Números compactos</strong> em KPIs e eixos (R$ 50,9 bi), com valor exato no tooltip (G4, C4). <span class="esf esf-P">P</span></li>
+  <li><span class="box">☐ aprovar ☐ rejeitar</span><strong>Gráficos de série sem curva suavizada</strong>: linha reta com marcadores ou barras (G5, M4). <span class="esf esf-P">P</span></li>
+  <li><span class="box">☐ aprovar ☐ rejeitar</span><strong>Carregar com o padrão ao abrir</strong> em Compras, Leitos e Mapa-leitos, com botão único "Aplicar" para mudanças (G6, L1). <span class="esf esf-M">M</span></li>
+  <li><span class="box">☐ aprovar ☐ rejeitar</span><strong>Busca CATMAT sem acento, prefixo primeiro, ordem pt-BR</strong>, com aviso quando passar de 200 resultados. Muda SQL nas duas engines e o teste de paridade (G7, M3). <span class="esf esf-M">M</span></li>
+  <li><span class="box">☐ aprovar ☐ rejeitar</span><strong>Autocomplete único</strong> no lugar de Buscar → select → Pesquisar, em Medicamentos, Mapa e Compras (M1, C6). <span class="esf esf-M">M</span></li>
+  <li><span class="box">☐ aprovar ☐ rejeitar</span><strong>Estados vazios com causa e ação</strong>; nulo como "sem dado" (M2, MP1). <span class="esf esf-P">P</span></li>
+  <li><span class="box">☐ aprovar ☐ rejeitar</span><strong>Compras abre em 2020–2025 e filtra por ano</strong>; "Evolução mensal" vira barras anuais (C1, C2, F5). <span class="esf esf-M">M</span></li>
+  <li><span class="box">☐ aprovar ☐ rejeitar</span><strong>Sinalizar outlier</strong> (registro com mais de 20% do total) com hachura e nota, sem remover o dado (C3). <span class="esf esf-P">P</span></li>
+  <li><span class="box">☐ aprovar ☐ rejeitar</span><strong>Leitos</strong>: KPIs em dois níveis, datas dentro da aba Evolução, 24 meses exatos, barras empilhadas com as 27 UFs rotuladas (L2–L5). <span class="esf esf-M">M</span></li>
+  <li><span class="box">☐ aprovar ☐ rejeitar</span><strong>Mapas com escala por quantis</strong>, legenda em faixas com unidade e "sem registro" distinto de zero (MP2, F4). <span class="esf esf-M">M</span></li>
+  <li><span class="box">☐ aprovar ☐ rejeitar</span><strong>Mapa acessível</strong>: tooltip, clique/Enter fixa UF, painel com top 5; clique na UF filtra a tabela em Fornecedores (MP3, F4, G10). <span class="esf esf-P">P</span></li>
+  <li><span class="box">☐ aprovar ☐ rejeitar</span><strong>Home</strong>: texto corrigido (Snowflake), card de Fornecedores, hero curto com números de cobertura, "Ver módulos" sem recarga (H1–H4). <span class="esf esf-P">P</span></li>
+  <li><span class="box">☐ aprovar ☐ rejeitar</span><strong>Correções de data</strong>: data local em Fornecedores e período padrão 2020–2025 (F2, F5). <span class="esf esf-P">P</span></li>
+  <li><span class="box">☐ manter página ☐ virar componente</span><strong>Página Mapa</strong>: manter no menu ou embutir o mapa em Medicamentos e Leitos e tirar a página (MP5). <span class="esf esf-M">M</span></li>
+  <li><span class="box">☐ aprovar ☐ rejeitar</span><strong>Mobile e acessibilidade</strong>: menu com botão em 390 px, campo de busca com altura fixa, contraste AA em desabilitado e placeholder, abas com teclado (G8, G10). <span class="esf esf-P">P</span></li>
+  <li><span class="box">☐ manter ☐ remover</span><strong>Tema escuro</strong>: manter o alternador (exige versão escura dos tokens Beast) ou deixar só o tema claro. <span class="esf esf-P">P</span></li>
+  <li><span class="box">☐ aprovar ☐ rejeitar</span><strong>Code-split por rota</strong> (<code>React.lazy</code>) para quebrar o bundle de 787 kB (G11). <span class="esf esf-P">P</span></li>
+</ol>
+
+</main>
+<footer>
+  Prints e medições: <code>docs/ux-review/capture.ts</code> (Playwright, app local em Snowflake, 24/09/2026) · <a href="shots/notas.json">notas.json</a> · Paridade: <code>tests/parity/report.md</code> · Branch <code>feat/dadosfera-dataapp</code>
+</footer>
+</body>
+</html>

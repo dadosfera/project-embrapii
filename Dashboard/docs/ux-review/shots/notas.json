@@ -1,0 +1,30 @@
+{
+  "carga_home_ms": 1372,
+  "carga_medicamentos_ms": 1158,
+  "carga_compras_ms": 1142,
+  "carga_leitos_ms": 1146,
+  "carga_mapa_ms": 1141,
+  "carga_fornecedores_ms": 1234,
+  "med_5176_ms": 697,
+  "med_85_ms": 719,
+  "med_opcoes": [
+    "— Selecione um medicamento —",
+    "CARISOPRODOL, APRESENTAÇÃO:C/DIPIRONA + PIRIDOXINA+ TIAMINA + CIANOCOBALAMINA, DOSAGEM:250MG + 250MG + 100MG + 50MG + 1MG — CATMAT BR0278650",
+    "CARISOPRODOL, DIPIRONA + PIRIDOXINA + TIAMINA + CIANOCOBALAMINA 250MG + 250MG + 100MG + 50MG + 1MG COMP — CATMAT BR0278650U0042",
+    "DEXAMETASONA, COMPOSIÇÃO:ASSOCIADA À DIPIRONA SÓDICA E HIDROXICOBALAMINA, CONCENTRAÇAO:AMPOLA 1: 1,5 MG + 500 MG/ML, AMPOLA 2: 5 MG/ML, FORMA FARMACEUTICA:SOLUÇÃO INJETÁVEL — CATMAT BR0363561",
+    "DIPIRONA + CAFEINA 500 + 65 MG COMPRIMIDO — CATMAT BR0340758",
+    "DIPIRONA + CAFEINA 500 + 65 MG COMPRIMIDO — CATMAT BROBR0340758"
+  ],
+  "compras_padrao_ms": 671,
+  "compras_2020_2025_ms": 732,
+  "compras_2021_ms": 713,
+  "leitos_ms": 750,
+  "mapa_5176_ms": 664,
+  "mapa_85_ms": 679,
+  "mapa_leitos_ms": 674,
+  "scroll_horizontal_1024": false,
+  "scroll_horizontal_390": false,
+  "modulos_url_apos_inicio": "http://localhost:8001/pbp-test_8000",
+  "modulos_url": "http://localhost:8001/pbp-test_8000/#modulos",
+  "modulos_recarregou": true
+}
