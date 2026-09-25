@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """Copia as tabelas do Dashboard do Postgres da UFMG (datalake_db2, via túnel) para o Snowflake EMBRAPII_DATASUS.
 
-Uso: scripts/tunnel.sh &  ;  .venv/bin/python scripts/sync_snowflake.py [--only t1,t2] [--resume]
-Cada tabela: COPY (SELECT) TO STDOUT em CSV no servidor → CSV em disco → parquet com os tipos do Postgres →
-PUT no stage → CREATE OR REPLACE TABLE ... USING TEMPLATE → COPY INTO → confere contagem.
+Uso: scripts/tunnel.sh &  ;  .venv/bin/python scripts/sync_snowflake.py [--only t1,t2] [--resume] [--skip-stock]
+Cada tabela: COPY (SELECT) TO STDOUT em CSV (FORCE_QUOTE *) → CSV em disco → parquet com os tipos do Postgres →
+PUT no stage → <T>__NEW (USING TEMPLATE + COPY INTO) → confere contagem → SWAP atômico com <T>.
 Relatório em scripts/sync_report.json.
 
 `instituicao_estoca_produto` (248 M linhas, 39 GB) é copiada recortada: só a posição mais recente de cada
-(instituicao_id, produto_id). O DISTINCT ON roda uma única vez no servidor (no próprio COPY); a contagem de
-origem dela é o total de linhas que o COPY exportou, e o tamanho da tabela cheia vem de pg_class.reltuples.
+(instituicao_id, produto_id). O DISTINCT ON roda uma única vez no servidor (no próprio COPY). Para todas as
+tabelas a contagem de origem é a que o próprio COPY devolve (cur.rowcount); o tamanho da tabela cheia do
+estoque vem de pg_class.reltuples.
 """
 from __future__ import annotations
 
@@ -47,11 +48,9 @@ def source_sql(table: str) -> str:
     return STOCK_SQL if table == STOCK else f"SELECT * FROM {table}"
 
 
-def pg_count(cur, table: str) -> int:
-    """count(*) na origem. Nunca usado para o estoque (evita rodar o DISTINCT ON duas vezes)."""
-    assert table != STOCK
-    cur.execute(f"SELECT count(*) AS n FROM {table}")
-    return cur.fetchone()["n"]
+def copy_sql(table: str) -> str:
+    # FORCE_QUOTE *: todo valor não nulo sai entre aspas; só NULL real sai como campo vazio sem aspas.
+    return f"COPY ({source_sql(table)}) TO STDOUT WITH (FORMAT csv, HEADER, FORCE_QUOTE *, ENCODING 'UTF8')"
 
 
 def catalog(cur, tables):
@@ -69,7 +68,11 @@ def arrow_type(data_type: str, precision, scale) -> pa.DataType:
     if data_type in ("integer", "smallint", "bigint"):
         return pa.int64()
     if data_type == "numeric":
-        return pa.decimal128(precision, scale) if precision and precision <= 38 else pa.float64()
+        if precision is None or scale is None:
+            raise ValueError("numeric sem precisão declarada: passe a escala observada")
+        if precision > 38:
+            raise ValueError(f"numeric({precision},{scale}) não cabe em NUMBER(38)")
+        return pa.decimal128(precision, scale)
     if data_type in ("real", "double precision"):
         return pa.float64()
     if data_type == "date":
@@ -84,60 +87,107 @@ def arrow_type(data_type: str, precision, scale) -> pa.DataType:
 
 
 def column_types(cur, table: str) -> dict:
-    """Tipos explícitos a partir do information_schema (o CSV sozinho perde datas, numeric e boolean)."""
+    """Tipos explícitos a partir do information_schema (o CSV sozinho perde datas, numeric e boolean).
+
+    `numeric` sem precisão declarada vira decimal128(38, S), com S = maior escala observada na coluna
+    (consulta só em tabelas fora do estoque; as numeric do estoque são declaradas numeric(20,4)).
+    """
     cur.execute(
         """SELECT column_name, data_type, numeric_precision, numeric_scale
            FROM information_schema.columns
            WHERE table_schema = 'public' AND table_name = %(t)s ORDER BY ordinal_position""",
         {"t": table},
     )
-    return {r["column_name"]: arrow_type(r["data_type"], r["numeric_precision"], r["numeric_scale"])
-            for r in cur.fetchall()}
+    cols = cur.fetchall()
+    types = {}
+    for r in cols:
+        name, dt, prec, scale = r["column_name"], r["data_type"], r["numeric_precision"], r["numeric_scale"]
+        if dt == "numeric" and prec is None:
+            if table == STOCK:
+                raise RuntimeError(f"{STOCK}.{name}: numeric sem precisão; não consultamos a escala no estoque")
+            cur.execute(f'SELECT COALESCE(max(scale("{name}")), 0) AS s FROM {table}')
+            prec, scale = 38, int(cur.fetchone()["s"])
+        types[name] = arrow_type(dt, prec, scale)
+    return types
 
 
-def export_parquet(pg, table: str, types: dict, workdir: Path, out: Path) -> int:
-    """Faz o COPY em streaming para um CSV em disco e converte para parquet. Devolve as linhas exportadas."""
-    csv_path = workdir / f"{table}.csv"
-    with pg.cursor() as cur:
-        with open(csv_path, "wb") as f:
-            with cur.copy(f"COPY ({source_sql(table)}) TO STDOUT WITH CSV HEADER") as cp:
-                for chunk in cp:
-                    f.write(chunk)
-        copied = cur.rowcount
-    tbl = pacsv.read_csv(
-        csv_path,
+def read_pg_csv(path: Path, types: dict) -> pa.Table:
+    """Lê o CSV do COPY ... FORCE_QUOTE *: só campo vazio sem aspas é NULL; 'NA', 'NULL', '' etc. são texto."""
+    return pacsv.read_csv(
+        path,
+        read_options=pacsv.ReadOptions(encoding="utf8"),
+        parse_options=pacsv.ParseOptions(newlines_in_values=True),
         convert_options=pacsv.ConvertOptions(
             column_types=types,
+            null_values=[""],
             strings_can_be_null=True,
-            # no CSV do Postgres, NULL é campo vazio sem aspas e '' é "" — manter a distinção
             quoted_strings_can_be_null=False,
             true_values=["t"],
             false_values=["f"],
         ),
     )
+
+
+def export_parquet(pg, table: str, types: dict, workdir: Path, out: Path) -> int:
+    """Faz o COPY em streaming para um CSV em disco e converte para parquet. Devolve as linhas do COPY."""
+    csv_path = workdir / f"{table}.csv"
+    with pg.cursor() as cur:
+        with open(csv_path, "wb") as f:
+            with cur.copy(copy_sql(table)) as cp:
+                for chunk in cp:
+                    f.write(chunk)
+        copied = cur.rowcount
+    if copied is None or copied < 0:
+        raise RuntimeError(f"{table}: COPY não informou a contagem de linhas")
+    tbl = read_pg_csv(csv_path, types)
     csv_path.unlink()
     tbl = tbl.rename_columns([c.upper() for c in tbl.column_names])
     pq.write_table(tbl, out)
-    if copied not in (-1, tbl.num_rows):
+    if copied != tbl.num_rows:
         raise RuntimeError(f"{table}: COPY reportou {copied} linhas, parquet tem {tbl.num_rows}")
-    return tbl.num_rows
+    return copied
 
 
-def load_snowflake(table: str, parquet: Path) -> int:
-    t = table.upper()
-    run = snowflake_conn.run
-    run(f"REMOVE @EMBRAPII_SYNC/{t}/", {})
-    run(f"PUT 'file://{parquet}' @EMBRAPII_SYNC/{t}/ OVERWRITE = TRUE AUTO_COMPRESS = FALSE", {})
-    run(
-        f"""CREATE OR REPLACE TABLE {t} USING TEMPLATE (
-              SELECT ARRAY_AGG(OBJECT_CONSTRUCT(*)) WITHIN GROUP (ORDER BY ORDER_ID)
-              FROM TABLE(INFER_SCHEMA(
-                LOCATION => '@EMBRAPII_SYNC/{t}/', FILE_FORMAT => 'EMBRAPII_PARQUET')))""",
-        {},
+def table_exists(name: str) -> bool:
+    rows = snowflake_conn.run(
+        "SELECT COUNT(*) AS N FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = %(s)s AND TABLE_NAME = %(t)s",
+        {"s": SCHEMA, "t": name},
     )
-    run(f"COPY INTO {t} FROM @EMBRAPII_SYNC/{t}/ FILE_FORMAT = (FORMAT_NAME = 'EMBRAPII_PARQUET') "
-        "MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE PURGE = TRUE", {})
-    return run(f"SELECT COUNT(*) AS N FROM {t}", {})[0]["N"]
+    return rows[0]["N"] > 0
+
+
+def load_snowflake(table: str, parquet: Path, expected: int) -> int:
+    """Carrega em <T>__NEW, confere a contagem e só então troca com <T> (SWAP) e descarta a versão antiga."""
+    t = table.upper()
+    new = f"{t}__NEW"
+    run = snowflake_conn.run
+    try:
+        run(f"REMOVE @EMBRAPII_SYNC/{t}/", {})
+        run(f"PUT 'file://{parquet}' @EMBRAPII_SYNC/{t}/ OVERWRITE = TRUE AUTO_COMPRESS = FALSE", {})
+        run(
+            f"""CREATE OR REPLACE TABLE {new} USING TEMPLATE (
+                  SELECT ARRAY_AGG(OBJECT_CONSTRUCT(*)) WITHIN GROUP (ORDER BY ORDER_ID)
+                  FROM TABLE(INFER_SCHEMA(
+                    LOCATION => '@EMBRAPII_SYNC/{t}/', FILE_FORMAT => 'EMBRAPII_PARQUET')))""",
+            {},
+        )
+        run(f"COPY INTO {new} FROM @EMBRAPII_SYNC/{t}/ FILE_FORMAT = (FORMAT_NAME = 'EMBRAPII_PARQUET') "
+            "MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE PURGE = TRUE", {})
+        n = run(f"SELECT COUNT(*) AS N FROM {new}", {})[0]["N"]
+        if n != expected:
+            raise RuntimeError(f"{table}: {new} tem {n} linhas, esperado {expected}; {t} mantida")
+        if table_exists(t):
+            run(f"ALTER TABLE {t} SWAP WITH {new}", {})
+            run(f"DROP TABLE {new}", {})  # depois do SWAP, __NEW é a versão antiga
+        else:
+            run(f"ALTER TABLE {new} RENAME TO {t}", {})
+        return run(f"SELECT COUNT(*) AS N FROM {t}", {})[0]["N"]
+    except Exception:
+        try:
+            run(f"DROP TABLE IF EXISTS {new}", {})
+        except Exception as cleanup_exc:  # não mascara o erro original
+            print(f"aviso: falha ao remover {new}: {cleanup_exc}", file=sys.stderr)
+        raise
 
 
 def prepare_snowflake() -> None:
@@ -148,14 +198,26 @@ def prepare_snowflake() -> None:
     run("CREATE STAGE IF NOT EXISTS EMBRAPII_SYNC FILE_FORMAT = EMBRAPII_PARQUET", {})
 
 
+def select_tables(all_tables, only: str, skip_stock: bool):
+    tables = list(all_tables)
+    if only:
+        wanted = [t for t in only.split(",") if t]
+        unknown = sorted(set(wanted) - set(tables))
+        if unknown:
+            raise SystemExit(f"--only com tabelas fora de scripts/tables.txt: {unknown}")
+        tables = [t for t in tables if t in wanted]
+    if skip_stock:
+        tables = [t for t in tables if t != STOCK]
+    return tables
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--only", default="")
     ap.add_argument("--resume", action="store_true", help="pula tabelas já OK no relatório")
+    ap.add_argument("--skip-stock", action="store_true", help=f"nunca copia {STOCK} (o recorte pesado)")
     args = ap.parse_args()
-    tables = (ROOT / "scripts" / "tables.txt").read_text().split()
-    if args.only:
-        tables = [t for t in tables if t in args.only.split(",")]
+    tables = select_tables((ROOT / "scripts" / "tables.txt").read_text().split(), args.only, args.skip_stock)
     report = json.loads(REPORT.read_text()) if REPORT.exists() else {}
 
     prepare_snowflake()
@@ -175,28 +237,29 @@ def main() -> None:
             if args.resume and report.get(table, {}).get("ok"):
                 print(f"= {table} (já OK)")
                 continue
+            report[table] = {"ok": False, "status": "carregando", "started": time.strftime("%Y-%m-%dT%H:%M:%S")}
+            REPORT.write_text(json.dumps(report, indent=2))
             t0 = time.time()
             with pg.cursor() as cur:
                 types = column_types(cur, table)
-                src = None if table == STOCK else pg_count(cur, table)
             with tempfile.TemporaryDirectory() as d:
                 out = Path(d) / f"{table}.parquet"
-                exported = export_parquet(pg, table, types, Path(d), out)
-                dst = load_snowflake(table, out)
-            entry = {"source_rows": exported if table == STOCK else src, "exported_rows": exported,
-                     "snowflake_rows": dst, "seconds": round(time.time() - t0, 1)}
+                src = export_parquet(pg, table, types, Path(d), out)
+                dst = load_snowflake(table, out, src)
+            entry = {"source_rows": src, "snowflake_rows": dst, "seconds": round(time.time() - t0, 1),
+                     "csv": "force_quote"}
             if table == STOCK:
                 entry["recorte"] = "DISTINCT ON (instituicao_id, produto_id), posição mais recente"
                 entry["source_total_estimate"] = cat.get(STOCK, {}).get("est")
-            entry["ok"] = entry["source_rows"] == exported == dst
+            entry["ok"] = src == dst
             report[table] = entry
             REPORT.write_text(json.dumps(report, indent=2))
-            print(f"{'OK' if entry['ok'] else 'DIVERGE'} {table}: pg={entry['source_rows']} sf={dst} "
-                  f"({entry['seconds']}s)", flush=True)
+            print(f"{'OK' if entry['ok'] else 'DIVERGE'} {table}: pg={src} sf={dst} ({entry['seconds']}s)",
+                  flush=True)
 
     bad = [t for t, r in report.items() if not r["ok"]]
     if bad:
-        sys.exit(f"contagens divergentes: {bad}")
+        sys.exit(f"contagens divergentes ou incompletas: {bad}")
     print("sync completo")
 
 
