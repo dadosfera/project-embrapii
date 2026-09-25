@@ -108,3 +108,8 @@ MANIFEST
 
 spec.md
 banco_de_dados.md
+
+# Sync Postgres -> Snowflake
+scripts/sync_report.json
+*.parquet
+.secrets/
