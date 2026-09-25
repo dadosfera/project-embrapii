@@ -72,3 +72,15 @@ def test_cache_key_usa_repr_para_diferenciar_tipos(monkeypatch):
     assert database.fetch_one("SELECT 1", {"v": 1}) == {"n": 1}
     assert database.fetch_one("SELECT 1", {"v": "1"}) == {"n": "1"}
     assert len(calls) == 2
+
+
+def test_get_connection_read_only_e_utc(monkeypatch):
+    import psycopg
+
+    for var in ["DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD"]:
+        monkeypatch.setenv(var, "x")
+    captured = {}
+    monkeypatch.setattr(psycopg, "connect", lambda **kw: captured.update(kw) or "conn")
+    assert database.get_connection() == "conn"
+    assert "-c default_transaction_read_only=on" in captured["options"]
+    assert "-c TimeZone=UTC" in captured["options"]

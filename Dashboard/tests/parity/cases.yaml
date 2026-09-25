@@ -23,6 +23,7 @@ cases:
   - /api/compras/tipos?data_inicio={data_inicio}&data_fim={data_fim}&tipo_compra=ADMINISTRATIVA
   - /api/compras/recentes?data_inicio={data_inicio}&data_fim={data_fim}&limite=200
   - /api/medicamentos/busca?q=dipirona&limite=50
+  - /api/medicamentos/busca?q=a&limite=200
   - /api/medicamentos/{catmat}/produtos
   - /api/medicamentos/{catmat}/resumo
   # lotes-vencendo depende de CURRENT_DATE: o resultado muda com o dia (os dois engines rodam no mesmo minuto).

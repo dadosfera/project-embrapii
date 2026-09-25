@@ -63,7 +63,7 @@ def get_connection():
     return psycopg.connect(
         host=os.getenv("DB_HOST"), port=os.getenv("DB_PORT"), dbname=os.getenv("DB_NAME"),
         user=os.getenv("DB_USER"), password=os.getenv("DB_PASSWORD"), connect_timeout=5,
-        row_factory=dict_row, options="-c default_transaction_read_only=on",
+        row_factory=dict_row, options="-c default_transaction_read_only=on -c TimeZone=UTC",
     )
 
 

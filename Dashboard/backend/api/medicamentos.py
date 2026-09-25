@@ -44,7 +44,8 @@ def buscar_medicamentos(
             OR codigo_catmat ILIKE %(termo)s
         ORDER BY
             descricao_catmat COLLATE "C",
-            codigo_catmat COLLATE "C"
+            codigo_catmat COLLATE "C",
+            catmat_id
         LIMIT %(limite)s;
     """,
         sf="""
@@ -58,7 +59,8 @@ def buscar_medicamentos(
             OR codigo_catmat ILIKE %(termo)s
         ORDER BY
             descricao_catmat,
-            codigo_catmat
+            codigo_catmat,
+            catmat_id
         LIMIT %(limite)s
         """,
     )
