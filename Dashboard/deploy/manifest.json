@@ -1,0 +1,8 @@
+{
+  "project_uuid": "f21f18a5-b92c-4b04-a18f-bab953dfa3c1",
+  "environment_uuid": "89d88d54-bee3-4742-9735-0b6d1e903c83",
+  "pipeline_uuid": "146b3b33-56c0-44c6-bb1e-338ac6bcf27f",
+  "base_path": "/pbp-service-dataapp-f21f18a5-b92c-4b04146b3b33-56c0-44c6_8000",
+  "dataapp_url": "https://app-intelligence-dadosferademo2.dadosfera.ai/pbp-service-dataapp-f21f18a5-b92c-4b04146b3b33-56c0-44c6_8000/",
+  "standalone_service_uuid": "c89df134-2bd6-455a-bdb5-fe4f03b064e6"
+}
