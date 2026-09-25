@@ -1,0 +1,36 @@
+# catmat 15800: dipirona (associação) com estoque em instituicao_estoca_produto (5176 não tem estoque).
+catmat: 15800
+# Compras só têm uma data por ano (1º de janeiro); 2021 é o ano com mais linhas e leitos tem as 12 competências.
+periodo: {data_inicio: "2021-01-01", data_fim: "2021-12-31"}
+cases:
+  - /api/fornecedores/mapa-por-uf?data_inicio={data_inicio}&data_fim={data_fim}
+  - /api/fornecedores/ranking?data_inicio={data_inicio}&data_fim={data_fim}&limite=50
+  - /api/fornecedores/ranking?data_inicio={data_inicio}&data_fim={data_fim}&uf=MG&limite=50
+  - /api/fornecedores/top-por-uf?data_inicio={data_inicio}&data_fim={data_fim}
+  - /api/compras/kpis?data_inicio={data_inicio}&data_fim={data_fim}
+  - /api/compras/kpis?data_inicio={data_inicio}&data_fim={data_fim}&catmat_id={catmat}
+  - /api/compras/por-mes?data_inicio={data_inicio}&data_fim={data_fim}
+  - /api/compras/fornecedores?data_inicio={data_inicio}&data_fim={data_fim}&limite=15
+  - /api/compras/fabricantes?data_inicio={data_inicio}&data_fim={data_fim}&limite=15
+  - /api/compras/modalidades?data_inicio={data_inicio}&data_fim={data_fim}
+  - /api/compras/tipos?data_inicio={data_inicio}&data_fim={data_fim}
+  - /api/compras/recentes?data_inicio={data_inicio}&data_fim={data_fim}&limite=200
+  - /api/medicamentos/busca?q=dipirona&limite=50
+  - /api/medicamentos/{catmat}/produtos
+  - /api/medicamentos/{catmat}/resumo
+  - /api/medicamentos/{catmat}/lotes-vencendo?dias=90
+  - /api/medicamentos/{catmat}/estoque-por-uf
+  - /api/medicamentos/{catmat}/compras/evolucao-preco
+  - /api/medicamentos/{catmat}/compras/fornecedores?limite=15
+  - /api/medicamentos/{catmat}/compras/fabricantes?limite=15
+  - /api/medicamentos/{catmat}/compras?limite=200&offset=0
+  - /api/leitos/intervalo
+  - /api/leitos/ufs
+  - /api/leitos/kpis
+  - /api/leitos/kpis?uf=MG
+  - /api/leitos/por-uf
+  - /api/leitos/tipos-uti
+  - /api/leitos/evolucao?data_inicio={data_inicio}&data_fim={data_fim}
+  - /api/leitos/instituicoes?limite=100
+  - /api/leitos/opcoes
+  - /api/leitos/painel?data_inicio={data_inicio}&data_fim={data_fim}

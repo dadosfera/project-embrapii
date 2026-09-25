@@ -113,3 +113,4 @@ banco_de_dados.md
 scripts/sync_report.json
 *.parquet
 .secrets/
+tests/parity/report.md
