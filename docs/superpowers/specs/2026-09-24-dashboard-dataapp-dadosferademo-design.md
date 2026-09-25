@@ -121,3 +121,8 @@ Arquivos novos ou alterados (tudo dentro de `Dashboard/`, sem repo novo):
 - **`JOIN LATERAL`/semântica de NULL** divergindo no porte: coberto pela paridade; nenhum endpoint vai para o deploy sem estar verde.
 - **Volume:** medido em 24/09/2026 (~1,2 GB + recorte do estoque). O sync mede de novo antes da carga e, se passar de 5 GB, para e consulta o Allan. O `DISTINCT ON` sobre 248 M linhas usa o índice `idx_iep_inst_prod_data` e roda no servidor via `COPY (query) TO STDOUT`, então só o recorte trafega pelo túnel.
 - **Futuro do cluster demo2** (housecleaning): o deploy é por script e idempotente, então a republicação em outro cluster é trocar a URL do Orchest.
+
+## Decisões durante a execução
+
+- **25/09/2026, desempate nos rankings (exceção à regra "PG byte a byte").** Os `ORDER BY` que alimentam `LIMIT` ou a escolha de campeão por `ROW_NUMBER`/`QUALIFY` ganharam desempate determinístico idêntico nas duas versões (`fornecedores`: ranking `, cnpj ASC`, top-por-uf `, fornecedor ASC`; `compras`: fornecedores, fabricantes, modalidades e tipos por nome `ASC`). Sem isso, empates davam resultado diferente entre engines e entre execuções. Commit `5c45780`. Empates residuais (mesmo CNPJ, collation `en_US` × binária em nomes acentuados) ficam registrados como risco conhecido: se aparecerem na paridade, usar `COLLATE "C"` no PG ou um id numérico como último critério.
+- **25/09/2026, estoque não reexportado.** A amostra `TABLESAMPLE SYSTEM (0.1)` (249 mil linhas) não achou texto "NA"/"NULL"/"nan" nem string vazia nas colunas de texto de `instituicao_estoca_produto`; a carga com o parser antigo é fiel para essa tabela. O sync só inclui o estoque com `--include-stock`.
