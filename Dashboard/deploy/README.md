@@ -17,7 +17,12 @@ DADOSFERA_ENV_FILE=/Users/allansene/Repos/dadosfera/ai-cto-assistants/.env .venv
 DELETE + create do serviço, URL estável). Upload = `git ls-files backend` + `frontend/dist/**`; recusa `*.env`, `*.pem`, `*.key`, `*secret*`, `*credential*`.
 O resultado (UUIDs e `dataapp_url`) fica em `deploy/manifest.json`, sem segredos.
 
-**Variáveis do serviço**: `DB_ENGINE=snowflake`, `SNOWFLAKE_SECRET_ID=prd/root/snowflake_credentials/dadosferademo`,
+**Credencial do Snowflake**: fica na variável `SNOWFLAKE_SECRET_JSON` do **projeto** (não em arquivo, nem no git) e o
+serviço a herda. Para gravar ou trocar: acrescente `--project-secret-file <json do secret>` ao comando de deploy. O
+`/health/database` informa `secret_source` e o `verify.py` exige `env`. Atenção: é a credencial dona do banco do tenant
+e aparece em texto aberto nas configurações do projeto no Orchest para quem tem acesso a ele.
+
+**Variáveis do serviço**: `DB_ENGINE=snowflake`, `SNOWFLAKE_SECRET_ID=prd/root/snowflake_credentials/dadosferademo` (fallback),
 `SNOWFLAKE_DATABASE=DADOSFERA_PRD_DADOSFERADEMO`, `SNOWFLAKE_SCHEMA=EMBRAPII_DATASUS`, `FRONTEND_DIST=/project-dir/frontend/dist`,
 `APP_BASE_PATH=/$BASE_PATH_PREFIX_8000`, `QUERY_CACHE_TTL_SECONDS=3600`.
 
