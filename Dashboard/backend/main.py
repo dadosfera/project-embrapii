@@ -63,7 +63,12 @@ def database_health():
     engine = get_engine()
     try:
         row = fetch_one(Q(pg="SELECT 1 AS result", sf="SELECT 1 AS result"), cache=False)
-        return {"status": "ok", "engine": engine, "result": row["result"] if row else None}
+        body = {"status": "ok", "engine": engine, "result": row["result"] if row else None}
+        if engine == "snowflake":
+            from backend import snowflake_conn
+
+            body["secret_source"] = snowflake_conn.secret_source
+        return body
     except (DatabaseError, RuntimeError) as exc:
         raise HTTPException(status_code=503, detail=f"Banco indisponível ({engine}): {exc}") from exc
 

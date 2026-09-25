@@ -20,5 +20,7 @@ def _reset_snowflake_secret():
     from backend import snowflake_conn
 
     snowflake_conn._secret_cache = None
+    snowflake_conn.secret_source = None
     yield
     snowflake_conn._secret_cache = None
+    snowflake_conn.secret_source = None

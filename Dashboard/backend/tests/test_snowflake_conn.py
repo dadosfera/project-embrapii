@@ -262,3 +262,28 @@ def test_secret_fica_em_memoria_para_reconexoes(monkeypatch):
     sc._secret()
     sc._secret()
     assert fake.calls == 1
+
+
+def test_secret_json_em_env_tem_prioridade(monkeypatch, tmp_path):
+    import sys
+
+    arquivo = tmp_path / "s.json"
+    arquivo.write_text('{"account": "arquivo", "username": "a", "password": "p"}')
+    monkeypatch.setenv("SNOWFLAKE_SECRET_JSON", '{"account": "env", "username": "e", "password": "p"}')
+    monkeypatch.setenv("SNOWFLAKE_SECRET_FILE", str(arquivo))
+    monkeypatch.setenv("SNOWFLAKE_SECRET_ID", "prd/x")
+    monkeypatch.setitem(sys.modules, "boto3", None)  # não pode nem importar o boto3
+    assert sc._secret()["account"] == "env"
+
+
+def test_secret_json_invalido_gera_erro_sem_vazar_conteudo(monkeypatch):
+    monkeypatch.setenv("SNOWFLAKE_SECRET_JSON", "senha-super-secreta{")
+    with pytest.raises(RuntimeError) as err:
+        sc._secret()
+    assert "senha-super-secreta" not in str(err.value)
+
+
+def test_secret_source_indica_origem(monkeypatch):
+    monkeypatch.setenv("SNOWFLAKE_SECRET_JSON", '{"account": "a", "username": "u", "password": "p"}')
+    sc._secret()
+    assert sc.secret_source == "env"

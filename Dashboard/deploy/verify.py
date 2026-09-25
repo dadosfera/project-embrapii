@@ -13,7 +13,7 @@ M = json.loads((Path(__file__).parent / "manifest.json").read_text())
 URL = M["dataapp_url"].rstrip("/")
 CHECKS = [
     ("/health", lambda j: j.get("status") == "ok"),
-    ("/health/database", lambda j: j.get("engine") == "snowflake" and j.get("status") == "ok"),
+    ("/health/database", lambda j: j.get("engine") == "snowflake" and j.get("status") == "ok" and j.get("secret_source") == "env"),
     ("/api/leitos/opcoes", lambda j: bool(j)),
     ("/api/medicamentos/busca?q=dipirona&limite=5", lambda j: len(j) > 0),
     ("/api/compras/kpis?data_inicio=2024-01-01&data_fim=2024-12-31", lambda j: bool(j)),

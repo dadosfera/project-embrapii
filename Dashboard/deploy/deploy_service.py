@@ -34,6 +34,7 @@ ENV_NAME = "embrapii-dashboard"
 BASE_IMAGE = os.getenv("ORCHEST_BASE_IMAGE", "dadosfera/base-kernel-py")
 SECRET_ID = os.getenv("SNOWFLAKE_SECRET_ID", "prd/root/snowflake_credentials/dadosferademo")
 SNOWFLAKE_DATABASE = os.getenv("SNOWFLAKE_DATABASE", "DADOSFERA_PRD_DADOSFERADEMO")
+SECRET_ENV = "SNOWFLAKE_SECRET_JSON"
 SERVICE = "dataapp"; PORT = 8000; PIPELINE = "embrapii_dataapp"
 PIPELINE_TITLE = "Data App · Dashboard DATASUS (EMBRAPII)"
 OUT = ROOT / "frontend" / "dist"
@@ -96,6 +97,9 @@ def service_doc(pl_uuid: str, env_uuid: str) -> dict:
                 "args": f"-c 'umask 002 && cd /project-dir && uvicorn backend.main:app --host 0.0.0.0 --port {PORT}'",
                 "binds": {"/project-dir": "/project-dir", "/data": "/data"}, "ports": [PORT], "exposed": True,
                 "preserve_base_path": True, "requires_authentication": False, "scope": ["interactive", "noninteractive"], "order": 1,
+                # o JSON do secret Snowflake fica nas variáveis do PROJETO (fora do disco e do git) e é herdado aqui;
+                # SNOWFLAKE_SECRET_ID (AWS SM) continua como fallback se a variável não existir
+                "env_variables_inherit": [SECRET_ENV],
                 "env_variables": {
                     "DB_ENGINE": "snowflake",
                     "SNOWFLAKE_SECRET_ID": SECRET_ID,
@@ -142,6 +146,22 @@ class Deployer:
             self.d.orchest_post("/async/projects", json={"name": PROJECT, "description": PROJECT_DESCRIPTION}); time.sleep(3)  # v2026.08.26+ exige description
             projs = self.d.orchest_get("/async/projects", timeout=120); p = next(p for p in projs if p.get("path") == PROJECT)
         self.m["project_uuid"] = p["uuid"]; print("project =", p["uuid"]); return p["uuid"]
+
+    def set_project_secret(self, pu: str, secret_file: Path) -> None:
+        """Grava o JSON do secret em SNOWFLAKE_SECRET_JSON nas variáveis do projeto, preservando as demais."""
+        raw = secret_file.read_text()
+        for k in ("account", "username"):
+            if k not in json.loads(raw):
+                raise SystemExit(f"{secret_file}: secret sem o campo {k!r}")
+        current = self.d.orchest_get(f"/async/projects/{pu}", timeout=60).get("env_variables") or {}
+        env = {**current, SECRET_ENV: json.dumps(json.loads(raw), separators=(",", ":"))}
+        r = self.d.raw("PUT", f"{self.d.orchest}/async/projects/{pu}", json={"env_variables": env}, timeout=60)
+        if not r.ok:
+            raise SystemExit(f"falha ao gravar {SECRET_ENV} no projeto: HTTP {r.status_code}")
+        names = sorted((self.d.orchest_get(f"/async/projects/{pu}", timeout=60).get("env_variables") or {}).keys())
+        if SECRET_ENV not in names:
+            raise SystemExit(f"{SECRET_ENV} não apareceu nas variáveis do projeto")
+        print(f"{SECRET_ENV} gravado nas variáveis do projeto (variáveis: {', '.join(names)})")
 
     def _builds(self, pu: str):
         # v2026.08: só a rota most-recent responde JSON; a coleção pura devolve o HTML da SPA.
@@ -262,6 +282,7 @@ class Deployer:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--start", action="store_true"); ap.add_argument("--skip-upload", action="store_true"); ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--project-secret-file", type=Path, help="JSON do secret Snowflake a gravar em SNOWFLAKE_SECRET_JSON no projeto")
     a = ap.parse_args()
     if not (OUT / "index.html").exists() and not a.skip_upload:
         raise SystemExit(f"{OUT}/index.html ausente — rode `cd frontend && npm run build`")
@@ -271,6 +292,7 @@ def main() -> None:
         for f in files: print(" ", f.relative_to(ROOT).as_posix())
         print("files:", len(files)); return
     dp = Deployer(); pu = dp.project(); dp.save()
+    if a.project_secret_file: dp.set_project_secret(pu, a.project_secret_file)
     if not a.skip_upload: dp.upload_all(pu, files)
     env, created = dp.environment(pu); dp.save()
     if created: dp.wait_environment_build(pu, env)

@@ -1,7 +1,8 @@
 """Conexão Snowflake do dadosferademo.
 
-Credenciais: SNOWFLAKE_SECRET_FILE (JSON local) ou SNOWFLAKE_SECRET_ID (AWS Secrets Manager, dentro do
-Módulo de Inteligência). O secret fica em memória após a primeira leitura, então reconectar ao Snowflake não
+Credenciais, nesta ordem: SNOWFLAKE_SECRET_JSON (o JSON do secret numa variável de ambiente; no Módulo de
+Inteligência vem das variáveis do projeto), SNOWFLAKE_SECRET_FILE (JSON local) ou SNOWFLAKE_SECRET_ID (AWS Secrets
+Manager). O secret fica em memória após a primeira leitura, então reconectar ao Snowflake não
 depende da AWS. Se as credenciais AWS temporárias do serviço expiraram, elas são descartadas e a nova tentativa usa
 uma sessão boto3 nova (a sessão padrão guarda a credencial resolvida na primeira chamada), caindo no role do nó.
 """
@@ -16,13 +17,22 @@ from typing import Any, Dict
 _lock = threading.Lock()
 _conn = None
 _secret_cache = None
+secret_source = None  # 'env' | 'file' | 'aws': de onde veio o secret (exposto no /health/database)
 STALE = ("390114", "390111", "session no longer exists", "connection is closed", "251005",
          "authentication token has expired", "250002")
 
 
 def _secret() -> Dict[str, Any]:
-    global _secret_cache
+    global _secret_cache, secret_source
     if _secret_cache is not None:
+        return _secret_cache
+    inline = os.getenv("SNOWFLAKE_SECRET_JSON")
+    if inline:
+        try:
+            _secret_cache = json.loads(inline)
+        except ValueError:
+            raise RuntimeError("SNOWFLAKE_SECRET_JSON não é um JSON válido.") from None
+        secret_source = "env"
         return _secret_cache
     f = os.getenv("SNOWFLAKE_SECRET_FILE")
     if f:
@@ -30,12 +40,13 @@ def _secret() -> Dict[str, Any]:
         if not path.exists():
             raise RuntimeError(f"SNOWFLAKE_SECRET_FILE não encontrado: {f}")
         _secret_cache = json.loads(path.read_text())
+        secret_source = "file"
         return _secret_cache
 
     sid = os.getenv("SNOWFLAKE_SECRET_ID")
     if not sid:
         raise RuntimeError(
-            "Defina SNOWFLAKE_SECRET_FILE (JSON local) ou SNOWFLAKE_SECRET_ID (AWS Secrets Manager)."
+            "Defina SNOWFLAKE_SECRET_JSON, SNOWFLAKE_SECRET_FILE (JSON local) ou SNOWFLAKE_SECRET_ID (AWS Secrets Manager)."
         )
     import boto3.session
 
@@ -52,6 +63,7 @@ def _secret() -> Dict[str, Any]:
             os.environ.pop(k, None)
         raw = get()
     _secret_cache = json.loads(raw)
+    secret_source = "aws"
     return _secret_cache
 
 
