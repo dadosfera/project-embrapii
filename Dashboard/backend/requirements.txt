@@ -7,3 +7,6 @@ snowflake-connector-python>=3.7,<4
 cryptography>=41,<46
 boto3>=1.28,<2
 pyyaml>=6,<7
+# a imagem base-kernel-py traz um pyOpenSSL antigo que quebra com o cryptography novo
+# (module 'lib' has no attribute 'X509_V_FLAG_NOTIFY_POLICY')
+pyOpenSSL>=24,<26
