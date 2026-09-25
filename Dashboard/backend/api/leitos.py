@@ -1529,7 +1529,8 @@ def _query_painel(
                     SELECT json_agg(
                         p
                         ORDER BY
-                            p.leitos_gerais DESC
+                            p.leitos_gerais DESC,
+                            p.uf
                     )
                     FROM por_uf p
                 ),
@@ -1917,7 +1918,8 @@ def _query_painel(
                     )
                     ) WITHIN GROUP (
                         ORDER BY
-                            p.leitos_gerais DESC
+                            p.leitos_gerais DESC,
+                            p.uf
                     )
                     FROM por_uf p
                 ),

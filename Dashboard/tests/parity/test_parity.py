@@ -95,9 +95,10 @@ def is_empty(v, echo=None) -> bool:
 
 
 def clear_router_caches() -> None:
-    """Os routers têm lru_cache próprios (ex.: leitos /opcoes e /painel) cuja chave não inclui o engine.
+    """Limpa os lru_cache dos routers (ex.: leitos /opcoes e /painel) antes de cada chamada.
 
-    Sem limpar, a chamada Snowflake devolveria o resultado em cache da chamada Postgres.
+    A chave desses caches já inclui o engine, então não há vazamento entre Postgres e Snowflake; limpar
+    garante que cada chamada da paridade bate de fato no banco (e não num resultado de minutos antes).
     """
     from backend.api import compras, fornecedores, leitos, medicamentos
 

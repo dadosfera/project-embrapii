@@ -44,8 +44,14 @@ cases:
   - /api/leitos/kpis
   - /api/leitos/kpis?uf=MG
   - /api/leitos/por-uf
-  - {path: /api/leitos/tipos-uti, unordered: true}  # VALUES sem ORDER BY
+  - /api/leitos/por-uf?modo=ultima_instituicao
+  - /api/leitos/tipos-uti  # PG: ordem do VALUES; SF: ORDER BY explícito na mesma ordem
   - /api/leitos/evolucao?data_inicio={data_inicio}&data_fim={data_fim}
   - /api/leitos/instituicoes?limite=100
+  - /api/leitos/instituicoes?modo=ultima_instituicao&limite=100
   - /api/leitos/opcoes
   - /api/leitos/painel?data_inicio={data_inicio}&data_fim={data_fim}
+  - /api/leitos/painel?data_inicio={data_inicio}&data_fim={data_fim}&modo=ultima_instituicao
+  - /api/leitos/painel?data_inicio={data_inicio}&data_fim={data_fim}&uf=MG
+  # RR: 31 instituições no modo ultima_instituicao (< 100, o ranking não bate no LIMIT)
+  - /api/leitos/painel?data_inicio={data_inicio}&data_fim={data_fim}&modo=ultima_instituicao&uf=RR
