@@ -1,7 +1,9 @@
 """Conexão Snowflake do dadosferademo.
 
 Credenciais: SNOWFLAKE_SECRET_FILE (JSON local) ou SNOWFLAKE_SECRET_ID (AWS Secrets Manager, dentro do
-Módulo de Inteligência). Credenciais AWS temporárias expiradas são descartadas para o boto3 cair no role do nó.
+Módulo de Inteligência). O secret fica em memória após a primeira leitura, então reconectar ao Snowflake não
+depende da AWS. Se as credenciais AWS temporárias do serviço expiraram, elas são descartadas e a nova tentativa usa
+uma sessão boto3 nova (a sessão padrão guarda a credencial resolvida na primeira chamada), caindo no role do nó.
 """
 from __future__ import annotations
 
@@ -13,27 +15,32 @@ from typing import Any, Dict
 
 _lock = threading.Lock()
 _conn = None
+_secret_cache = None
 STALE = ("390114", "390111", "session no longer exists", "connection is closed", "251005",
          "authentication token has expired", "250002")
 
 
 def _secret() -> Dict[str, Any]:
+    global _secret_cache
+    if _secret_cache is not None:
+        return _secret_cache
     f = os.getenv("SNOWFLAKE_SECRET_FILE")
     if f:
         path = Path(f)
         if not path.exists():
             raise RuntimeError(f"SNOWFLAKE_SECRET_FILE não encontrado: {f}")
-        return json.loads(path.read_text())
+        _secret_cache = json.loads(path.read_text())
+        return _secret_cache
 
     sid = os.getenv("SNOWFLAKE_SECRET_ID")
     if not sid:
         raise RuntimeError(
             "Defina SNOWFLAKE_SECRET_FILE (JSON local) ou SNOWFLAKE_SECRET_ID (AWS Secrets Manager)."
         )
-    import boto3
+    import boto3.session
 
     def get() -> str:
-        client = boto3.client("secretsmanager", region_name=os.getenv("AWS_REGION", "us-east-1"))
+        client = boto3.session.Session().client("secretsmanager", region_name=os.getenv("AWS_REGION", "us-east-1"))
         return client.get_secret_value(SecretId=sid)["SecretString"]
 
     try:
@@ -41,10 +48,11 @@ def _secret() -> Dict[str, Any]:
     except Exception as exc:
         if "ExpiredToken" not in str(exc):
             raise
-        for k in ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"):
+        for k in ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "AWS_SECURITY_TOKEN"):
             os.environ.pop(k, None)
         raw = get()
-    return json.loads(raw)
+    _secret_cache = json.loads(raw)
+    return _secret_cache
 
 
 def _connect():

@@ -12,3 +12,13 @@ def _reset_query_cache():
     yield
     query_cache._data.clear()
     query_cache.ttl = original_ttl
+
+
+@pytest.fixture(autouse=True)
+def _reset_snowflake_secret():
+    """O secret do Snowflake fica em memória no processo; cada teste começa sem ele."""
+    from backend import snowflake_conn
+
+    snowflake_conn._secret_cache = None
+    yield
+    snowflake_conn._secret_cache = None

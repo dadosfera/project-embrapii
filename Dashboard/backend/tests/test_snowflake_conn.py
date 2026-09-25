@@ -1,3 +1,4 @@
+import os
 import threading
 import time
 
@@ -194,3 +195,70 @@ def test_sessao_em_utc(monkeypatch):
     monkeypatch.setattr(snowflake.connector, "connect", lambda **kw: captured.update(kw) or "conn")
     assert sc._connect() == "conn"
     assert captured["timezone"] == "UTC"
+
+
+class _FakeBoto3:
+    """boto3 falso: a sessão padrão (criada 1x) guarda credencial expirada; sessões novas funcionam."""
+
+    def __init__(self, expired_sessions=1):
+        self.sessions = 0
+        self.calls = 0
+        self.expired_sessions = expired_sessions
+        fake = self
+
+        class _Client:
+            def __init__(self, expired):
+                self.expired = expired
+
+            def get_secret_value(self, SecretId):
+                fake.calls += 1
+                if self.expired:
+                    raise Exception(
+                        "An error occurred (ExpiredTokenException) when calling the GetSecretValue operation"
+                    )
+                return {"SecretString": '{"account": "acc", "username": "u", "password": "p"}'}
+
+        class _Session:
+            def __init__(self):
+                fake.sessions += 1
+                self.expired = fake.sessions <= fake.expired_sessions
+
+            def client(self, *_a, **_k):
+                return _Client(self.expired)
+
+        class _SessionModule:
+            Session = _Session
+
+        self.session = _SessionModule
+        self._default = None
+
+    def client(self, *a, **k):  # boto3.client() reutiliza a sessão padrão, como o boto3 real
+        if self._default is None:
+            self._default = self.session.Session()
+        return self._default.client(*a, **k)
+
+
+def _usar_boto3_falso(monkeypatch, fake):
+    import sys
+
+    monkeypatch.delenv("SNOWFLAKE_SECRET_FILE", raising=False)
+    monkeypatch.setenv("SNOWFLAKE_SECRET_ID", "prd/x")
+    monkeypatch.setitem(sys.modules, "boto3", fake)
+    monkeypatch.setitem(sys.modules, "boto3.session", fake.session)
+
+
+def test_token_expirado_usa_sessao_nova(monkeypatch):
+    fake = _FakeBoto3(expired_sessions=1)
+    _usar_boto3_falso(monkeypatch, fake)
+    monkeypatch.setenv("AWS_SESSION_TOKEN", "velho")
+    assert sc._secret()["username"] == "u"
+    assert fake.sessions == 2  # a segunda tentativa não reaproveita a sessão com a credencial expirada
+    assert "AWS_SESSION_TOKEN" not in os.environ
+
+
+def test_secret_fica_em_memoria_para_reconexoes(monkeypatch):
+    fake = _FakeBoto3(expired_sessions=0)
+    _usar_boto3_falso(monkeypatch, fake)
+    sc._secret()
+    sc._secret()
+    assert fake.calls == 1
