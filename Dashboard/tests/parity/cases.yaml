@@ -21,8 +21,10 @@ cases:
   - /api/medicamentos/busca?q=dipirona&limite=50
   - /api/medicamentos/{catmat}/produtos
   - /api/medicamentos/{catmat}/resumo
-  - {path: "/api/medicamentos/{catmat}/lotes-vencendo?dias=90", allow_empty: true}  # nenhum lote vence em 90 dias
-  - /api/medicamentos/{catmat_compras}/lotes-vencendo?dias=90
+  # lotes-vencendo depende de CURRENT_DATE: o resultado muda com o dia (os dois engines rodam no mesmo minuto).
+  # 15800 não tem lote vencendo; para 85 usamos o máximo do endpoint (dias <= 365) para não esvaziar com o tempo.
+  - {path: "/api/medicamentos/{catmat}/lotes-vencendo?dias=90", allow_empty: true}
+  - /api/medicamentos/{catmat_compras}/lotes-vencendo?dias=365
   - /api/medicamentos/{catmat}/estoque-por-uf
   - {path: "/api/medicamentos/{catmat}/compras/evolucao-preco", allow_empty: true}
   - /api/medicamentos/{catmat_compras}/compras/evolucao-preco

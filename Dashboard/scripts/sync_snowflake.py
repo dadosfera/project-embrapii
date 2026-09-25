@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Copia as tabelas do Dashboard do Postgres da UFMG (datalake_db2, via túnel) para o Snowflake EMBRAPII_DATASUS.
 
-Uso: scripts/tunnel.sh &  ;  .venv/bin/python scripts/sync_snowflake.py [--only t1,t2] [--resume] [--skip-stock]
+Uso: scripts/tunnel.sh &  ;  .venv/bin/python scripts/sync_snowflake.py [--only t1,t2] [--resume] [--include-stock]
+Por padrão o estoque (recorte pesado, ~17 min no banco compartilhado) NÃO é copiado; --include-stock o inclui.
 Cada tabela: COPY (SELECT) TO STDOUT em CSV (FORCE_QUOTE *) → CSV em disco → parquet com os tipos do Postgres →
 PUT no stage → <T>__NEW (USING TEMPLATE + COPY INTO) → confere contagem → SWAP atômico com <T>.
 Relatório em scripts/sync_report.json.
@@ -10,6 +11,7 @@ Relatório em scripts/sync_report.json.
 (instituicao_id, produto_id). O DISTINCT ON roda uma única vez no servidor (no próprio COPY). Para todas as
 tabelas a contagem de origem é a que o próprio COPY devolve (cur.rowcount); o tamanho da tabela cheia do
 estoque vem de pg_class.reltuples.
+A carga do estoque de 24/09/2026 usou o parser antigo; uma amostra TABLESAMPLE SYSTEM(0.1) (249 mil linhas) achou 0 textos tipo NA e 0 vazios em numero_do_lote/sigla/descricao, então não foi recarregada.
 """
 from __future__ import annotations
 
@@ -198,7 +200,7 @@ def prepare_snowflake() -> None:
     run("CREATE STAGE IF NOT EXISTS EMBRAPII_SYNC FILE_FORMAT = EMBRAPII_PARQUET", {})
 
 
-def select_tables(all_tables, only: str, skip_stock: bool):
+def select_tables(all_tables, only: str, include_stock: bool):
     tables = list(all_tables)
     if only:
         wanted = [t for t in only.split(",") if t]
@@ -206,7 +208,7 @@ def select_tables(all_tables, only: str, skip_stock: bool):
         if unknown:
             raise SystemExit(f"--only com tabelas fora de scripts/tables.txt: {unknown}")
         tables = [t for t in tables if t in wanted]
-    if skip_stock:
+    if not include_stock:
         tables = [t for t in tables if t != STOCK]
     return tables
 
@@ -215,9 +217,12 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--only", default="")
     ap.add_argument("--resume", action="store_true", help="pula tabelas já OK no relatório")
-    ap.add_argument("--skip-stock", action="store_true", help=f"nunca copia {STOCK} (o recorte pesado)")
+    ap.add_argument("--include-stock", action="store_true",
+                    help=f"também copia {STOCK} (DISTINCT ON sobre 248 M linhas; só para recarga rara)")
+    ap.add_argument("--skip-stock", action="store_true", help="sem efeito: o estoque já fica fora por padrão")
     args = ap.parse_args()
-    tables = select_tables((ROOT / "scripts" / "tables.txt").read_text().split(), args.only, args.skip_stock)
+    tables = select_tables((ROOT / "scripts" / "tables.txt").read_text().split(), args.only,
+                           args.include_stock and not args.skip_stock)
     report = json.loads(REPORT.read_text()) if REPORT.exists() else {}
 
     prepare_snowflake()

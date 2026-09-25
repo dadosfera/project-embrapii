@@ -68,9 +68,10 @@ def test_numeric_sem_precisao_exige_escala():
     assert sync.arrow_type("double precision", None, None) == pa.float64()
 
 
-def test_only_desconhecida_falha_e_skip_stock():
+def test_only_desconhecida_falha_e_estoque_so_com_include():
     tables = ["municipio", sync.STOCK, "leitos"]
     with pytest.raises(SystemExit):
-        sync.select_tables(tables, "municipio,nao_existe", False)
-    assert sync.select_tables(tables, "", True) == ["municipio", "leitos"]
-    assert sync.select_tables(tables, f"{sync.STOCK},leitos", True) == ["leitos"]
+        sync.select_tables(tables, "municipio,nao_existe", True)
+    assert sync.select_tables(tables, "", False) == ["municipio", "leitos"]
+    assert sync.select_tables(tables, f"{sync.STOCK},leitos", False) == ["leitos"]
+    assert sync.select_tables(tables, "", True) == tables

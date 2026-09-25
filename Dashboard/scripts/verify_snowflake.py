@@ -29,6 +29,7 @@ NUMERIC = {"integer", "smallint", "bigint", "numeric", "real", "double precision
 FLOAT = {"real", "double precision"}
 TEMPORAL = {"date", "timestamp without time zone", "timestamp with time zone"}
 TEXT = {"text", "character varying", "character"}
+NO_LENGTH = {"uuid", "json", "jsonb", "ARRAY", "USER-DEFINED", "bytea"}  # só count(col)
 
 
 def pg_columns(cur, table: str):
@@ -61,14 +62,21 @@ def aggregates(cols, engine: str, text_extras: bool = False):
         col = q(c)
         out.append((f"c{i}_count", f"count({col})", "bigint"))
         if t in NUMERIC:
-            out += [(f"c{i}_sum", f"sum({col})", t), (f"c{i}_min", f"min({col})", t),
+            total = f"sum({col}::float8)" if engine == "postgres" and t in FLOAT else f"sum({col})"
+            out += [(f"c{i}_sum", total, t), (f"c{i}_min", f"min({col})", t),
                     (f"c{i}_max", f"max({col})", t)]
         elif t in TEMPORAL:
             out += [(f"c{i}_min", f"min({col})", t), (f"c{i}_max", f"max({col})", t)]
         elif t == "boolean":
             out.append((f"c{i}_true", f"sum(case when {col} then 1 else 0 end)", "bigint"))
+        elif t in NO_LENGTH:
+            pass
         else:
-            out.append((f"c{i}_len", f"sum(length({col}))", "bigint"))
+            if engine == "postgres":
+                length = f"length({col}::text)"  # char(n)::text descarta o preenchimento à direita
+            else:
+                length = f"length(rtrim({col}))" if t == "character" else f"length({col})"
+            out.append((f"c{i}_len", f"sum({length})", "bigint"))
             if text_extras:
                 out.append((f"c{i}_empty", f"sum(case when {col} = '' then 1 else 0 end)", "bigint"))
     return out

@@ -135,15 +135,12 @@ def test_paridade(monkeypatch, case):
     s_sf, sf = call(monkeypatch, "snowflake", path)
     echo = dict(parse_qsl(urlsplit(path).query))
     empty_pg = s_pg == 200 and is_empty(pg, echo)
-    empty_sf = s_sf == 200 and is_empty(sf, echo)
     if s_pg != 200:
         ok, why = False, f"postgres {s_pg}"
     elif empty_pg and not case["allow_empty"]:
         ok, why = False, "postgres vazio sem allow_empty"
     elif s_sf != 200:
         ok, why = False, f"snowflake {s_sf}"
-    elif empty_pg and empty_sf and not case["allow_empty"]:
-        ok, why = False, "os dois lados vazios sem allow_empty"
     else:
         ok, why = compare(pg, sf, case["unordered"])
     RESULTS[path] = {"ok": ok, "why": why, "pg": s_pg, "sf": s_sf,
