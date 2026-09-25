@@ -131,6 +131,7 @@ def get_mapa_fornecedores_por_uf(
     """
     _validar_datas(data_inicio, data_fim)
 
+    # Q(pg, sf): altere as duas versões juntas
     query = Q(
         pg=PG_MAPA_POR_UF,
         sf="""
@@ -289,7 +290,7 @@ def get_ranking_fornecedores(
             ce.possui_socio_pj_exterior,
             ce.nome_socio_pj_exterior
 
-        ORDER BY valor_total DESC NULLS LAST
+        ORDER BY valor_total DESC NULLS LAST, cnpj ASC
 
         LIMIT %(limite)s;
     """,
@@ -346,9 +347,9 @@ def get_ranking_fornecedores(
             ce.possui_socio_pj_exterior,
             ce.nome_socio_pj_exterior
 
-        ORDER BY valor_total DESC NULLS LAST
+        ORDER BY valor_total DESC NULLS LAST, cnpj ASC
 
-        LIMIT %(limite)s;
+        LIMIT %(limite)s
     """,
     )
 
@@ -402,7 +403,7 @@ PG_TOP_POR_UF = """
                 *,
                 ROW_NUMBER() OVER (
                     PARTITION BY uf
-                    ORDER BY valor_total DESC NULLS LAST
+                    ORDER BY valor_total DESC NULLS LAST, fornecedor ASC
                 ) AS posicao
             FROM compras_por_uf_fornecedor
         )
@@ -430,6 +431,7 @@ def get_top_fornecedor_por_uf(
     """
     _validar_datas(data_inicio, data_fim)
 
+    # Q(pg, sf): altere as duas versões juntas
     query = Q(
         pg=PG_TOP_POR_UF,
         sf="""
@@ -456,7 +458,7 @@ def get_top_fornecedor_por_uf(
             valor_total,
             quantidade_itens
         FROM compras_por_uf_fornecedor
-        QUALIFY ROW_NUMBER() OVER (PARTITION BY uf ORDER BY valor_total DESC NULLS LAST) = 1
+        QUALIFY ROW_NUMBER() OVER (PARTITION BY uf ORDER BY valor_total DESC NULLS LAST, fornecedor ASC) = 1
         ORDER BY uf
         """,
     )

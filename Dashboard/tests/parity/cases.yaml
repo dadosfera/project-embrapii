@@ -8,15 +8,19 @@ cases:
   - /api/fornecedores/mapa-por-uf?data_inicio={data_inicio}&data_fim={data_fim}
   - /api/fornecedores/ranking?data_inicio={data_inicio}&data_fim={data_fim}&limite=50
   - /api/fornecedores/ranking?data_inicio={data_inicio}&data_fim={data_fim}&uf=MG&limite=50
+  - /api/fornecedores/ranking?data_inicio={data_inicio}&data_fim={data_fim}&uf=SP&limite=50
   - /api/fornecedores/top-por-uf?data_inicio={data_inicio}&data_fim={data_fim}
   - /api/compras/kpis?data_inicio={data_inicio}&data_fim={data_fim}
   - {path: "/api/compras/kpis?data_inicio={data_inicio}&data_fim={data_fim}&catmat_id={catmat}", allow_empty: true}
   - /api/compras/kpis?data_inicio={data_inicio}&data_fim={data_fim}&catmat_id={catmat_compras}
+  - /api/compras/kpis?data_inicio={data_inicio}&data_fim={data_fim}&tipo_compra=JUDICIAL
+  - /api/compras/kpis?data_inicio={data_inicio}&data_fim={data_fim}&catmat_id={catmat_compras}&tipo_compra=ADMINISTRATIVA
   - /api/compras/por-mes?data_inicio={data_inicio}&data_fim={data_fim}
   - /api/compras/fornecedores?data_inicio={data_inicio}&data_fim={data_fim}&limite=15
   - /api/compras/fabricantes?data_inicio={data_inicio}&data_fim={data_fim}&limite=15
   - /api/compras/modalidades?data_inicio={data_inicio}&data_fim={data_fim}
   - /api/compras/tipos?data_inicio={data_inicio}&data_fim={data_fim}
+  - /api/compras/tipos?data_inicio={data_inicio}&data_fim={data_fim}&tipo_compra=ADMINISTRATIVA
   - /api/compras/recentes?data_inicio={data_inicio}&data_fim={data_fim}&limite=200
   - /api/medicamentos/busca?q=dipirona&limite=50
   - /api/medicamentos/{catmat}/produtos

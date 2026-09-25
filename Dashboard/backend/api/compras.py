@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import APIRouter, HTTPException, Query
 
-from backend.database import DatabaseError, Q, fetch_all, fetch_one, get_engine
+from backend.database import DatabaseError, Q, fetch_all, fetch_one
 
 
 router = APIRouter(
@@ -109,6 +109,7 @@ def get_kpis_compras(
         tipo_compra,
     )
 
+    # Q(pg, sf): altere as duas versões juntas
     query = Q(
         pg=f"""
         SELECT
@@ -286,7 +287,7 @@ def get_top_fornecedores_compras(
                 'Nao informado'
             )
 
-        ORDER BY valor_total DESC NULLS LAST
+        ORDER BY valor_total DESC NULLS LAST, fornecedor ASC
 
         LIMIT %(limite)s;
     """,
@@ -300,7 +301,7 @@ def get_top_fornecedores_compras(
         LEFT JOIN fornecedor f ON f.fornecedor_id = c.fornecedor_id
         WHERE {where_sql}
         GROUP BY COALESCE(NULLIF(TRIM(f.nome_fornecedor), ''), 'Nao informado')
-        ORDER BY valor_total DESC NULLS LAST
+        ORDER BY valor_total DESC NULLS LAST, fornecedor ASC
         LIMIT %(limite)s
         """,
     )
@@ -366,7 +367,7 @@ def get_top_fabricantes_compras(
                 'Nao informado'
             )
 
-        ORDER BY valor_total DESC NULLS LAST
+        ORDER BY valor_total DESC NULLS LAST, fabricante ASC
 
         LIMIT %(limite)s;
     """,
@@ -380,7 +381,7 @@ def get_top_fabricantes_compras(
         LEFT JOIN fabricante fab ON fab.fabricante_id = c.fabricante_id
         WHERE {where_sql}
         GROUP BY COALESCE(NULLIF(TRIM(fab.nome_fabricante), ''), 'Nao informado')
-        ORDER BY valor_total DESC NULLS LAST
+        ORDER BY valor_total DESC NULLS LAST, fabricante ASC
         LIMIT %(limite)s
         """,
     )
@@ -441,7 +442,7 @@ def get_compras_por_modalidade(
                 'Nao informado'
             )
 
-        ORDER BY valor_total DESC NULLS LAST;
+        ORDER BY valor_total DESC NULLS LAST, modalidade ASC;
     """,
         sf=f"""
         SELECT
@@ -452,7 +453,7 @@ def get_compras_por_modalidade(
         FROM mantenedora_compra_produto c
         WHERE {where_sql}
         GROUP BY COALESCE(NULLIF(TRIM(c.modalidade_de_compra), ''), 'Nao informado')
-        ORDER BY valor_total DESC NULLS LAST
+        ORDER BY valor_total DESC NULLS LAST, modalidade ASC
         """,
     )
 
@@ -512,7 +513,7 @@ def get_compras_por_tipo(
                 'Nao informado'
             )
 
-        ORDER BY valor_total DESC NULLS LAST;
+        ORDER BY valor_total DESC NULLS LAST, tipo_compra ASC;
     """,
         sf=f"""
         SELECT
@@ -523,7 +524,7 @@ def get_compras_por_tipo(
         FROM mantenedora_compra_produto c
         WHERE {where_sql}
         GROUP BY COALESCE(NULLIF(TRIM(c.tipo_da_compra), ''), 'Nao informado')
-        ORDER BY valor_total DESC NULLS LAST
+        ORDER BY valor_total DESC NULLS LAST, tipo_compra ASC
         """,
     )
 
