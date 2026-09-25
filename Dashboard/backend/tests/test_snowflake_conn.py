@@ -184,3 +184,13 @@ def test_sem_secret_file_nem_secret_id_gera_runtimeerror_claro(monkeypatch):
     monkeypatch.delenv("SNOWFLAKE_SECRET_ID", raising=False)
     with pytest.raises(RuntimeError):
         sc._secret()
+
+
+def test_sessao_em_utc(monkeypatch):
+    import snowflake.connector
+
+    captured = {}
+    monkeypatch.setattr(sc, "_secret", lambda: {"account": "acc", "username": "u", "password": "p"})
+    monkeypatch.setattr(snowflake.connector, "connect", lambda **kw: captured.update(kw) or "conn")
+    assert sc._connect() == "conn"
+    assert captured["timezone"] == "UTC"

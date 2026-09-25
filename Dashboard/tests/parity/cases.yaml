@@ -1,5 +1,7 @@
 # catmat 15800: dipirona (associação) com estoque em instituicao_estoca_produto (5176 não tem estoque).
 catmat: 15800
+# catmat 85 (DIPIRONA SÓDICA 500 MG/ML, SOLUÇÃO INJETÁVEL): tem compras (686, 203 em 2021) e estoque.
+catmat_compras: 85
 # Compras só têm uma data por ano (1º de janeiro); 2021 é o ano com mais linhas e leitos tem as 12 competências.
 periodo: {data_inicio: "2021-01-01", data_fim: "2021-12-31"}
 cases:
@@ -8,7 +10,8 @@ cases:
   - /api/fornecedores/ranking?data_inicio={data_inicio}&data_fim={data_fim}&uf=MG&limite=50
   - /api/fornecedores/top-por-uf?data_inicio={data_inicio}&data_fim={data_fim}
   - /api/compras/kpis?data_inicio={data_inicio}&data_fim={data_fim}
-  - /api/compras/kpis?data_inicio={data_inicio}&data_fim={data_fim}&catmat_id={catmat}
+  - {path: "/api/compras/kpis?data_inicio={data_inicio}&data_fim={data_fim}&catmat_id={catmat}", allow_empty: true}
+  - /api/compras/kpis?data_inicio={data_inicio}&data_fim={data_fim}&catmat_id={catmat_compras}
   - /api/compras/por-mes?data_inicio={data_inicio}&data_fim={data_fim}
   - /api/compras/fornecedores?data_inicio={data_inicio}&data_fim={data_fim}&limite=15
   - /api/compras/fabricantes?data_inicio={data_inicio}&data_fim={data_fim}&limite=15
@@ -18,18 +21,23 @@ cases:
   - /api/medicamentos/busca?q=dipirona&limite=50
   - /api/medicamentos/{catmat}/produtos
   - /api/medicamentos/{catmat}/resumo
-  - /api/medicamentos/{catmat}/lotes-vencendo?dias=90
+  - {path: "/api/medicamentos/{catmat}/lotes-vencendo?dias=90", allow_empty: true}  # nenhum lote vence em 90 dias
+  - /api/medicamentos/{catmat_compras}/lotes-vencendo?dias=90
   - /api/medicamentos/{catmat}/estoque-por-uf
-  - /api/medicamentos/{catmat}/compras/evolucao-preco
-  - /api/medicamentos/{catmat}/compras/fornecedores?limite=15
-  - /api/medicamentos/{catmat}/compras/fabricantes?limite=15
-  - /api/medicamentos/{catmat}/compras?limite=200&offset=0
+  - {path: "/api/medicamentos/{catmat}/compras/evolucao-preco", allow_empty: true}
+  - /api/medicamentos/{catmat_compras}/compras/evolucao-preco
+  - {path: "/api/medicamentos/{catmat}/compras/fornecedores?limite=15", allow_empty: true}
+  - /api/medicamentos/{catmat_compras}/compras/fornecedores?limite=15
+  - {path: "/api/medicamentos/{catmat}/compras/fabricantes?limite=15", allow_empty: true}
+  - /api/medicamentos/{catmat_compras}/compras/fabricantes?limite=15
+  - {path: "/api/medicamentos/{catmat}/compras?limite=200&offset=0", allow_empty: true}
+  - /api/medicamentos/{catmat_compras}/compras?limite=200&offset=0
   - /api/leitos/intervalo
   - /api/leitos/ufs
   - /api/leitos/kpis
   - /api/leitos/kpis?uf=MG
   - /api/leitos/por-uf
-  - /api/leitos/tipos-uti
+  - {path: /api/leitos/tipos-uti, unordered: true}  # VALUES sem ORDER BY
   - /api/leitos/evolucao?data_inicio={data_inicio}&data_fim={data_fim}
   - /api/leitos/instituicoes?limite=100
   - /api/leitos/opcoes

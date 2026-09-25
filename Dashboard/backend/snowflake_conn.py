@@ -60,6 +60,8 @@ def _connect():
         "database": os.getenv("SNOWFLAKE_DATABASE") or sec.get("database"),
         "schema": os.getenv("SNOWFLAKE_SCHEMA", "EMBRAPII_DATASUS"),
         "paramstyle": "pyformat", "login_timeout": 20, "network_timeout": 60,
+        # mesmo fuso do Postgres da UFMG (Etc/UTC): TIMESTAMP_LTZ::date e isoformat batem com o PG
+        "timezone": "UTC",
     }
     if sec.get("private_key"):
         pk = serialization.load_pem_private_key(sec["private_key"].encode(), password=None,
