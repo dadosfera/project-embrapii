@@ -2,7 +2,7 @@ from datetime import date
 
 from fastapi import APIRouter, HTTPException, Query
 
-from backend.database import DatabaseError, Q, fetch_all, fetch_one
+from backend.database import DatabaseError, Q, fetch_all, fetch_one, get_engine
 
 
 router = APIRouter(
@@ -26,30 +26,7 @@ def _validar_datas(data_inicio: date, data_fim: date) -> None:
         )
 
 
-@router.get("/mapa-por-uf")
-def get_mapa_fornecedores_por_uf(
-    data_inicio: date,
-    data_fim: date,
-):
-    """
-    Para cada UF (localizacao da mantenedora que comprou), soma a
-    quantidade de itens e o valor comprado, classificando por origem
-    do fornecedor em 4 categorias:
-
-      NACIONAL          - domicilio legal no Brasil e sem socio PJ
-                           domiciliado no exterior conhecido.
-      ESTRANGEIRO        - a propria empresa e domiciliada fora do
-                           Brasil (natureza juridica 217/221).
-      GRUPO_ESTRANGEIRO  - empresa com CNPJ e domicilio brasileiros,
-                           mas com socio Pessoa Juridica domiciliado
-                           no exterior (subsidiaria de multinacional).
-      DESCONHECIDO       - ainda nao classificado ou consulta falhou.
-
-    UFs sem nenhuma compra no periodo nao aparecem no resultado.
-    """
-    _validar_datas(data_inicio, data_fim)
-
-    query = """
+PG_MAPA_POR_UF = """
         WITH compras_classificadas AS (
             SELECT
                 COALESCE(
@@ -130,6 +107,69 @@ def get_mapa_fornecedores_por_uf(
         ORDER BY uf;
     """
 
+
+@router.get("/mapa-por-uf")
+def get_mapa_fornecedores_por_uf(
+    data_inicio: date,
+    data_fim: date,
+):
+    """
+    Para cada UF (localizacao da mantenedora que comprou), soma a
+    quantidade de itens e o valor comprado, classificando por origem
+    do fornecedor em 4 categorias:
+
+      NACIONAL          - domicilio legal no Brasil e sem socio PJ
+                           domiciliado no exterior conhecido.
+      ESTRANGEIRO        - a propria empresa e domiciliada fora do
+                           Brasil (natureza juridica 217/221).
+      GRUPO_ESTRANGEIRO  - empresa com CNPJ e domicilio brasileiros,
+                           mas com socio Pessoa Juridica domiciliado
+                           no exterior (subsidiaria de multinacional).
+      DESCONHECIDO       - ainda nao classificado ou consulta falhou.
+
+    UFs sem nenhuma compra no periodo nao aparecem no resultado.
+    """
+    _validar_datas(data_inicio, data_fim)
+
+    query = Q(
+        pg=PG_MAPA_POR_UF,
+        sf="""
+        WITH compras_classificadas AS (
+            SELECT
+                COALESCE(NULLIF(TRIM(mun.sigla_uf), ''), 'Nao informado') AS uf,
+                CASE
+                    WHEN ce.nacional_estrangeiro = 'ESTRANGEIRO' THEN 'ESTRANGEIRO'
+                    WHEN ce.possui_socio_pj_exterior = TRUE THEN 'GRUPO_ESTRANGEIRO'
+                    WHEN ce.nacional_estrangeiro = 'NACIONAL'
+                         AND ce.possui_socio_pj_exterior = FALSE THEN 'NACIONAL'
+                    ELSE 'DESCONHECIDO'
+                END AS origem,
+                c.quantidade_de_itens,
+                c.preco_total
+            FROM mantenedora_compra_produto c
+            JOIN mantenedora m ON m.mantenedora_id = c.mantenedora_id
+            LEFT JOIN municipio mun ON mun.codigo_do_municipio = m.municipio_id
+            LEFT JOIN fornecedor f ON f.fornecedor_id = c.fornecedor_id
+            LEFT JOIN cnpj_enriquecido ce ON ce.cnpj = TRIM(f.cnpj_fornecedor)
+            WHERE c.data_de_compra >= %(data_inicio)s
+              AND c.data_de_compra < %(data_fim_exclusiva)s
+        )
+        SELECT
+            uf,
+            COALESCE(SUM(IFF(origem = 'NACIONAL', quantidade_de_itens, NULL)), 0) AS quantidade_nacional,
+            COALESCE(SUM(IFF(origem = 'ESTRANGEIRO', quantidade_de_itens, NULL)), 0) AS quantidade_estrangeiro,
+            COALESCE(SUM(IFF(origem = 'GRUPO_ESTRANGEIRO', quantidade_de_itens, NULL)), 0) AS quantidade_grupo_estrangeiro,
+            COALESCE(SUM(IFF(origem = 'DESCONHECIDO', quantidade_de_itens, NULL)), 0) AS quantidade_desconhecida,
+            COALESCE(SUM(IFF(origem = 'NACIONAL', preco_total, NULL)), 0) AS valor_nacional,
+            COALESCE(SUM(IFF(origem = 'ESTRANGEIRO', preco_total, NULL)), 0) AS valor_estrangeiro,
+            COALESCE(SUM(IFF(origem = 'GRUPO_ESTRANGEIRO', preco_total, NULL)), 0) AS valor_grupo_estrangeiro,
+            COALESCE(SUM(IFF(origem = 'DESCONHECIDO', preco_total, NULL)), 0) AS valor_desconhecido
+        FROM compras_classificadas
+        GROUP BY uf
+        ORDER BY uf
+        """,
+    )
+
     parametros = {
         "data_inicio": data_inicio,
         "data_fim_exclusiva": date.fromordinal(data_fim.toordinal() + 1),
@@ -160,6 +200,11 @@ def get_mapa_fornecedores_por_uf(
     return resultado
 
 
+def _filtro_uf(engine: str) -> str:
+    trim = "BTRIM" if engine == "postgres" else "TRIM"
+    return f" AND COALESCE(NULLIF({trim}(mun.sigla_uf), ''), 'Nao informado') = %(uf)s"
+
+
 @router.get("/ranking")
 def get_ranking_fornecedores(
     data_inicio: date,
@@ -176,6 +221,7 @@ def get_ranking_fornecedores(
     """
     _validar_datas(data_inicio, data_fim)
 
+    engine = get_engine()
     uf_normalizada = uf.strip().upper()
     filtro_uf = ""
 
@@ -186,10 +232,11 @@ def get_ranking_fornecedores(
     }
 
     if uf_normalizada:
-        filtro_uf = " AND COALESCE(NULLIF(BTRIM(mun.sigla_uf), ''), 'Nao informado') = %(uf)s"
+        filtro_uf = _filtro_uf(engine)
         parametros["uf"] = uf_normalizada
 
-    query = f"""
+    query = Q(
+        pg=f"""
         SELECT
             COALESCE(
                 NULLIF(BTRIM(f.nome_fornecedor), ''),
@@ -245,7 +292,65 @@ def get_ranking_fornecedores(
         ORDER BY valor_total DESC NULLS LAST
 
         LIMIT %(limite)s;
-    """
+    """,
+        sf=f"""
+        SELECT
+            COALESCE(
+                NULLIF(TRIM(f.nome_fornecedor), ''),
+                'Nao informado'
+            ) AS fornecedor,
+
+            TRIM(f.cnpj_fornecedor) AS cnpj,
+
+            CASE
+                WHEN ce.nacional_estrangeiro = 'ESTRANGEIRO'
+                    THEN 'ESTRANGEIRO'
+                WHEN ce.possui_socio_pj_exterior = TRUE
+                    THEN 'GRUPO_ESTRANGEIRO'
+                WHEN ce.nacional_estrangeiro = 'NACIONAL'
+                     AND ce.possui_socio_pj_exterior = FALSE
+                    THEN 'NACIONAL'
+                ELSE 'DESCONHECIDO'
+            END AS nacional_estrangeiro,
+
+            ce.nome_socio_pj_exterior AS grupo_estrangeiro_socio,
+
+            COALESCE(SUM(c.preco_total), 0) AS valor_total,
+
+            COALESCE(SUM(c.quantidade_de_itens), 0) AS quantidade_itens,
+
+            COUNT(*) AS numero_compras
+
+        FROM mantenedora_compra_produto c
+
+        JOIN mantenedora m
+            ON m.mantenedora_id = c.mantenedora_id
+
+        LEFT JOIN municipio mun
+            ON mun.codigo_do_municipio = m.municipio_id
+
+        LEFT JOIN fornecedor f
+            ON f.fornecedor_id = c.fornecedor_id
+
+        LEFT JOIN cnpj_enriquecido ce
+            ON ce.cnpj = TRIM(f.cnpj_fornecedor)
+
+        WHERE c.data_de_compra >= %(data_inicio)s
+          AND c.data_de_compra < %(data_fim_exclusiva)s
+        {filtro_uf}
+
+        GROUP BY
+            COALESCE(NULLIF(TRIM(f.nome_fornecedor), ''), 'Nao informado'),
+            TRIM(f.cnpj_fornecedor),
+            ce.nacional_estrangeiro,
+            ce.possui_socio_pj_exterior,
+            ce.nome_socio_pj_exterior
+
+        ORDER BY valor_total DESC NULLS LAST
+
+        LIMIT %(limite)s;
+    """,
+    )
 
     try:
         return fetch_all(query, parametros)
@@ -253,18 +358,7 @@ def get_ranking_fornecedores(
         raise _database_error(exc) from exc
 
 
-@router.get("/top-por-uf")
-def get_top_fornecedor_por_uf(
-    data_inicio: date,
-    data_fim: date,
-):
-    """
-    Para cada UF, o fornecedor com maior valor total comprado
-    no periodo (o "campeao" de cada estado).
-    """
-    _validar_datas(data_inicio, data_fim)
-
-    query = """
+PG_TOP_POR_UF = """
         WITH compras_por_uf_fornecedor AS (
             SELECT
                 COALESCE(
@@ -323,6 +417,49 @@ def get_top_fornecedor_por_uf(
         WHERE posicao = 1
         ORDER BY uf;
     """
+
+
+@router.get("/top-por-uf")
+def get_top_fornecedor_por_uf(
+    data_inicio: date,
+    data_fim: date,
+):
+    """
+    Para cada UF, o fornecedor com maior valor total comprado
+    no periodo (o "campeao" de cada estado).
+    """
+    _validar_datas(data_inicio, data_fim)
+
+    query = Q(
+        pg=PG_TOP_POR_UF,
+        sf="""
+        WITH compras_por_uf_fornecedor AS (
+            SELECT
+                COALESCE(NULLIF(TRIM(mun.sigla_uf), ''), 'Nao informado') AS uf,
+                COALESCE(NULLIF(TRIM(f.nome_fornecedor), ''), 'Nao informado') AS fornecedor,
+                COALESCE(ce.nacional_estrangeiro, 'DESCONHECIDO') AS nacional_estrangeiro,
+                SUM(c.preco_total) AS valor_total,
+                SUM(c.quantidade_de_itens) AS quantidade_itens
+            FROM mantenedora_compra_produto c
+            JOIN mantenedora m ON m.mantenedora_id = c.mantenedora_id
+            LEFT JOIN municipio mun ON mun.codigo_do_municipio = m.municipio_id
+            LEFT JOIN fornecedor f ON f.fornecedor_id = c.fornecedor_id
+            LEFT JOIN cnpj_enriquecido ce ON ce.cnpj = TRIM(f.cnpj_fornecedor)
+            WHERE c.data_de_compra >= %(data_inicio)s
+              AND c.data_de_compra < %(data_fim_exclusiva)s
+            GROUP BY uf, fornecedor, ce.nacional_estrangeiro
+        )
+        SELECT
+            uf,
+            fornecedor,
+            nacional_estrangeiro,
+            valor_total,
+            quantidade_itens
+        FROM compras_por_uf_fornecedor
+        QUALIFY ROW_NUMBER() OVER (PARTITION BY uf ORDER BY valor_total DESC NULLS LAST) = 1
+        ORDER BY uf
+        """,
+    )
 
     parametros = {
         "data_inicio": data_inicio,
