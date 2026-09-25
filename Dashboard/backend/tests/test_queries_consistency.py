@@ -5,8 +5,8 @@ compara os textos literais (partes estáticas de f-strings; fragmentos dinâmico
 `{filtro_uf}` são o mesmo texto Python compartilhado pelos dois lados, então ficam de fora da comparação
 — e isso é seguro, porque uma divergência ali afetaria os dois engines igualmente).
 
-Só considera chamadas com `sf` presente (routers ainda não portados, como leitos, não têm
-`Q(..., sf=...)` e são ignorados aqui).
+Os quatro routers (fornecedores, compras, medicamentos, leitos) estão portados: todo `Q(...)` tem
+`sf`. Chamadas sem `sf` continuam ignoradas, por robustez, mas não deveriam existir.
 """
 from __future__ import annotations
 
@@ -113,8 +113,14 @@ CASES = _collect_cases()
 IDS = [f"{name}-{i}" for name, i, _, _ in CASES]
 
 
+def test_todos_os_routers_portados():
+    for path in sorted(API_DIR.glob("*.py")):
+        calls = _find_q_calls(path)
+        assert all(sf is not None for _, sf in calls), f"{path.name}: Q(...) sem sf"
+
+
 def test_encontrou_pelo_menos_um_caso():
-    assert CASES, "nenhum par Q(pg=..., sf=...) encontrado nos routers portados (fornecedores/compras)"
+    assert CASES, "nenhum par Q(pg=..., sf=...) encontrado nos routers"
 
 
 @pytest.mark.parametrize("name,i,pg,sf", CASES, ids=IDS)
