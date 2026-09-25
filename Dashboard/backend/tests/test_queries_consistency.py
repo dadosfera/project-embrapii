@@ -5,7 +5,7 @@ compara os textos literais (partes estáticas de f-strings; fragmentos dinâmico
 `{filtro_uf}` são o mesmo texto Python compartilhado pelos dois lados, então ficam de fora da comparação
 — e isso é seguro, porque uma divergência ali afetaria os dois engines igualmente).
 
-Só considera chamadas com `sf` presente (routers ainda não portados, como medicamentos/leitos, não têm
+Só considera chamadas com `sf` presente (routers ainda não portados, como leitos, não têm
 `Q(..., sf=...)` e são ignorados aqui).
 """
 from __future__ import annotations
