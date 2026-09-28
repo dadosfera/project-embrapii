@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "npm run check:tokens && tsc -b && vite build",
     "preview": "vite preview",
     "e2e": "playwright test",
     "e2e:prefix": "E2E_BASE_URL=http://localhost:8000/pbp-test_8000/ playwright test",
@@ -29,6 +29,7 @@
     "@testing-library/react": "^16.3.3",
     "@types/d3-geo": "^3.1.1",
     "@types/d3-scale": "^4.0.9",
+    "@types/node": "^26.6.3",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.0.0",

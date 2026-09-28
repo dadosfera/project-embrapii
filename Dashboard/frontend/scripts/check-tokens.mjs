@@ -1,4 +1,9 @@
 // Falha se houver cor hex fora da camada de tokens Beast do index.css.
+//
+// Limite conhecido: isto só pega literais hex (#rgb, #rrggbb, ...). Não detecta cor
+// "errada" por outro caminho — rgb()/hsl() literais, nomes de cor CSS (ex.: "tomato"),
+// ou uma variável semântica usada no lugar errado (--danger onde deveria ser
+// --danger-text, por exemplo). Essas exigem revisão manual ou um linter à parte.
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 

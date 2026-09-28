@@ -50,9 +50,22 @@
   --danger: var(--beast-danger-600);    --danger-soft: var(--beast-danger-100);
   --info: var(--beast-info-700);        --info-soft: var(--beast-info-100);
 
+  /* Texto sobre fundo claro (alertas, badges): mais escuro que --warning/--danger,
+     que ficam reservados para gráficos e ícones. Só --warning-text/--danger-text são
+     usados como texto hoje (grep confirma que nenhuma classe de bridge aponta
+     texto para --success/--info; se isso mudar, criar --success-text/--info-text do mesmo jeito). */
+  --warning-text: var(--beast-warning-800);
+  --danger-text: var(--beast-danger-700);
+  --warning-border: var(--beast-warning-300);
+  --danger-border: var(--beast-danger-200);
+
+  /* Tinta larga (fundos de seção grandes): 6% de --primary sobre --panel, bem mais suave
+     que --primary-soft (que continua reservado para chips e estados ativos). */
+  --primary-tint: color-mix(in srgb, var(--primary) 6%, var(--panel));
+
   --radius-sm: 4px;
   --radius-md: 8px;
-  --shadow-card: 0 1px 2px rgb(16 20 38 / 0.06);
+  --shadow-card: 0 1px 2px color-mix(in srgb, var(--text) 6%, transparent);
   --duration-fast: 120ms;
   --duration-base: 160ms;
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
@@ -76,6 +89,9 @@
   --color-slate-100: var(--subtle);
   --color-slate-200: var(--border);
   --color-slate-300: var(--border-strong);
+  /* slate-400 fica em --text-muted (6,7:1 sobre --panel) porque também é usado como texto
+     comum (legendas, placeholder), não só em disabled:. Trocar para --border-strong aqui
+     quebraria esse texto (1,7:1). O estado disabled: é tratado à parte, mais abaixo. */
   --color-slate-400: var(--text-muted);
   --color-slate-500: var(--text-muted);
   --color-slate-600: var(--text-muted);
@@ -83,7 +99,7 @@
   --color-slate-800: var(--text);
   --color-slate-900: var(--text);
 
-  --color-teal-50: var(--primary-soft);
+  --color-teal-50: var(--primary-tint);
   --color-teal-100: var(--border);
   --color-teal-200: var(--border);
   --color-teal-600: var(--primary);
@@ -93,20 +109,26 @@
   --color-cyan-50: var(--subtle);
 
   --color-amber-50: var(--warning-soft);
-  --color-amber-200: var(--warning);
-  --color-amber-700: var(--warning);
-  --color-amber-900: var(--warning);
+  --color-amber-200: var(--warning-border);
+  --color-amber-700: var(--warning-text);
+  --color-amber-900: var(--warning-text);
   --color-red-50: var(--danger-soft);
-  --color-red-200: var(--danger);
-  --color-red-800: var(--danger);
+  --color-red-200: var(--danger-border);
+  --color-red-800: var(--danger-text);
   --color-blue-50: var(--subtle);
   --color-blue-200: var(--border);
   --color-blue-800: var(--primary);
+
+  /* Fornecedores usa orange-* só para GRUPO_ESTRANGEIRO; reaproveita a escala de warning. */
+  --color-orange-50: var(--warning-soft);
+  --color-orange-200: var(--warning-border);
+  --color-orange-700: var(--warning-text);
 
   /* Vocabulário novo, para o código novo. */
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-soft: var(--primary-soft);
+  --color-primary-tint: var(--primary-tint);
   --color-muted: var(--text-muted);
   --color-panel: var(--panel);
   --color-surface: var(--bg);
@@ -114,7 +136,11 @@
   --color-line: var(--border);
   --color-success: var(--success);
   --color-warning: var(--warning);
+  --color-warning-text: var(--warning-text);
+  --color-warning-border: var(--warning-border);
   --color-danger: var(--danger);
+  --color-danger-text: var(--danger-text);
+  --color-danger-border: var(--danger-border);
   --color-info: var(--info);
 }
 
@@ -323,4 +349,15 @@ tbody td {
   .brand-logo {
     width: 124px;
   }
+}
+
+/* Estado disabled: só aqui slate-400 vira --border-strong (mais claro, sinaliza "inativo").
+   WCAG 1.4.3 não exige contraste de texto para componentes inativos, então isso não é uma
+   regressão de acessibilidade — é o oposto do texto comum em slate-400 (ver comentário acima). */
+[class*="disabled:text-slate-400"]:disabled {
+  color: var(--border-strong);
+}
+
+[class*="disabled:bg-slate-400"]:disabled {
+  background-color: var(--border-strong);
 }

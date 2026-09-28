@@ -9,9 +9,23 @@ export const SEQUENCIAL_VARS = [
   "--beast-primary-600", "--beast-primary-800",
 ] as const;
 
+const avisados = new Set<string>();
+
+/**
+ * Resolve uma variável Beast para uma cor concreta (Recharts/D3 não entendem `var()`).
+ * O retorno `var(${nome})` só existe para `window === undefined` (Vitest/jsdom não calcula
+ * `@theme`/`:root` de verdade) — no navegador espera-se sempre um valor computado. Se a
+ * variável vier vazia lá (token renomeado/removido do index.css), avisa uma vez por nome
+ * em vez de falhar silenciosamente com uma cor quebrada no gráfico.
+ */
 function cssVar(nome: string): string {
   if (typeof window === "undefined") return `var(${nome})`;
-  return getComputedStyle(document.documentElement).getPropertyValue(nome).trim() || `var(${nome})`;
+  const valor = getComputedStyle(document.documentElement).getPropertyValue(nome).trim();
+  if (!valor && !avisados.has(nome)) {
+    avisados.add(nome);
+    console.warn(`[chartTheme] ${nome} não resolveu para nenhuma cor; confira src/index.css`);
+  }
+  return valor || `var(${nome})`;
 }
 
 /** Cores resolvidas (para Recharts/D3, que não entendem var()). */
