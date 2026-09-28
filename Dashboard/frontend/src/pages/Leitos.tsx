@@ -530,7 +530,7 @@ export function Leitos() {
 
 
   return (
-    <main className="mx-auto min-h-[calc(100vh-4rem)] max-w-[1440px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8 lg:py-10">
+    <main id="conteudo" tabIndex={-1} className="mx-auto min-h-[calc(100vh-4rem)] max-w-[1440px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8 lg:py-10">
       <PageHeader
         icon="activity"
         title="Leitos"
@@ -895,7 +895,7 @@ export function Leitos() {
                       <div className="mt-4 space-y-5">
                         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
                           <div className="min-w-0">
-                            <ChartFrame title="Leitos gerais e leitos SUS" source="DATASUS">
+                            <ChartFrame as="h3" title="Leitos gerais e leitos SUS" source="DATASUS">
                               <div className="w-full" style={{ height: alturaUf }}>
                                 <ResponsiveContainer width="100%" height="100%">
                                   <BarChart data={porUfTabela} layout="vertical" margin={MARGEM_HORIZONTAL}>
@@ -913,7 +913,7 @@ export function Leitos() {
                           </div>
 
                           <div className="min-w-0">
-                            <ChartFrame title="Leitos de UTI e UTI SUS" source="DATASUS">
+                            <ChartFrame as="h3" title="Leitos de UTI e UTI SUS" source="DATASUS">
                               <div className="w-full" style={{ height: alturaUf }}>
                                 <ResponsiveContainer width="100%" height="100%">
                                   <BarChart data={porUfTabela} layout="vertical" margin={MARGEM_HORIZONTAL}>
@@ -951,7 +951,7 @@ export function Leitos() {
                       </div>
                     ) : (
                       <div className="mt-4 space-y-5">
-                        <ChartFrame title="Total e SUS por tipo de UTI" source="DATASUS">
+                        <ChartFrame as="h3" title="Total e SUS por tipo de UTI" source="DATASUS">
                           <div className="h-80 w-full">
                             <ResponsiveContainer width="100%" height="100%">
                               <BarChart data={tiposTabela} margin={MARGEM_VERTICAL}>
@@ -987,7 +987,7 @@ export function Leitos() {
                       </div>
                     ) : (
                       <div className="mt-4 space-y-5">
-                        <ChartFrame
+                        <ChartFrame as="h3"
                           title="Leitos por competência"
                           subtitle={`${dataBR(filtrosConfirmados.dataInicio)} a ${dataBR(filtrosConfirmados.dataFim)}`}
                           source="DATASUS"
@@ -1038,7 +1038,7 @@ export function Leitos() {
                       </div>
                     ) : (
                       <div className="mt-4 space-y-5">
-                        <ChartFrame title="20 instituições com mais leitos gerais" source="DATASUS">
+                        <ChartFrame as="h3" title="20 instituições com mais leitos gerais" source="DATASUS">
                           <div
                             className="w-full"
                             style={{ height: Math.max(420, rankingGrafico.length * 34) }}

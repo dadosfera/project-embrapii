@@ -87,7 +87,7 @@ export function Home() {
   const meses = opcoes ? mesesDeCobertura(opcoes.data_minima, opcoes.data_maxima) : null;
 
   return (
-    <main>
+    <main id="conteudo" tabIndex={-1}>
       <section className="landing-hero border-b border-line">
         <div className="mx-auto grid max-w-[1440px] gap-8 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-end lg:px-8 lg:py-16">
           <div className="max-w-3xl">

@@ -964,7 +964,7 @@ export function Medicamentos() {
 
 
   return (
-    <main className="mx-auto min-h-[calc(100vh-4rem)] max-w-[1440px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8 lg:py-10">
+    <main id="conteudo" tabIndex={-1} className="mx-auto min-h-[calc(100vh-4rem)] max-w-[1440px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8 lg:py-10">
       <PageHeader
         icon="droplet"
         title="Medicamentos"
@@ -1217,7 +1217,7 @@ export function Medicamentos() {
                 > 0 ? (
                 <div className="mt-4 grid grid-cols-1 gap-5 lg:grid-cols-[2fr_1fr]">
                   <div className="min-w-0">
-                    <ChartFrame
+                    <ChartFrame as="h3"
                       title="Estoque total por UF"
                       subtitle="Soma da última posição de estoque das instituições de cada UF"
                       source="DATASUS"
@@ -1332,7 +1332,7 @@ export function Medicamentos() {
 
 
                   <TabsContent value="preco" className="mt-3">
-                    <ChartFrame
+                    <ChartFrame as="h3"
                       title="Evolução do preço médio"
                       subtitle="Preço unitário médio por data de compra"
                       source="DATASUS"
@@ -1396,7 +1396,7 @@ export function Medicamentos() {
                   <TabsContent value="fornecedores" className="mt-3">
                     <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
                       <div className="min-w-0">
-                        <ChartFrame
+                        <ChartFrame as="h3"
                           title="Gasto total por fornecedor"
                           source="DATASUS"
                         >
@@ -1411,7 +1411,7 @@ export function Medicamentos() {
                       </div>
 
                       <div className="min-w-0">
-                        <ChartFrame
+                        <ChartFrame as="h3"
                           title="Gasto total por fabricante"
                           source="DATASUS"
                         >

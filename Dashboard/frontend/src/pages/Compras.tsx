@@ -1196,7 +1196,7 @@ export function Compras() {
 
 
   return (
-    <main className="mx-auto min-h-[calc(100vh-4rem)] max-w-[1440px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8 lg:py-10">
+    <main id="conteudo" tabIndex={-1} className="mx-auto min-h-[calc(100vh-4rem)] max-w-[1440px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8 lg:py-10">
       <PageHeader
         icon="cart"
         title="Compras"
@@ -1507,7 +1507,7 @@ export function Compras() {
                   ) : (
                     <div className="mt-4 grid grid-cols-1 gap-5 lg:grid-cols-2">
                       <div className="min-w-0">
-                        <ChartFrame
+                        <ChartFrame as="h3"
                           title="Valor total comprado por mês"
                           source="DATASUS"
                         >
@@ -1560,7 +1560,7 @@ export function Compras() {
 
 
                       <div className="min-w-0">
-                        <ChartFrame
+                        <ChartFrame as="h3"
                           title="Número de compras por mês"
                           source="DATASUS"
                         >

@@ -27,10 +27,11 @@ describe("componentes de página", () => {
   });
   it("KpiCard com valor zero mostra '0', não 'sem dado', e é acessível por teclado", () => {
     render(<TooltipProvider><KpiCard label="Instituições" value={0} format={numeroCompacto} /></TooltipProvider>);
-    const valor = screen.getByText("0");
+    const valor = screen.getByText("0").closest("p")!;
     expect(valor).toBeInTheDocument();
     expect(valor).toHaveAttribute("tabIndex", "0");
-    expect(valor).toHaveAttribute("aria-label", `Instituições: ${numeroExato(0)}`);
+    expect(valor).not.toHaveAttribute("aria-label");
+    expect(valor).toHaveTextContent(`Instituições: ${numeroExato(0)}`);
   });
   it("EmptyState mostra causa e ação", () => {
     render(<EmptyState title="Sem estoque" cause="Nenhuma instituição registrou." action={<button>Ver outro</button>} />);
