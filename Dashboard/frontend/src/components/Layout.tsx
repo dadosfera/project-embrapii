@@ -7,6 +7,7 @@ import {
   type ThemePreference,
 } from "../theme";
 import { assetUrl } from "../lib/base";
+import { AutodriveChat } from "./AutodriveChat";
 
 type LayoutProps = {
   children: ReactNode;
@@ -118,6 +119,8 @@ export function Layout({ children }: LayoutProps) {
       </header>
 
       {children}
+
+      <AutodriveChat />
     </div>
   );
 }

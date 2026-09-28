@@ -114,3 +114,6 @@ scripts/sync_report.json
 *.parquet
 .secrets/
 tests/parity/report.md
+
+# saída de teste do chat Autodrive (conversa real, não versionar)
+autodrive/last_ai_question.json

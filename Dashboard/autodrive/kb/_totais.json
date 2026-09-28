@@ -1,0 +1,24 @@
+{
+  "compras": {
+    "n": 263562,
+    "valor": 50941327779.4,
+    "inicio": "2020-01-01",
+    "fim": "2025-01-01",
+    "fornecedores": 3109,
+    "mantenedoras": 760
+  },
+  "catalogo": {
+    "catmat": 21832,
+    "produtos": 52952,
+    "instituicoes": 603572
+  },
+  "estoque": {
+    "posicoes": 3337253,
+    "inicio": "2024-02-05",
+    "fim": "2026-02-19"
+  },
+  "leitos": {
+    "inicio": "2007-07-01",
+    "fim": "2026-01-01"
+  }
+}

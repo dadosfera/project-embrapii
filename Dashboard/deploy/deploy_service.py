@@ -35,6 +35,8 @@ BASE_IMAGE = os.getenv("ORCHEST_BASE_IMAGE", "dadosfera/base-kernel-py")
 SECRET_ID = os.getenv("SNOWFLAKE_SECRET_ID", "prd/root/snowflake_credentials/dadosferademo")
 SNOWFLAKE_DATABASE = os.getenv("SNOWFLAKE_DATABASE", "DADOSFERA_PRD_DADOSFERADEMO")
 SECRET_ENV = "SNOWFLAKE_SECRET_JSON"
+AUTODRIVE_SECRET_ENVS = ("AUTODRIVE_AUTH_CLIENT_ID", "AUTODRIVE_AUTH_CLIENT_SECRET")  # client do Autodrive STG (widget)
+AUTODRIVE_MANIFEST = ROOT / "autodrive" / "autodrive_manifest.json"  # assistente/KB criados por autodrive/setup_autodrive.py
 SERVICE = "dataapp"; PORT = 8000; PIPELINE = "embrapii_dataapp"
 PIPELINE_TITLE = "Data App · Dashboard DATASUS (EMBRAPII)"
 OUT = ROOT / "frontend" / "dist"
@@ -89,6 +91,15 @@ def _parse_time(value) -> Optional[datetime]:
         return None
 
 
+def autodrive_env() -> dict:
+    """Assistente e KB do chat (públicos); sem o manifest o chat fica desligado (/api/autodrive/config enabled=false)."""
+    if not AUTODRIVE_MANIFEST.exists():
+        return {}
+    m = json.loads(AUTODRIVE_MANIFEST.read_text())
+    return {"AUTODRIVE_URL": m["assistant_url"], "AUTODRIVE_DATASET_ID": m["dataset_id"], "AUTODRIVE_ASSISTANT_ID": m["assistant_id"],
+            "AUTODRIVE_WIDGET_HOST": m["widget_host"], "AUTODRIVE_CLIENT": m["client"], "AUTODRIVE_TITLE": m["assistant_name"]}
+
+
 def service_doc(pl_uuid: str, env_uuid: str) -> dict:
     return {"name": PIPELINE_TITLE, "uuid": pl_uuid, "version": "1.2.3", "parameters": {},
             "settings": {"auto_eviction": True, "data_passing_memory_size": "1GB", "max_steps_parallelism": 1}, "steps": {},
@@ -99,7 +110,8 @@ def service_doc(pl_uuid: str, env_uuid: str) -> dict:
                 "preserve_base_path": True, "requires_authentication": False, "scope": ["interactive", "noninteractive"], "order": 1,
                 # o JSON do secret Snowflake fica nas variáveis do PROJETO (fora do disco e do git) e é herdado aqui;
                 # SNOWFLAKE_SECRET_ID (AWS SM) continua como fallback se a variável não existir
-                "env_variables_inherit": [SECRET_ENV],
+                # idem para o client id/secret do Autodrive (token do widget)
+                "env_variables_inherit": [SECRET_ENV, *AUTODRIVE_SECRET_ENVS],
                 "env_variables": {
                     "DB_ENGINE": "snowflake",
                     "SNOWFLAKE_SECRET_ID": SECRET_ID,
@@ -108,6 +120,7 @@ def service_doc(pl_uuid: str, env_uuid: str) -> dict:
                     "FRONTEND_DIST": "/project-dir/frontend/dist",
                     "APP_BASE_PATH": f"/$BASE_PATH_PREFIX_{PORT}",
                     "QUERY_CACHE_TTL_SECONDS": "3600",
+                    **autodrive_env(),
                 }}}}
 
 
@@ -163,6 +176,19 @@ class Deployer:
             raise SystemExit(f"{SECRET_ENV} não apareceu nas variáveis do projeto")
         print(f"{SECRET_ENV} gravado nas variáveis do projeto (variáveis: {', '.join(names)})")
 
+    def set_project_autodrive(self, pu: str, env_file: Path) -> None:
+        """Grava AUTODRIVE_AUTH_CLIENT_ID/SECRET (arquivo KEY=VALUE local, fora do repo) nas variáveis do projeto."""
+        vals = dict(l.split("=", 1) for l in env_file.read_text().splitlines() if "=" in l and not l.lstrip().startswith("#"))
+        missing = [k for k in AUTODRIVE_SECRET_ENVS if not vals.get(k)]
+        if missing:
+            raise SystemExit(f"{env_file}: faltam {', '.join(missing)}")
+        current = self.d.orchest_get(f"/async/projects/{pu}", timeout=60).get("env_variables") or {}
+        env = {**current, **{k: vals[k].strip() for k in AUTODRIVE_SECRET_ENVS}}
+        r = self.d.raw("PUT", f"{self.d.orchest}/async/projects/{pu}", json={"env_variables": env}, timeout=60)
+        if not r.ok:
+            raise SystemExit(f"falha ao gravar as variáveis do Autodrive no projeto: HTTP {r.status_code}")
+        print("variáveis do Autodrive gravadas no projeto:", ", ".join(AUTODRIVE_SECRET_ENVS))
+
     def _builds(self, pu: str):
         # v2026.08: só a rota most-recent responde JSON; a coleção pura devolve o HTML da SPA.
         return self.d.orchest_get(f"/catch/api-proxy/api/environment-builds/most-recent/{pu}", timeout=60)
@@ -175,7 +201,7 @@ class Deployer:
         self._build_uuid = got.get("uuid") if isinstance(got, dict) else None; self._build_since = since
         print(f"environment build started ({reason}); build uuid = {self._build_uuid or 'n/a, filtering by requested_time >= ' + since.isoformat(' ', 'seconds') + ' UTC'}", flush=True)
 
-    def environment(self, pu: str) -> Tuple[str, bool]:
+    def environment(self, pu: str, skip_build: bool = False) -> Tuple[str, bool]:
         """Devolve (environment_uuid, build_disparado). Dispara build se o ambiente é novo, se o setup_script (com o hash
         do requirements.txt) mudou, ou se o build mais recente não é SUCCESS."""
         envs = self.d.orchest_get(f"/store/environments/{pu}")
@@ -194,6 +220,9 @@ class Deployer:
             if st not in ("SUCCESS", "STARTED", "PENDING"): reason = f"last build {st}"
             elif st != "SUCCESS": self._build_uuid, self._build_since = None, _parse_time(last.get("requested_time")); reason = ""  # espera o build em curso
         self.m["environment_uuid"] = e["uuid"]; print("environment =", e["uuid"])
+        if reason and skip_build:
+            # ex.: Docker Hub 429 no cluster ao puxar a base-kernel-py; o serviço sobe com a última imagem SUCCESS
+            print(f"build pulado (--skip-env-build) apesar de: {reason}", flush=True); reason = None
         if reason: self.trigger_build(pu, e["uuid"], reason)
         return e["uuid"], reason is not None
 
@@ -283,6 +312,8 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--start", action="store_true"); ap.add_argument("--skip-upload", action="store_true"); ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--project-secret-file", type=Path, help="JSON do secret Snowflake a gravar em SNOWFLAKE_SECRET_JSON no projeto")
+    ap.add_argument("--skip-env-build", action="store_true", help="não reconstrói o ambiente (usa a última imagem SUCCESS)")
+    ap.add_argument("--autodrive-env-file", type=Path, help="arquivo KEY=VALUE com AUTODRIVE_AUTH_CLIENT_ID/SECRET a gravar no projeto")
     a = ap.parse_args()
     if not (OUT / "index.html").exists() and not a.skip_upload:
         raise SystemExit(f"{OUT}/index.html ausente — rode `cd frontend && npm run build`")
@@ -293,8 +324,9 @@ def main() -> None:
         print("files:", len(files)); return
     dp = Deployer(); pu = dp.project(); dp.save()
     if a.project_secret_file: dp.set_project_secret(pu, a.project_secret_file)
+    if a.autodrive_env_file: dp.set_project_autodrive(pu, a.autodrive_env_file)
     if not a.skip_upload: dp.upload_all(pu, files)
-    env, created = dp.environment(pu); dp.save()
+    env, created = dp.environment(pu, skip_build=a.skip_env_build); dp.save()
     if created: dp.wait_environment_build(pu, env)
     pl = dp.ensure_pipeline(pu)
     base_path = f"/pbp-service-{SERVICE}-{pu[:18]}{pl[:18]}_{PORT}"

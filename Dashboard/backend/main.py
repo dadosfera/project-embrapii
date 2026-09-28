@@ -2,6 +2,7 @@ import os
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from backend.api.autodrive import router as autodrive_router
 from backend.api.fornecedores import router as fornecedores_router
 
 from backend.api.medicamentos import router as medicamentos_router
@@ -40,6 +41,7 @@ app.include_router(medicamentos_router)
 app.include_router(compras_router)
 app.include_router(leitos_router)
 app.include_router(fornecedores_router)
+app.include_router(autodrive_router)
 
 
 @app.get("/api")
