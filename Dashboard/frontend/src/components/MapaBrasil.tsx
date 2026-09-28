@@ -10,6 +10,7 @@ import {
 } from "d3-geo";
 
 import { assetUrl } from "../lib/base";
+import { sequencial } from "@/ui/chartTheme";
 
 type Coordenadas =
   | number[]
@@ -447,7 +448,7 @@ export function MapaBrasilUf({
                   d={
                     estado.d
                   }
-                  fill="var(--color-brand-blue)"
+                  fill={sequencial().at(-1)}
                   fillOpacity={estado.opacidade}
                   stroke="var(--panel)"
                   strokeWidth={1}
@@ -521,7 +522,7 @@ export function MapaBrasilUf({
           className="h-2 w-full rounded-full"
           style={{
             background:
-              "linear-gradient(to right, color-mix(in srgb, var(--color-brand-blue) 14%, var(--panel)), var(--color-brand-blue))",
+              `linear-gradient(to right, ${sequencial()[0]}, ${sequencial().at(-1)})`,
           }}
         />
 

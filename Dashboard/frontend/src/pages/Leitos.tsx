@@ -21,6 +21,7 @@ import {
 } from "recharts";
 
 import { DataTable } from "../components/DataTable";
+import { categorica } from "@/ui/chartTheme";
 
 import {
   buscarOpcoesLeitos,
@@ -1648,7 +1649,7 @@ export function Leitos() {
                                       <Bar
                                         dataKey="leitos_gerais"
                                         name="Leitos gerais"
-                                        fill="var(--color-brand-blue)"
+                                        fill={categorica()[0]}
                                         radius={[
                                           0,
                                           4,
@@ -1660,7 +1661,7 @@ export function Leitos() {
                                       <Bar
                                         dataKey="leitos_sus"
                                         name="Leitos SUS"
-                                        fill="var(--step-5)"
+                                        fill={categorica()[1]}
                                         radius={[
                                           0,
                                           4,
@@ -1720,7 +1721,7 @@ export function Leitos() {
                                       <Bar
                                         dataKey="leitos_uti"
                                         name="Leitos de UTI"
-                                        fill="var(--color-brand-blue)"
+                                        fill={categorica()[0]}
                                         radius={[
                                           0,
                                           4,
@@ -1732,7 +1733,7 @@ export function Leitos() {
                                       <Bar
                                         dataKey="leitos_uti_sus"
                                         name="UTI SUS"
-                                        fill="var(--step-5)"
+                                        fill={categorica()[1]}
                                         radius={[
                                           0,
                                           4,
@@ -1820,7 +1821,7 @@ export function Leitos() {
                                     <Bar
                                       dataKey="total"
                                       name="Total"
-                                      fill="var(--color-brand-blue)"
+                                      fill={categorica()[0]}
                                       radius={[
                                         5,
                                         5,
@@ -1832,7 +1833,7 @@ export function Leitos() {
                                     <Bar
                                       dataKey="sus"
                                       name="SUS"
-                                      fill="var(--step-5)"
+                                      fill={categorica()[1]}
                                       radius={[
                                         5,
                                         5,
@@ -1922,7 +1923,7 @@ export function Leitos() {
                                       type="monotone"
                                       dataKey="leitos_gerais"
                                       name="Leitos gerais"
-                                      stroke="var(--color-brand-blue)"
+                                      stroke={categorica()[0]}
                                       strokeWidth={2.5}
                                       dot={false}
                                     />
@@ -1931,7 +1932,7 @@ export function Leitos() {
                                       type="monotone"
                                       dataKey="leitos_sus"
                                       name="Leitos SUS"
-                                      stroke="var(--step-5)"
+                                      stroke={categorica()[1]}
                                       strokeWidth={2.5}
                                       dot={false}
                                     />
@@ -1940,7 +1941,7 @@ export function Leitos() {
                                       type="monotone"
                                       dataKey="leitos_uti"
                                       name="Leitos de UTI"
-                                      stroke="var(--step-2)"
+                                      stroke={categorica()[2]}
                                       strokeWidth={2}
                                       dot={false}
                                     />
@@ -1949,7 +1950,7 @@ export function Leitos() {
                                       type="monotone"
                                       dataKey="leitos_uti_sus"
                                       name="UTI SUS"
-                                      stroke="var(--step-1)"
+                                      stroke={categorica()[3]}
                                       strokeWidth={2}
                                       dot={false}
                                     />
@@ -2062,7 +2063,7 @@ export function Leitos() {
                                     <Bar
                                       dataKey="leitos_gerais"
                                       name="Leitos gerais"
-                                      fill="var(--color-brand-blue)"
+                                      fill="var(--primary)"
                                       radius={[
                                         0,
                                         5,

@@ -247,7 +247,7 @@ textarea {
   background-color: var(--panel);
 }
 
-button {
+button:not([data-slot]) {
   border-radius: var(--radius-md) !important;
 }
 

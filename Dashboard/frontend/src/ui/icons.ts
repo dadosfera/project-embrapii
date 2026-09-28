@@ -15,7 +15,7 @@ import calendar from "eva-icons/outline/svg/calendar-outline.svg?raw";
 import funnel from "eva-icons/outline/svg/funnel-outline.svg?raw";
 import trending from "eva-icons/outline/svg/trending-up-outline.svg?raw";
 import arrowDown from "eva-icons/outline/svg/arrow-downward-outline.svg?raw";
-// Usados pelas primitivas shadcn (select, sheet, dialog, command) no lugar do lucide-react.
+// Usados pelas primitivas shadcn (select, sheet, dialog, command).
 import check from "eva-icons/outline/svg/checkmark-outline.svg?raw";
 import chevronDown from "eva-icons/outline/svg/chevron-down-outline.svg?raw";
 import chevronUp from "eva-icons/outline/svg/chevron-up-outline.svg?raw";

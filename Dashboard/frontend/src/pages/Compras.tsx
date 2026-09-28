@@ -431,7 +431,7 @@ function GraficoRanking({
 
           <Bar
             dataKey="valor_total"
-            fill="var(--color-brand-blue)"
+            fill="var(--primary)"
             radius={[
               0,
               5,
@@ -1710,7 +1710,7 @@ export function Compras() {
                               <Line
                                 type="monotone"
                                 dataKey="valor_total"
-                                stroke="var(--color-brand-blue)"
+                                stroke="var(--primary)"
                                 strokeWidth={
                                   2
                                 }
@@ -1794,7 +1794,7 @@ export function Compras() {
                               <Line
                                 type="monotone"
                                 dataKey="numero_compras"
-                                stroke="var(--color-brand-blue)"
+                                stroke="var(--primary)"
                                 strokeWidth={
                                   2
                                 }

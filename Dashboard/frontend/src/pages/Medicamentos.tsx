@@ -330,7 +330,7 @@ function GraficoBarrasHorizontal({
 
           <Bar
             dataKey={valorKey}
-            fill="var(--color-brand-blue)"
+            fill="var(--primary)"
             radius={[
               0,
               5,
@@ -1418,7 +1418,7 @@ export function Medicamentos() {
 
                           <Bar
                             dataKey="estoque_total"
-                            fill="var(--color-brand-blue)"
+                            fill="var(--primary)"
                             radius={[
                               5,
                               5,
@@ -1624,7 +1624,7 @@ export function Medicamentos() {
                                 <Line
                                   type="monotone"
                                   dataKey="preco"
-                                  stroke="var(--color-brand-blue)"
+                                  stroke="var(--primary)"
                                   strokeWidth={
                                     2
                                   }

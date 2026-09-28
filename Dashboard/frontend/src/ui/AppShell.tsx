@@ -43,7 +43,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-surface">
       <header className="sticky top-0 z-20 border-b border-line bg-panel/95 backdrop-blur">
         <div className="mx-auto flex min-h-16 max-w-[1440px] items-center gap-4 px-4 md:px-8">
-          <NavLink to="/" className="flex items-center gap-3" aria-label="Dadosfera — Início">
+          <NavLink to="/" className="flex items-center gap-3">
             <img src={assetUrl("logos/DF-LogoHRZ.svg")} alt="Dadosfera" className="h-7 w-auto" />
             <span className="hidden border-l border-line pl-3 text-xs font-semibold text-muted sm:inline">
               Projeto EMBRAPII · DCC/UFMG
