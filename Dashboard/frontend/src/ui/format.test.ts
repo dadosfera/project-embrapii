@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { data, moedaCompacta, moedaExata, numeroCompacto, numeroExato, SEM_DADO } from "./format";
+import { data, hojeLocal, moedaCompacta, moedaExata, numeroCompacto, numeroExato, SEM_DADO } from "./format";
 
 const n = (s: string) => s.replace(/ /g, " ");
 
@@ -27,5 +27,10 @@ describe("format", () => {
     expect(data("2021-01-01")).toBe("01/01/2021");
     expect(data("2021-01-01T00:00:00+00:00")).toBe("01/01/2021");
     expect(data(null)).toBe(SEM_DADO);
+  });
+  it("hoje pela data local, não pela UTC", () => {
+    // 23h30 em Brasília já é dia 26 em UTC; toISOString() devolveria "2026-09-26".
+    expect(hojeLocal(new Date(2026, 8, 25, 23, 30))).toBe("2026-09-25");
+    expect(hojeLocal(new Date(2026, 0, 5, 0, 5))).toBe("2026-01-05");
   });
 });

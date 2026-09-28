@@ -9,6 +9,27 @@ import {
 
 import { DataTable } from "../components/DataTable";
 import { MapaBrasilUf, type DadoMapaUf } from "../components/MapaBrasil";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/ui/EmptyState";
+import { ErrorState } from "@/ui/ErrorState";
+import { KpiCard } from "@/ui/KpiCard";
+import { PageHeader } from "@/ui/PageHeader";
+import {
+  hojeLocal,
+  moedaExata,
+  numeroCompacto,
+  numeroExato,
+  SEM_DADO,
+} from "@/ui/format";
 import {
   buscarMapaFornecedoresPorUf,
   buscarRankingFornecedores,
@@ -16,19 +37,20 @@ import {
   type RankingFornecedor,
 } from "../lib/fornecedoresApi";
 
-const formatadorMoeda = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-  maximumFractionDigits: 0,
-});
 
-const formatadorNumero = new Intl.NumberFormat("pt-BR", {
-  maximumFractionDigits: 0,
-});
+/** O Radix Select não aceita item com value "": "Todas" usa esta sentinela na UI. */
+const TODAS_UFS = "__todas__";
 
-const formatadorPercentual = new Intl.NumberFormat("pt-BR", {
-  maximumFractionDigits: 1,
-});
+
+/** Participação com uma casa ("12,3%"). O format.ts não tem percentual, por isso fica aqui. */
+function percentual(valor: number | null | undefined) {
+  if (valor === null || valor === undefined || Number.isNaN(valor)) return SEM_DADO;
+  return `${valor.toLocaleString("pt-BR", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })}%`;
+}
+
 
 function calcularPercentualEstrangeiro(item: MapaFornecedorUf): number {
   const totalEstrangeiro =
@@ -38,32 +60,43 @@ function calcularPercentualEstrangeiro(item: MapaFornecedorUf): number {
   return (totalEstrangeiro / total) * 100;
 }
 
+
+const ESTILOS_ORIGEM: Record<RankingFornecedor["nacional_estrangeiro"], string> = {
+  NACIONAL: "border-transparent bg-primary-soft text-primary",
+  ESTRANGEIRO: "border-warning-border bg-[var(--warning-soft)] text-warning-text",
+  GRUPO_ESTRANGEIRO: "border-[var(--danger-border)] bg-[var(--danger-soft)] text-[var(--danger-text)]",
+  DESCONHECIDO: "border-line bg-subtle text-muted",
+};
+
+const ROTULOS_ORIGEM: Record<RankingFornecedor["nacional_estrangeiro"], string> = {
+  NACIONAL: "Nacional",
+  ESTRANGEIRO: "Estrangeiro",
+  GRUPO_ESTRANGEIRO: "Subsidiária estrangeira",
+  DESCONHECIDO: "Não classificado",
+};
+
+
 function RotuloOrigem({ origem }: { origem: RankingFornecedor["nacional_estrangeiro"] }) {
-  const estilos: Record<string, string> = {
-    NACIONAL: "bg-teal-50 text-teal-700 border-teal-200",
-    ESTRANGEIRO: "bg-amber-50 text-amber-700 border-amber-200",
-    GRUPO_ESTRANGEIRO: "bg-orange-50 text-orange-700 border-orange-200",
-    DESCONHECIDO: "bg-slate-50 text-slate-500 border-slate-200",
-  };
-
-  const rotulos: Record<string, string> = {
-    NACIONAL: "Nacional",
-    ESTRANGEIRO: "Estrangeiro",
-    GRUPO_ESTRANGEIRO: "Subsidiária estrangeira",
-    DESCONHECIDO: "Não classificado",
-  };
-
   return (
-    <span
-      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${estilos[origem]}`}
-    >
-      {rotulos[origem]}
+    <Badge variant="outline" className={ESTILOS_ORIGEM[origem]}>
+      {ROTULOS_ORIGEM[origem]}
+    </Badge>
+  );
+}
+
+
+/** Texto longo (nome do fornecedor, sócio) quebra linha em vez de alargar a tabela. */
+function TextoLongo({ valor }: { valor: string | null }) {
+  return (
+    <span className="block min-w-44 max-w-sm whitespace-normal">
+      {valor ?? "—"}
     </span>
   );
 }
 
-export  function Fornecedores() {
-  const hoje = new Date().toISOString().slice(0, 10);
+
+export function Fornecedores() {
+  const hoje = hojeLocal();
 
   const [dataInicio, setDataInicio] = useState("2015-01-01");
   const [dataFim, setDataFim] = useState(hoje);
@@ -74,7 +107,11 @@ export  function Fornecedores() {
 
   const [carregandoMapa, setCarregandoMapa] = useState(true);
   const [carregandoRanking, setCarregandoRanking] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  // Falhas de requisição: guardam o erro real; cada tentativa refaz o efeito correspondente.
+  const [falhaMapa, setFalhaMapa] = useState<unknown>(null);
+  const [falhaRanking, setFalhaRanking] = useState<unknown>(null);
+  const [tentativaMapa, setTentativaMapa] = useState(0);
+  const [tentativaRanking, setTentativaRanking] = useState(0);
 
   useEffect(() => {
     let ativo = true;
@@ -82,17 +119,11 @@ export  function Fornecedores() {
     async function carregarMapa() {
       try {
         setCarregandoMapa(true);
-        setErro(null);
+        setFalhaMapa(null);
         const resposta = await buscarMapaFornecedoresPorUf(dataInicio, dataFim);
         if (ativo) setDadosMapa(resposta);
       } catch (error) {
-        if (ativo) {
-          setErro(
-            error instanceof Error
-              ? error.message
-              : "Não foi possível carregar os dados do mapa.",
-          );
-        }
+        if (ativo) setFalhaMapa(error);
       } finally {
         if (ativo) setCarregandoMapa(false);
       }
@@ -103,7 +134,7 @@ export  function Fornecedores() {
     return () => {
       ativo = false;
     };
-  }, [dataInicio, dataFim]);
+  }, [dataInicio, dataFim, tentativaMapa]);
 
   useEffect(() => {
     let ativo = true;
@@ -111,6 +142,7 @@ export  function Fornecedores() {
     async function carregarRanking() {
       try {
         setCarregandoRanking(true);
+        setFalhaRanking(null);
         const resposta = await buscarRankingFornecedores(
           dataInicio,
           dataFim,
@@ -119,13 +151,7 @@ export  function Fornecedores() {
         );
         if (ativo) setRanking(resposta);
       } catch (error) {
-        if (ativo) {
-          setErro(
-            error instanceof Error
-              ? error.message
-              : "Não foi possível carregar o ranking de fornecedores.",
-          );
-        }
+        if (ativo) setFalhaRanking(error);
       } finally {
         if (ativo) setCarregandoRanking(false);
       }
@@ -136,7 +162,7 @@ export  function Fornecedores() {
     return () => {
       ativo = false;
     };
-  }, [dataInicio, dataFim, ufFiltro]);
+  }, [dataInicio, dataFim, ufFiltro, tentativaRanking]);
 
   const dadosMapaFormatados: DadoMapaUf[] = useMemo(
     () =>
@@ -156,7 +182,7 @@ export  function Fornecedores() {
     [dadosMapa],
   );
 
-const resumoGeral = useMemo(() => {
+  const resumoGeral = useMemo(() => {
     const totalNacional = dadosMapa.reduce(
       (acc, item) => acc + item.quantidade_nacional,
       0,
@@ -176,7 +202,8 @@ const resumoGeral = useMemo(() => {
       totalNacional,
       totalEstrangeiro,
       totalGrupoEstrangeiro,
-      percentualEstrangeiro: total > 0 ? (totalEstrangeiro / total) * 100 : 0,
+      // Sem itens no período não há participação a calcular: "sem dado", não 0%.
+      percentualEstrangeiro: total > 0 ? (totalEstrangeiro / total) * 100 : null,
     };
   }, [dadosMapa]);
 
@@ -185,6 +212,7 @@ const resumoGeral = useMemo(() => {
       {
         accessorKey: "fornecedor",
         header: "Fornecedor",
+        cell: ({ getValue }) => <TextoLongo valor={getValue<string | null>()} />,
       },
       {
         accessorKey: "cnpj",
@@ -204,125 +232,142 @@ const resumoGeral = useMemo(() => {
       {
         accessorKey: "grupo_estrangeiro_socio",
         header: "Sócio no exterior",
-        cell: ({ getValue }) => getValue<string | null>() ?? "—",
+        cell: ({ getValue }) => <TextoLongo valor={getValue<string | null>()} />,
+        meta: { priority: "low" },
       },
       {
         accessorKey: "valor_total",
         header: "Valor total",
-        cell: ({ getValue }) => formatadorMoeda.format(getValue<number>()),
+        cell: ({ getValue }) => moedaExata(getValue<number>()),
         meta: { align: "right" },
       },
       {
         accessorKey: "quantidade_itens",
         header: "Itens fornecidos",
-        cell: ({ getValue }) => formatadorNumero.format(getValue<number>()),
+        cell: ({ getValue }) => numeroExato(getValue<number>()),
         meta: { align: "right" },
       },
       {
         accessorKey: "numero_compras",
         header: "Nº de compras",
-        cell: ({ getValue }) => formatadorNumero.format(getValue<number>()),
+        cell: ({ getValue }) => numeroExato(getValue<number>()),
         meta: { align: "right" },
       },
     ],
     [],
   );
 
+  const semMapa = falhaMapa != null;
+
   return (
     <main className="mx-auto min-h-[calc(100vh-4rem)] max-w-[1440px] space-y-6 px-4 py-7 sm:px-6 sm:py-9 lg:px-8 lg:py-10">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Fornecedores</h1>
-        <p className="mt-1 text-sm leading-6 text-slate-500">
-          Distribuição de compras por origem do fornecedor (nacional ou
-          estrangeiro), por estado.
-        </p>
-      </div>
+      <PageHeader
+        icon="briefcase"
+        title="Fornecedores"
+        description="Distribuição de compras por origem do fornecedor (nacional ou estrangeiro), por estado."
+      />
 
-      <div className="flex flex-wrap items-end gap-4 rounded-xl border border-teal-100 bg-white p-4">
+      <section
+        aria-label="Filtros"
+        className="grid grid-cols-1 gap-4 rounded-[var(--radius-md)] border border-line bg-panel p-4 shadow-[var(--shadow-card)] sm:flex sm:flex-wrap sm:items-end"
+      >
         <div>
-          <label className="block text-xs font-medium text-slate-500">
+          <label
+            htmlFor="fornecedores-inicio"
+            className="block text-sm font-semibold text-[var(--text)]"
+          >
             Data inicial
           </label>
-          <input
+          <Input
+            id="fornecedores-inicio"
             type="date"
             value={dataInicio}
             onChange={(e) => setDataInicio(e.target.value)}
-            className="mt-1 rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            className="mt-2 h-10 bg-panel sm:w-44"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-slate-500">
+          <label
+            htmlFor="fornecedores-fim"
+            className="block text-sm font-semibold text-[var(--text)]"
+          >
             Data final
           </label>
-          <input
+          <Input
+            id="fornecedores-fim"
             type="date"
             value={dataFim}
             onChange={(e) => setDataFim(e.target.value)}
-            className="mt-1 rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            className="mt-2 h-10 bg-panel sm:w-44"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-slate-500">
+          <label
+            htmlFor="fornecedores-uf"
+            className="block text-sm font-semibold text-[var(--text)]"
+          >
             UF (tabela)
           </label>
-          <select
-            value={ufFiltro}
-            onChange={(e) => setUfFiltro(e.target.value)}
-            className="mt-1 rounded-lg border border-slate-200 px-3 py-2 text-sm"
+          <Select
+            value={ufFiltro || TODAS_UFS}
+            onValueChange={(valor) => setUfFiltro(valor === TODAS_UFS ? "" : valor)}
           >
-            <option value="">Todas</option>
-            {ufsDisponiveis.map((uf) => (
-              <option key={uf} value={uf}>
-                {uf}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger
+              id="fornecedores-uf"
+              className="mt-2 h-10 w-full bg-panel data-[size=default]:h-10 sm:w-36"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent position="popper" className="max-h-72">
+              <SelectItem value={TODAS_UFS}>Todas</SelectItem>
+              {ufsDisponiveis.map((uf) => (
+                <SelectItem key={uf} value={uf}>
+                  {uf}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-      </div>
+      </section>
 
-      {erro && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-          {erro}
-        </div>
-      )}
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+        <KpiCard
+          label="Itens de fornecedores nacionais"
+          value={semMapa ? null : resumoGeral.totalNacional}
+          format={numeroCompacto}
+          loading={carregandoMapa}
+        />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-teal-100 bg-white p-4">
-          <p className="text-xs font-medium text-slate-500">
-            Itens de fornecedores nacionais
-          </p>
-          <p className="mt-1 text-2xl font-semibold text-teal-800">
-            {formatadorNumero.format(resumoGeral.totalNacional)}
-          </p>
-        </div>
+        <KpiCard
+          label="Itens de fornecedores estrangeiros"
+          value={semMapa ? null : resumoGeral.totalEstrangeiro}
+          format={numeroCompacto}
+          hint="Inclui subsidiárias de grupos estrangeiros."
+          loading={carregandoMapa}
+        />
 
-        <div className="rounded-xl border border-teal-100 bg-white p-4">
-          <p className="text-xs font-medium text-slate-500">
-            Itens de fornecedores estrangeiros
-          </p>
-          <p className="mt-1 text-2xl font-semibold text-amber-700">
-            {formatadorNumero.format(resumoGeral.totalEstrangeiro)}
-          </p>
-        </div>
-
-        <div className="rounded-xl border border-teal-100 bg-white p-4">
-          <p className="text-xs font-medium text-slate-500">
-            % estrangeiro (geral)
-          </p>
-          <p className="mt-1 text-2xl font-semibold text-slate-900">
-            {formatadorPercentual.format(resumoGeral.percentualEstrangeiro)}%
-          </p>
-        </div>
-      </div>
+        <KpiCard
+          label="% estrangeiro (geral)"
+          value={semMapa ? null : resumoGeral.percentualEstrangeiro}
+          format={percentual}
+          exact={percentual}
+          loading={carregandoMapa}
+        />
+      </section>
 
       {carregandoMapa ? (
-        <div className="flex min-h-[420px] items-center justify-center rounded-2xl border border-teal-100 bg-white p-6 shadow-sm">
-          <p className="text-sm font-medium text-teal-700">
-            Carregando mapa...
-          </p>
+        <div aria-busy="true" className="rounded-[var(--radius-md)] border border-line bg-panel p-4 shadow-[var(--shadow-card)] sm:p-5">
+          <Skeleton className="h-6 w-72 max-w-full" />
+          <Skeleton className="mt-5 h-[420px]" />
+          <p className="sr-only">Carregando mapa...</p>
         </div>
+      ) : falhaMapa != null ? (
+        <ErrorState
+          error={falhaMapa}
+          onRetry={() => setTentativaMapa((n) => n + 1)}
+        />
       ) : (
         <MapaBrasilUf
           dados={dadosMapaFormatados}
@@ -332,24 +377,41 @@ const resumoGeral = useMemo(() => {
         />
       )}
 
-      <div>
-        <h2 className="text-lg font-semibold text-slate-900">
+      <section>
+        <h2 className="text-xl font-semibold tracking-tight text-[var(--text)]">
           Ranking de fornecedores
         </h2>
-        <p className="mt-1 text-sm leading-6 text-slate-500">
+        <p className="mt-1 text-sm leading-6 text-muted">
           Ordenado por valor total comprado no período selecionado.
         </p>
 
         <div className="mt-3">
           {carregandoRanking ? (
-            <div className="rounded-xl border border-dashed border-teal-100 bg-teal-50/50 px-4 py-8 text-center text-sm text-slate-500">
-              Carregando ranking...
+            <div aria-busy="true" className="space-y-2">
+              <Skeleton className="h-10" />
+              {[1, 2, 3, 4, 5, 6].map((item) => (
+                <Skeleton key={item} className="h-9" />
+              ))}
             </div>
+          ) : falhaRanking != null ? (
+            <ErrorState
+              error={falhaRanking}
+              onRetry={() => setTentativaRanking((n) => n + 1)}
+            />
+          ) : ranking.length === 0 ? (
+            <EmptyState
+              title="Sem fornecedores no período"
+              cause={
+                ufFiltro
+                  ? `Não há compras com fornecedor identificado em ${ufFiltro} entre as datas selecionadas.`
+                  : "Não há compras com fornecedor identificado entre as datas selecionadas."
+              }
+            />
           ) : (
             <DataTable data={ranking} columns={colunas} pageSize={15} />
           )}
         </div>
-      </div>
+      </section>
     </main>
   );
 }

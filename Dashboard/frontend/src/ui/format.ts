@@ -31,3 +31,9 @@ export function data(v: string | null | undefined): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(v);
   return m ? `${m[3]}/${m[2]}/${m[1]}` : v;
 }
+/** Data local de `d` em "AAAA-MM-DD" (toISOString() usa UTC e adianta o dia à noite no Brasil). */
+export function hojeLocal(d: Date = new Date()): string {
+  const mes = String(d.getMonth() + 1).padStart(2, "0");
+  const dia = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mes}-${dia}`;
+}
