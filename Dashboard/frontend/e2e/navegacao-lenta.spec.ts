@@ -72,3 +72,67 @@ test("primeiro clique em Leitos, com rede throttled, mostra a barra de progresso
   liberarChunkLeitos();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Leitos", { timeout: 100_000 });
 });
+
+// Follow-up do QA à correção acima ("clica numa rota B ainda pendente, aperta Voltar para A já
+// montada" não deve deixar a barra presa). A primeira tentativa dependia só do objeto `location`
+// do react-router (key { aoRevelar }, sem key={pathname}) — mas voltar para uma entrada de
+// histórico já visitada reaproveita o MESMO objeto `location` de antes (mesma referência): o
+// conteúdo troca para o Início corretamente (confirmado com este teste), só que o efeito de
+// <RotaRevelada>, que depende desse objeto para saber que "uma rota nova foi revelada", não
+// dispara de novo — para o React, o valor não mudou. A barra ficava presa até o timeout de 15s
+// mesmo com o conteúdo certo na tela.
+//
+// A correção final ouve `popstate` (evento nativo do navegador, disparado por Voltar/Avançar)
+// separadamente, e limpa a pendência ali — não depende de o `location` "parecer" diferente.
+test("Voltar para uma rota já montada, com a rota clicada ainda pendente, limpa a barra na hora (achado B4, follow-up) @slow", async ({
+  page,
+  browserName,
+}) => {
+  test.skip(browserName !== "chromium", "Network.emulateNetworkConditions via CDP só existe no Chromium");
+  test.setTimeout(120_000);
+
+  let liberarChunkLeitos: () => void = () => {};
+  const chunkLeitosLiberado = new Promise<void>((resolve) => {
+    liberarChunkLeitos = resolve;
+  });
+  await page.route("**/assets/Leitos-*.js", async (route) => {
+    await chunkLeitosLiberado;
+    await route.continue();
+  });
+
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Network.enable");
+  await cdp.send("Network.setCacheDisabled", { cacheDisabled: true });
+  await cdp.send("Network.emulateNetworkConditions", {
+    offline: false,
+    latency: 200,
+    downloadThroughput: (400 * 1024) / 8,
+    uploadThroughput: (400 * 1024) / 8,
+  });
+
+  await page.goto("", { waitUntil: "domcontentloaded" });
+
+  const linkLeitos = page.getByRole("link", { name: "Leitos" }).first();
+  await linkLeitos.waitFor({ state: "visible" });
+  // O Início precisa estar de fato montado (não só o header/nav, que é o chunk de entrada) antes
+  // do clique, para "voltar" cair numa rota já revelada — o chunk da própria Home também está sob
+  // o throttling, daí o prazo maior que os 500ms usados depois de qualquer clique.
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(/Explore os dados do projeto/, {
+    timeout: 30_000,
+  });
+
+  await linkLeitos.click();
+
+  const barra = page.locator("header").getByRole("status", { name: "Carregando página" });
+  await expect(barra).toBeAttached({ timeout: 500 });
+
+  // Volta para o Início com o chunk de Leitos ainda represado por `page.route` — de propósito:
+  // a barra tem que sumir sem depender dele nunca chegar.
+  await page.goBack();
+
+  await expect(barra).not.toBeAttached({ timeout: 500 });
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(/Explore os dados do projeto/);
+
+  // Libera o chunk represado só para não deixar a rota pendurada no fim do teste.
+  liberarChunkLeitos();
+});

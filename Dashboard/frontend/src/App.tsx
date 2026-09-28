@@ -48,7 +48,23 @@ function Carregando() {
 }
 
 // Sem <Button> (cn/tailwind-merge) de propósito: este fallback fica no chunk de entrada.
-function FalhaAoCarregar({ recarregar, ehChunk }: { recarregar: () => void; ehChunk: boolean }) {
+function FalhaAoCarregar({
+  recarregar,
+  ehChunk,
+  aoMontar,
+}: {
+  recarregar: () => void;
+  ehChunk: boolean;
+  /**
+   * Chamado no mount deste fallback (uma vez por erro exibido): erro não passa por <RotaRevelada>
+   * (o ChunkErrorBoundary substitui o <Suspense> inteiro pelo fallback), então sem isso a barra de
+   * progresso ficaria acesa por cima do próprio erro até o timeout de segurança.
+   */
+  aoMontar?: () => void;
+}) {
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- só quer rodar uma vez por mount deste fallback
+  useEffect(() => aoMontar?.(), []);
+
   return (
     <main id="conteudo" tabIndex={-1} className="mx-auto max-w-[1440px] px-4 py-8 md:px-8">
       <EmptyState
@@ -89,11 +105,13 @@ function devePularPreCargaPorConexao(): boolean {
 // Roda o import() de todas as rotas depois do primeiro paint, em ocioso, para o clique em
 // qualquer link do menu já encontrar o chunk (ou boa parte dele) na memória do navegador.
 //
-// Se o usuário estiver offline nesse momento, o import() falha e a promise rejeitada não fica
-// cacheada pelo navegador (a rota simplesmente não pré-carregou) — não precisa de tratamento
-// aqui: se uma navegação real mais tarde precisar desse chunk e ele ainda não existir/tiver sido
-// trocado por um redeploy, cai no autoReload do ChunkErrorBoundary (App.tsx), que recarrega a
-// página uma vez.
+// Se o usuário estiver offline (ou o chunk sumiu, redeploy no meio da sessão) nesse momento, o
+// import() falha — e o Chromium PODE cachear essa promise rejeitada para o specifier pelo resto
+// do document (um import() novo para a mesma URL rejeita de novo, sem nova tentativa de rede).
+// Não tratamos isso aqui de propósito: se uma navegação real mais tarde precisar desse mesmo
+// chunk, ela vai falhar também (por causa desse cache negativo) e cai no autoReload do
+// ChunkErrorBoundary (App.tsx), que recarrega a página uma vez — um documento novo não tem esse
+// cache, então a nova tentativa de import() é de verdade.
 function usarPreCargaEmOcioso() {
   useEffect(() => {
     if (devePularPreCargaPorConexao()) return;
@@ -148,13 +166,27 @@ function usarNavegacaoPendente(pathnameAtual: string) {
     [pathnameAtual, limparTimeout],
   );
 
-  // Limpa em QUALQUER revelação de rota (não só a que foi clicada pelo menu): cobre Voltar/
-  // Avançar do navegador, um <Link> fora do menu, ou o usuário mudar de ideia e clicar noutro
-  // destino antes do primeiro terminar de carregar (só a última rota chega a ser revelada).
+  // Limpa em QUALQUER revelação de rota (não só a que foi clicada pelo menu): cobre um <Link>
+  // fora do menu, ou o usuário mudar de ideia e clicar noutro destino antes do primeiro terminar
+  // de carregar (só a última rota chega a ser revelada).
   const resolver = useCallback(() => {
     setPendente(false);
     limparTimeout();
   }, [limparTimeout]);
+
+  // Voltar/Avançar do navegador é tratado à parte (ver popstate abaixo, não <RotaRevelada>): ao
+  // voltar para uma entrada de histórico já visitada, o react-router reaproveitar o MESMO objeto
+  // `location` de antes (mesma referência) — o efeito de <RotaRevelada>, que depende desse objeto,
+  // não dispara de novo porque, para o React, nada mudou (confirmado com throttling: o conteúdo já
+  // troca corretamente para a rota de volta, mas o efeito de "revelei uma rota" não roda). `popstate`
+  // é um evento nativo do navegador, disparado sempre que Voltar/Avançar mexe no histórico,
+  // independente de o valor do location ser "igual" a um anterior — por isso limpa a pendência de
+  // forma confiável mesmo nesse caso.
+  useEffect(() => {
+    const aoVoltarOuAvancar = () => resolver();
+    window.addEventListener("popstate", aoVoltarOuAvancar);
+    return () => window.removeEventListener("popstate", aoVoltarOuAvancar);
+  }, [resolver]);
 
   useEffect(() => limparTimeout, [limparTimeout]);
 
@@ -162,17 +194,26 @@ function usarNavegacaoPendente(pathnameAtual: string) {
 }
 
 /**
- * Monta de novo toda vez que o `pathname` muda — mas, como só existe dentro do <Suspense>, o
- * remount (e o efeito de mount) só chega a comitar quando o conteúdo da rota nova realmente
- * aparece: se o chunk ainda estiver pendente, React segura esse remount junto com o resto do
- * conteúdo do <Suspense> (ver comentário de usarNavegacaoPendente). É esse atraso natural que
- * torna esse componente o sinal certo de "a rota revelou", diferente de `location.pathname`.
+ * Roda de novo toda vez que `location` muda de identidade (uma navegação nova de verdade, ex.:
+ * clicar num <Link> para uma rota ainda não visitada) — mas, como este componente só existe
+ * dentro do <Suspense>, essa atualização só chega a comitar quando o conteúdo da rota nova
+ * realmente aparece: se o chunk ainda estiver pendente, React segura essa atualização junto com
+ * o resto do conteúdo do <Suspense> (ver comentário de usarNavegacaoPendente). É esse atraso
+ * natural que torna este componente o sinal certo de "a rota revelou", diferente de
+ * `location.pathname` lido lá fora (em App/AppShell).
+ *
+ * Sem `key`/remount de propósito: um remount por pathname não dispara de novo ao VOLTAR para uma
+ * rota cujo pathname (e portanto a key) já tinha sido revelado antes — e nem precisaria: Voltar/
+ * Avançar tem seu próprio sinal, o evento nativo `popstate` (ver usarNavegacaoPendente), porque
+ * mesmo SEM remount o react-router reaproveita o mesmo objeto `location` de uma entrada de
+ * histórico já visitada (mesma referência), e o efeito abaixo — como qualquer efeito com
+ * dependências — não roda de novo se `location` não mudou de valor.
  */
 function RotaRevelada({ aoRevelar }: { aoRevelar: () => void }) {
+  const location = useLocation();
   useEffect(() => {
     aoRevelar();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- só quer rodar uma vez por remount
-  }, []);
+  }, [location, aoRevelar]);
   return null;
 }
 
@@ -186,7 +227,9 @@ export default function App() {
       <ChunkErrorBoundary
         autoReload
         resetKey={pathname}
-        fallback={(recarregar, ehChunk) => <FalhaAoCarregar recarregar={recarregar} ehChunk={ehChunk} />}
+        fallback={(recarregar, ehChunk) => (
+          <FalhaAoCarregar recarregar={recarregar} ehChunk={ehChunk} aoMontar={resolver} />
+        )}
       >
         <Suspense fallback={<Carregando />}>
           <Routes>
@@ -198,7 +241,7 @@ export default function App() {
             <Route path="/fornecedores" element={<Fornecedores />} />
             <Route path="*" element={<PaginaNaoEncontrada />} />
           </Routes>
-          <RotaRevelada key={pathname} aoRevelar={resolver} />
+          <RotaRevelada aoRevelar={resolver} />
           <ChunkCarregado />
         </Suspense>
       </ChunkErrorBoundary>

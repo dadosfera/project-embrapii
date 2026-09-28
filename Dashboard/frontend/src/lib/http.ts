@@ -35,7 +35,8 @@ function mensagemPorStatus(status: number): string {
   if (status === 401 || status === 403) return "Sua sessão pode ter expirado. Recarregue a página.";
   if (status === 404) return "Recurso não encontrado.";
   if (status === 500) return "O servidor encontrou um erro.";
-  if (status === 502 || status === 503 || status === 504) return "O servidor não respondeu.";
+  // 501, 502, 503, 504... (502/503/504 inclusos): mesma mensagem do 500 genérico >= 500, sem
+  // um branch dedicado — só o 500 tem texto próprio ("encontrou um erro"; os outros "não respondeu").
   if (status >= 500) return "O servidor não respondeu.";
   return `Erro ${status} ao acessar a API.`;
 }
