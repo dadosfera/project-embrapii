@@ -38,6 +38,7 @@ import { Icon } from "@/ui/Icon";
 import { KpiCard } from "@/ui/KpiCard";
 import { PageHeader } from "@/ui/PageHeader";
 import { categorica, dotPara, eixo, grade, linha, tooltip } from "@/ui/chartTheme";
+import { useEhTelaEstreita } from "@/ui/useEhTelaEstreita";
 import {
   SEM_DADO,
   data as dataBR,
@@ -45,6 +46,7 @@ import {
   moedaExata,
   numeroCompacto,
   numeroExato,
+  quantidade,
 } from "@/ui/format";
 
 import {
@@ -285,6 +287,11 @@ function GraficoRanking({
       dados.length * 38,
     );
 
+  // Nomes de fornecedor/fabricante vêm em CAIXA ALTA (mais largos por caractere): numa tela
+  // estreita, o eixo Y fixo de 120px não cabe os mesmos ~20 caracteres que cabem no desktop
+  // (o rótulo sobra pela esquerda e o overflow-hidden do contêiner corta o começo do nome).
+  const estreita = useEhTelaEstreita();
+
   return (
     <div
       className="w-full overflow-hidden"
@@ -322,8 +329,8 @@ function GraficoRanking({
             {...eixo}
             type="category"
             dataKey={nomeKey}
-            width={120}
-            tickFormatter={(valor) => truncar(valor, 20)}
+            width={estreita ? 100 : 120}
+            tickFormatter={(valor) => truncar(valor, estreita ? 12 : 20)}
           />
 
           <Tooltip
@@ -818,7 +825,7 @@ export function Compras() {
           cell: ({
             row,
           }) =>
-            numeroExato(
+            quantidade(
               row.original
                 .quantidade_itens,
             ),
@@ -896,7 +903,7 @@ export function Compras() {
           cell: ({
             row,
           }) =>
-            numeroExato(
+            quantidade(
               row.original
                 .quantidade_itens,
             ),
@@ -970,7 +977,7 @@ export function Compras() {
           cell: ({
             row,
           }) =>
-            numeroExato(
+            quantidade(
               row.original
                 .quantidade_itens,
             ),
@@ -1030,7 +1037,7 @@ export function Compras() {
           cell: ({
             row,
           }) =>
-            numeroExato(
+            quantidade(
               row.original
                 .quantidade_itens,
             ),
@@ -1116,7 +1123,7 @@ export function Compras() {
           cell: ({
             row,
           }) =>
-            numeroExato(
+            quantidade(
               row.original
                 .quantidade_de_itens,
             ),

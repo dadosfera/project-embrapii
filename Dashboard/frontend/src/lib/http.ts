@@ -24,6 +24,24 @@ export class UiError extends Error {
 
 type Param = string | number | boolean | null | undefined;
 
+// Frases padrão que o Starlette/FastAPI devolvem para uma rota que ele mesmo não reconhece
+// (proxy/servidor não-API na frente, prefixo errado, etc.): têm exatamente a mesma forma
+// `{"detail": "..."}` do erro "de verdade" da nossa API, mas não vêm de um handler nosso —
+// mostrar essa frase crua ("Not Found") ao usuário não ajuda em nada.
+const DETALHE_GENERICO = /^(not found|method not allowed|forbidden|unauthorized|internal server error|not acceptable|bad request)$/i;
+
+function mensagemPorStatus(status: number): string {
+  if (status === 404) return "Recurso não encontrado.";
+  if (status >= 500) return "O servidor não respondeu.";
+  return `Erro ${status} ao acessar a API.`;
+}
+
+/**
+ * Só usa o `detail` do corpo quando ele parece vir do formato da nossa API (string "de negócio"
+ * ou lista de erros de validação do Pydantic, cada um com `msg`). Um `detail` genérico do próprio
+ * framework HTTP (ex.: "Not Found") não conta como "da nossa API": quem decide a mensagem nesse
+ * caso é `mensagemPorStatus`, pelo status.
+ */
 function detalheDeErro(body: unknown): string | null {
   if (body && typeof body === "object" && "detail" in body) {
     const detail = (body as { detail: unknown }).detail;
@@ -32,8 +50,8 @@ function detalheDeErro(body: unknown): string | null {
         .map((item) => (item && typeof item === "object" && "msg" in item ? String((item as { msg: unknown }).msg) : null))
         .filter((msg): msg is string => Boolean(msg));
       if (mensagens.length > 0) return mensagens.join("; ");
-    } else if (detail) {
-      return String(detail);
+    } else if (typeof detail === "string" && detail.trim() && !DETALHE_GENERICO.test(detail.trim())) {
+      return detail;
     }
   }
   return null;
@@ -60,7 +78,7 @@ export async function request<T>(path: string, params: Record<string, Param> = {
   const ehJson = contentType.includes("application/json");
 
   if (!response.ok) {
-    let detail = `Erro ${response.status}`;
+    let detail = mensagemPorStatus(response.status);
     if (ehJson) {
       try {
         const body = await response.json();

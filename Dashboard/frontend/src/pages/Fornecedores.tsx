@@ -28,6 +28,7 @@ import {
   moedaExata,
   numeroCompacto,
   numeroExato,
+  quantidade,
   SEM_DADO,
 } from "@/ui/format";
 import {
@@ -249,7 +250,7 @@ export function Fornecedores() {
       {
         accessorKey: "quantidade_itens",
         header: "Itens fornecidos",
-        cell: ({ getValue }) => numeroExato(getValue<number>()),
+        cell: ({ getValue }) => quantidade(getValue<number>()),
         meta: { align: "right" },
       },
       {
@@ -388,7 +389,7 @@ export function Fornecedores() {
           Ranking de fornecedores
         </h2>
         <p className="mt-1 text-sm leading-6 text-muted">
-          Ordenado por valor total comprado no período selecionado.
+          100 maiores fornecedores no período, ordenados por valor total comprado.
         </p>
 
         <div className="mt-3">

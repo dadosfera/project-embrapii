@@ -30,12 +30,14 @@ import { Icon } from "@/ui/Icon";
 import { KpiCard } from "@/ui/KpiCard";
 import { PageHeader } from "@/ui/PageHeader";
 import { categorica, dotPara, eixo, grade, linha, tooltip } from "@/ui/chartTheme";
+import { useEhTelaEstreita } from "@/ui/useEhTelaEstreita";
 import {
   data as dataBR,
   moedaCompacta,
   moedaExata,
   numeroCompacto,
   numeroExato,
+  quantidade,
 } from "@/ui/format";
 
 import {
@@ -171,6 +173,11 @@ function GraficoBarrasHorizontal({
       data.length * 40,
     );
 
+  // Mesma correção do B5 em Compras.tsx: nomes de fabricante/fornecedor em CAIXA ALTA são
+  // largos demais para os ~20 caracteres calibrados para desktop dentro do eixo Y de 115px
+  // numa tela estreita — o rótulo cortava pela esquerda.
+  const estreita = useEhTelaEstreita();
+
   return (
     <div
       className="w-full"
@@ -206,8 +213,8 @@ function GraficoBarrasHorizontal({
             {...eixo}
             type="category"
             dataKey={nomeKey}
-            width={115}
-            tickFormatter={(value) => truncar(value, 20)}
+            width={estreita ? 100 : 115}
+            tickFormatter={(value) => truncar(value, estreita ? 12 : 20)}
           />
 
           <Tooltip
@@ -745,7 +752,7 @@ export function Medicamentos() {
           cell: ({
             row,
           }) =>
-            numeroExato(
+            quantidade(
               row.original
                 .quantidade_do_item_em_estoque,
             ),
@@ -794,7 +801,7 @@ export function Medicamentos() {
           cell: ({
             row,
           }) =>
-            numeroExato(
+            quantidade(
               row.original
                 .estoque_total,
             ),
@@ -808,7 +815,7 @@ export function Medicamentos() {
           cell: ({
             row,
           }) =>
-            numeroExato(
+            quantidade(
               row.original
                 .num_instituicoes,
             ),
@@ -870,7 +877,7 @@ export function Medicamentos() {
           cell: ({
             row,
           }) =>
-            numeroExato(
+            quantidade(
               row.original
                 .quantidade_de_itens,
             ),

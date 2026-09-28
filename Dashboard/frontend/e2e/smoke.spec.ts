@@ -179,3 +179,21 @@ test("Compras: aplica filtros com dados conhecidos e carrega os KPIs", async ({ 
 
   expect(erros).toEqual([]);
 });
+
+test("rota desconhecida (/nao-existe): mostra 'Página não encontrada' e um link para o Início (achado B3)", async ({
+  page,
+}) => {
+  await page.goto("nao-existe");
+  await page.waitForLoadState("networkidle");
+
+  await expect(page.locator("body")).toContainText("Página não encontrada");
+  await expect(page.locator("main#conteudo")).toBeVisible();
+
+  const inicio = page.getByRole("link", { name: "Ir para o Início" });
+  await expect(inicio).toBeVisible();
+  await inicio.click();
+
+  // Sem checar a URL: com prefixo (Orchest), o "/" da home não deixa a barra final na URL
+  // (fica só ".../pbp-test_..."). O título da Home já confirma a navegação.
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(/Explore os dados do projeto/);
+});

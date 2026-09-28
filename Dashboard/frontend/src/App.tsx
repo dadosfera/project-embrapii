@@ -1,16 +1,37 @@
-import { lazy, Suspense } from "react";
-import { Route, Routes, useLocation } from "react-router";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { Link, Route, Routes, useLocation } from "react-router";
 
 import { AppShell } from "./ui/AppShell";
 import { ChunkCarregado, ChunkErrorBoundary } from "./ui/ChunkErrorBoundary";
 import { EmptyState } from "./ui/EmptyState";
+import { carregadoresDeRota, preCarregarTodasAsRotas } from "./rotas";
 
-const Home = lazy(() => import("./pages/Home").then((m) => ({ default: m.Home })));
-const Medicamentos = lazy(() => import("./pages/Medicamentos").then((m) => ({ default: m.Medicamentos })));
-const Compras = lazy(() => import("./pages/Compras").then((m) => ({ default: m.Compras })));
-const Leitos = lazy(() => import("./pages/Leitos").then((m) => ({ default: m.Leitos })));
-const Mapa = lazy(() => import("./pages/Mapa").then((m) => ({ default: m.Mapa })));
-const Fornecedores = lazy(() => import("./pages/Fornecedores").then((m) => ({ default: m.Fornecedores })));
+const Home = lazy(() => carregadoresDeRota["/"]().then((m) => ({ default: m.Home })));
+const Medicamentos = lazy(() => carregadoresDeRota["/medicamentos"]().then((m) => ({ default: m.Medicamentos })));
+const Compras = lazy(() => carregadoresDeRota["/compras"]().then((m) => ({ default: m.Compras })));
+const Leitos = lazy(() => carregadoresDeRota["/leitos"]().then((m) => ({ default: m.Leitos })));
+const Mapa = lazy(() => carregadoresDeRota["/mapa"]().then((m) => ({ default: m.Mapa })));
+const Fornecedores = lazy(() => carregadoresDeRota["/fornecedores"]().then((m) => ({ default: m.Fornecedores })));
+
+// Sem chunk próprio (fica no chunk de entrada, como o FalhaAoCarregar): página curta, sem tabela/gráfico.
+function PaginaNaoEncontrada() {
+  return (
+    <main id="conteudo" tabIndex={-1} className="mx-auto max-w-[1440px] px-4 py-8 md:px-8">
+      <EmptyState
+        title="Página não encontrada"
+        cause="O endereço acessado não existe neste painel."
+        action={
+          <Link
+            to="/"
+            className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
+          >
+            Ir para o Início
+          </Link>
+        }
+      />
+    </main>
+  );
+}
 
 // É o <main> da página enquanto o chunk carrega, para o link "Pular para o conteúdo" ter alvo.
 function Carregando() {
@@ -51,10 +72,53 @@ function FalhaAoCarregar({ recarregar, ehChunk }: { recarregar: () => void; ehCh
   );
 }
 
+// Roda o import() de todas as rotas depois do primeiro paint, em ocioso, para o clique em
+// qualquer link do menu já encontrar o chunk (ou boa parte dele) na memória do navegador.
+function usarPreCargaEmOcioso() {
+  useEffect(() => {
+    const scheduler =
+      typeof window.requestIdleCallback === "function"
+        ? window.requestIdleCallback.bind(window)
+        : (cb: () => void) => window.setTimeout(cb, 200);
+    const cancelar =
+      typeof window.cancelIdleCallback === "function" ? window.cancelIdleCallback.bind(window) : window.clearTimeout;
+    const id = scheduler(preCarregarTodasAsRotas);
+    return () => cancelar(id as never);
+  }, []);
+}
+
+/**
+ * Indicador de navegação pendente independente do Suspense: o BrowserRouter atualiza a
+ * localização dentro de um `startTransition` (react-router 7), e o React 19 mantém a página
+ * antiga visível enquanto a rota nova está pendente — o <Suspense fallback> só apareceria se
+ * o chunk ainda não tivesse sido baixado quando a transição finalmente comitar. `marcarPendente`
+ * é um `setState` comum (fora da transition do router), então ele têm prioridade e aparece de
+ * imediato; o efeito abaixo limpa a marca assim que `pathname` alcança o destino pedido.
+ */
+function usarNavegacaoPendente(pathnameAtual: string) {
+  const [destino, setDestino] = useState<string | null>(null);
+
+  const marcarPendente = useCallback(
+    (para: string) => {
+      setDestino((atual) => (para === pathnameAtual ? atual : para));
+    },
+    [pathnameAtual],
+  );
+
+  useEffect(() => {
+    if (destino !== null && destino === pathnameAtual) setDestino(null);
+  }, [destino, pathnameAtual]);
+
+  return { pendente: destino !== null, marcarPendente };
+}
+
 export default function App() {
   const { pathname } = useLocation();
+  usarPreCargaEmOcioso();
+  const { pendente, marcarPendente } = usarNavegacaoPendente(pathname);
+
   return (
-    <AppShell>
+    <AppShell pendente={pendente} aoNavegar={marcarPendente}>
       <ChunkErrorBoundary
         autoReload
         resetKey={pathname}
@@ -68,6 +132,7 @@ export default function App() {
             <Route path="/leitos" element={<Leitos />} />
             <Route path="/mapa" element={<Mapa />} />
             <Route path="/fornecedores" element={<Fornecedores />} />
+            <Route path="*" element={<PaginaNaoEncontrada />} />
           </Routes>
           <ChunkCarregado />
         </Suspense>

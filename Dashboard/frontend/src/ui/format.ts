@@ -8,6 +8,11 @@ const moedaCompactaFmt = new Intl.NumberFormat("pt-BR", {
 });
 const moedaExataFmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const inteiro = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
+// Quantidades (itens fornecidos, unidades em estoque, etc.): sempre contagens inteiras vindas
+// da API, mas o valor numérico às vezes chega com resíduo de ponto flutuante (ex.: 53852468.1,
+// 234110.00000001). maximumFractionDigits: 0 arredonda para a casa inteira em vez de mostrar
+// o resíduo, para o mesmo tipo de coluna não variar entre "668.027,14", "53.852.468,1" e "234.110".
+const quantidadeFmt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
 
 function vazio(v: Num): v is null | undefined {
   return v === null || v === undefined || Number.isNaN(v);
@@ -24,6 +29,10 @@ export function moedaExata(v: Num): string {
 }
 export function numeroExato(v: Num): string {
   return vazio(v) ? SEM_DADO : inteiro.format(v);
+}
+/** Quantidade (itens, unidades): sempre inteiro pt-BR, para não variar o nº de casas por linha/coluna. */
+export function quantidade(v: Num): string {
+  return vazio(v) ? SEM_DADO : quantidadeFmt.format(v);
 }
 /** "AAAA-MM-DD" (com ou sem hora) → "DD/MM/AAAA", sem passar por Date para não deslocar o fuso. */
 export function data(v: string | null | undefined): string {

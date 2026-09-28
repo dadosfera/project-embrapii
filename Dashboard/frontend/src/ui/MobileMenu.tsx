@@ -12,10 +12,12 @@ export function MobileMenu({
   open,
   onOpenChange,
   triggerRef,
+  aoNavegar,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   triggerRef: RefObject<HTMLButtonElement | null>;
+  aoNavegar?: (destino: string) => void;
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -31,7 +33,7 @@ export function MobileMenu({
       >
         <SheetTitle className="px-1 text-sm font-semibold text-muted">Navegação</SheetTitle>
         <nav aria-label="Navegação principal (menu)" className="mt-4 flex flex-col gap-1">
-          <Navegacao onNavigate={() => onOpenChange(false)} />
+          <Navegacao onNavigate={() => onOpenChange(false)} aoNavegar={aoNavegar} />
         </nav>
       </SheetContent>
     </Sheet>

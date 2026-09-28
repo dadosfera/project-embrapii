@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { data, hojeLocal, moedaCompacta, moedaExata, numeroCompacto, numeroExato, SEM_DADO } from "./format";
+import { data, hojeLocal, moedaCompacta, moedaExata, numeroCompacto, numeroExato, quantidade, SEM_DADO } from "./format";
 
 const n = (s: string) => s.replace(/ /g, " ");
 
@@ -17,6 +17,14 @@ describe("format", () => {
   it("valores exatos", () => {
     expect(n(moedaExata(1234.5))).toBe("R$ 1.234,50");
     expect(numeroExato(1_590_225)).toBe("1.590.225");
+  });
+  it("quantidade: sempre inteiro pt-BR, mesmo com resíduo de ponto flutuante", () => {
+    expect(n(quantidade(668_027.14))).toBe("668.027");
+    expect(n(quantidade(53_852_468.1))).toBe("53.852.468");
+    expect(n(quantidade(234_110))).toBe("234.110");
+    expect(quantidade(0)).toBe("0");
+    expect(quantidade(null)).toBe(SEM_DADO);
+    expect(quantidade(undefined)).toBe(SEM_DADO);
   });
   it("nulo vira 'sem dado', zero continua zero", () => {
     expect(moedaCompacta(null)).toBe(SEM_DADO);

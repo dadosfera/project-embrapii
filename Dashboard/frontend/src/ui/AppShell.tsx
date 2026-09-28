@@ -18,19 +18,46 @@ const preCarregarMenu = () => {
 };
 
 // Se o chunk do menu não carregar, mostra a navegação num painel simples, sem Dialog.
-function MenuSimples({ onNavigate }: { onNavigate: () => void }) {
+function MenuSimples({ onNavigate, aoNavegar }: { onNavigate: () => void; aoNavegar?: (destino: string) => void }) {
   return (
     <nav
       id="menu-mobile"
       aria-label="Navegação principal (menu)"
       className="absolute inset-x-0 top-full flex flex-col gap-1 border-b border-line bg-panel p-4 shadow-[var(--shadow-card)] lg:hidden"
     >
-      <Navegacao onNavigate={onNavigate} />
+      <Navegacao onNavigate={onNavigate} aoNavegar={aoNavegar} />
     </nav>
   );
 }
 
-export function AppShell({ children }: { children: ReactNode }) {
+// Barra fina no topo, visível enquanto a navegação está pendente (ver App.tsx/usarNavegacaoPendente).
+// Sem <Skeleton> (cn/tailwind-merge) de propósito: fica no chunk de entrada.
+function BarraDeProgresso({ ativa }: { ativa: boolean }) {
+  return (
+    <>
+      <span className="sr-only" role="status" aria-live="polite">
+        {ativa ? "Carregando página" : ""}
+      </span>
+      {ativa && (
+        <div aria-hidden="true" className="absolute inset-x-0 top-full h-0.5 overflow-hidden bg-primary-soft">
+          <div className="h-full w-1/3 animate-pulse bg-primary" />
+        </div>
+      )}
+    </>
+  );
+}
+
+export function AppShell({
+  children,
+  pendente = false,
+  aoNavegar,
+}: {
+  children: ReactNode;
+  /** Navegação em andamento (rota clicada, chunk ainda não visível): mostra a BarraDeProgresso. */
+  pendente?: boolean;
+  /** Chamado com o destino ao clicar num link de navegação (ver App.tsx/usarNavegacaoPendente). */
+  aoNavegar?: (destino: string) => void;
+}) {
   const [aberto, setAberto] = useState(false);
   const [menuMontado, setMenuMontado] = useState(false);
   const botaoMenu = useRef<HTMLButtonElement>(null);
@@ -54,7 +81,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         Pular para o conteúdo
       </a>
       <header className="sticky top-0 z-20 border-b border-line bg-panel/95 backdrop-blur">
-        <div className="mx-auto flex min-h-16 max-w-[1440px] items-center gap-4 px-4 md:px-8">
+        <div className="relative mx-auto flex min-h-16 max-w-[1440px] items-center gap-4 px-4 md:px-8">
           <NavLink to="/" className="flex items-center gap-3">
             <img src={assetUrl("logos/DF-LogoHRZ.svg")} alt="Dadosfera" className="h-7 w-auto" />
             <span className="hidden border-l border-line pl-3 text-xs font-semibold text-muted sm:inline">
@@ -63,8 +90,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           </NavLink>
 
           <nav aria-label="Navegação principal" className="ml-auto hidden items-center gap-1 lg:flex">
-            <Navegacao />
+            <Navegacao aoNavegar={aoNavegar} />
           </nav>
+
+          <BarraDeProgresso ativa={pendente} />
 
           <button
             ref={botaoMenu}
@@ -86,10 +115,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           </button>
           {menuMontado && (
             <ChunkErrorBoundary
-              fallback={() => (aberto ? <MenuSimples onNavigate={() => setAberto(false)} /> : null)}
+              fallback={() => (aberto ? <MenuSimples onNavigate={() => setAberto(false)} aoNavegar={aoNavegar} /> : null)}
             >
               <Suspense fallback={null}>
-                <MobileMenu open={aberto} onOpenChange={setAberto} triggerRef={botaoMenu} />
+                <MobileMenu open={aberto} onOpenChange={setAberto} triggerRef={botaoMenu} aoNavegar={aoNavegar} />
               </Suspense>
             </ChunkErrorBoundary>
           )}
