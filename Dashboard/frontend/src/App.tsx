@@ -1,6 +1,6 @@
 import { Route, Routes } from "react-router";
 
-import { Layout } from "./components/Layout";
+import { AppShell } from "./ui/AppShell";
 import { Compras } from "./pages/Compras";
 import { Home } from "./pages/Home";
 import { Leitos } from "./pages/Leitos";
@@ -11,7 +11,7 @@ import { Fornecedores } from "./pages/Fornecedores";
 
 export default function App() {
   return (
-    <Layout>
+    <AppShell>
       <Routes>
         <Route
           path="/"
@@ -42,6 +42,6 @@ export default function App() {
           element={<Fornecedores />}
 />
       </Routes>
-    </Layout>
+    </AppShell>
   );
 }
