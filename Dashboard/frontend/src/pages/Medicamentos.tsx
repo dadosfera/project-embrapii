@@ -37,7 +37,6 @@ import {
   numeroCompacto,
   numeroExato,
 } from "@/ui/format";
-import { ApiError } from "@/lib/http";
 
 import {
   buscarEvolucaoPreco,
@@ -376,6 +375,13 @@ export function Medicamentos() {
       string | null
     >(null);
 
+  // Falha de requisição: guarda o erro real para o ErrorState (erroDados fica para mensagens da página).
+  const [
+    falhaDados,
+    setFalhaDados,
+  ] =
+    useState<unknown>(null);
+
   const [
     buscaConfirmada,
     setBuscaConfirmada,
@@ -433,6 +439,7 @@ export function Medicamentos() {
       );
       setDados(null);
       setErroDados(null);
+      setFalhaDados(null);
     }
   }
 
@@ -456,6 +463,7 @@ export function Medicamentos() {
     setBuscando(true);
     setErroBusca(null);
     setErroDados(null);
+    setFalhaDados(null);
     setResultados([]);
     setSelecionado("");
     setBuscaConfirmada(null);
@@ -510,6 +518,7 @@ export function Medicamentos() {
 
     setCarregando(true);
     setErroDados(null);
+    setFalhaDados(null);
     setDados(null);
     setAbaCompras(
       "preco",
@@ -561,9 +570,13 @@ export function Medicamentos() {
       if (
         produtos.length === 0
       ) {
-        throw new Error(
+        setMedicamentoCarregado(
+          null,
+        );
+        setErroDados(
           "Esse item do CATMAT não tem produto vinculado na base.",
         );
+        return;
       }
 
       setBuscaConfirmada(
@@ -590,12 +603,7 @@ export function Medicamentos() {
         null,
       );
 
-      setErroDados(
-        error
-          instanceof Error
-          ? error.message
-          : "Não foi possível carregar os dados do medicamento.",
-      );
+      setFalhaDados(error);
     } finally {
       setCarregando(false);
     }
@@ -1068,9 +1076,20 @@ export function Medicamentos() {
 
 
       {erroDados && (
+        <div
+          role="status"
+          className="mt-5 flex items-start gap-2 rounded-[var(--radius-md)] border border-warning-border bg-[var(--warning-soft)] px-4 py-3 text-sm leading-6 text-warning-text"
+        >
+          <Icon name="alert" size={18} className="mt-0.5" />
+          {erroDados}
+        </div>
+      )}
+
+
+      {falhaDados != null && (
         <div className="mt-5">
           <ErrorState
-            error={new ApiError(0, erroDados)}
+            error={falhaDados}
             onRetry={itemSelecionado ? carregarDados : undefined}
           />
         </div>
@@ -1136,14 +1155,7 @@ export function Medicamentos() {
 
               <KpiCard
                 label="Instituições com estoque zerado"
-                value={
-                  // No Snowflake, COUNT_IF sobre conjunto vazio volta NULL; sem instituição com
-                  // registro, a contagem de zeradas é 0 de fato (não "sem dado").
-                  dados.resumo.instituicoes_estoque_zerado == null
-                  && numeroOuNulo(dados.resumo.instituicoes_com_registro) === 0
-                    ? 0
-                    : numeroOuNulo(dados.resumo.instituicoes_estoque_zerado)
-                }
+                value={numeroOuNulo(dados.resumo.instituicoes_estoque_zerado)}
                 format={numeroCompacto}
               />
 
@@ -1301,24 +1313,22 @@ export function Medicamentos() {
                   onValueChange={(valor) => setAbaCompras(valor as AbaCompras)}
                   className="mt-4"
                 >
-                  <div className="overflow-x-auto">
-                    <TabsList
-                      aria-label="Histórico de compras"
-                      className="min-w-max"
-                    >
-                      <TabsTrigger value="preco" className="px-4">
-                        Evolução de preço
-                      </TabsTrigger>
+                  <TabsList
+                    aria-label="Histórico de compras"
+                    className="w-full flex-wrap justify-start group-data-[orientation=horizontal]/tabs:h-auto sm:w-fit sm:flex-nowrap sm:group-data-[orientation=horizontal]/tabs:h-9"
+                  >
+                    <TabsTrigger value="preco" className="min-h-8 px-4 sm:flex-none">
+                      Evolução de preço
+                    </TabsTrigger>
 
-                      <TabsTrigger value="fornecedores" className="px-4">
-                        Fornecedores
-                      </TabsTrigger>
+                    <TabsTrigger value="fornecedores" className="min-h-8 px-4 sm:flex-none">
+                      Fornecedores
+                    </TabsTrigger>
 
-                      <TabsTrigger value="dados" className="px-4">
-                        Dados brutos
-                      </TabsTrigger>
-                    </TabsList>
-                  </div>
+                    <TabsTrigger value="dados" className="min-h-8 px-4 sm:flex-none">
+                      Dados brutos
+                    </TabsTrigger>
+                  </TabsList>
 
 
                   <TabsContent value="preco" className="mt-3">

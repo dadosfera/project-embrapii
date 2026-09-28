@@ -8,7 +8,7 @@ export function PageHeader({ icon, title, description, actions }: Props) {
   return (
     <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="flex items-start gap-3">
-        <span className="mt-1 inline-flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] bg-primary-soft text-primary">
+        <span className="mt-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-primary-soft text-primary">
           <Icon name={icon} size={22} />
         </span>
         <div>

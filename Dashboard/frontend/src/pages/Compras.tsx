@@ -46,7 +46,6 @@ import {
   numeroCompacto,
   numeroExato,
 } from "@/ui/format";
-import { ApiError } from "@/lib/http";
 
 import {
   buscarComprasPorMes,
@@ -417,11 +416,12 @@ export function Compras() {
       string | null
     >(null);
 
-  // Só decide a apresentação do erro: falha ao carregar (ErrorState) × validação do formulário.
+  // Falha de requisição: guarda o erro real para o ErrorState (erro fica para validação e avisos).
   const [
-    erroNaCarga,
-    setErroNaCarga,
-  ] = useState(false);
+    falhaCarga,
+    setFalhaCarga,
+  ] =
+    useState<unknown>(null);
 
   const formFiltros =
     useRef<HTMLFormElement>(null);
@@ -520,7 +520,7 @@ export function Compras() {
     event.preventDefault();
 
     setErro(null);
-    setErroNaCarga(false);
+    setFalhaCarga(null);
 
     if (
       !dataInicio
@@ -589,9 +589,10 @@ export function Compras() {
         if (
           produtos.length === 0
         ) {
-          throw new Error(
+          setErro(
             "O CATMAT selecionado não possui produtos vinculados.",
           );
+          return;
         }
       }
 
@@ -664,13 +665,7 @@ export function Compras() {
         recentes,
       });
     } catch (error) {
-      setErroNaCarga(true);
-      setErro(
-        error
-          instanceof Error
-          ? error.message
-          : "Não foi possível carregar as análises de compras.",
-      );
+      setFalhaCarga(error);
     } finally {
       setCarregando(false);
     }
@@ -1383,22 +1378,23 @@ export function Compras() {
 
 
       {erro && (
-        erroNaCarga ? (
-          <div className="mt-5">
-            <ErrorState
-              error={new ApiError(0, erro)}
-              onRetry={() => formFiltros.current?.requestSubmit()}
-            />
-          </div>
-        ) : (
-          <div
-            role="alert"
-            className="mt-5 flex items-start gap-2 rounded-[var(--radius-md)] border border-danger-border bg-[var(--danger-soft)] px-4 py-3 text-sm leading-6 text-danger-text"
-          >
-            <Icon name="alert" size={18} className="mt-0.5" />
-            {erro}
-          </div>
-        )
+        <div
+          role="alert"
+          className="mt-5 flex items-start gap-2 rounded-[var(--radius-md)] border border-warning-border bg-[var(--warning-soft)] px-4 py-3 text-sm leading-6 text-warning-text"
+        >
+          <Icon name="alert" size={18} className="mt-0.5" />
+          {erro}
+        </div>
+      )}
+
+
+      {falhaCarga != null && (
+        <div className="mt-5">
+          <ErrorState
+            error={falhaCarga}
+            onRetry={() => formFiltros.current?.requestSubmit()}
+          />
+        </div>
       )}
 
 
@@ -1624,27 +1620,25 @@ export function Compras() {
                   value={aba}
                   onValueChange={(valor) => setAba(valor as AbaCompras)}
                 >
-                  <div className="overflow-x-auto">
-                    <TabsList
-                      aria-label="Análises de compras"
-                      className="min-w-max"
-                    >
-                      {[
-                        { id: "fornecedores", label: "Fornecedores" },
-                        { id: "fabricantes", label: "Fabricantes" },
-                        { id: "modalidade", label: "Modalidade e tipo" },
-                        { id: "recentes", label: "Compras recentes" },
-                      ].map((item) => (
-                        <TabsTrigger
-                          key={item.id}
-                          value={item.id}
-                          className="px-4"
-                        >
-                          {item.label}
-                        </TabsTrigger>
-                      ))}
-                    </TabsList>
-                  </div>
+                  <TabsList
+                    aria-label="Análises de compras"
+                    className="w-full flex-wrap justify-start group-data-[orientation=horizontal]/tabs:h-auto sm:w-fit sm:flex-nowrap sm:group-data-[orientation=horizontal]/tabs:h-9"
+                  >
+                    {[
+                      { id: "fornecedores", label: "Fornecedores" },
+                      { id: "fabricantes", label: "Fabricantes" },
+                      { id: "modalidade", label: "Modalidade e tipo" },
+                      { id: "recentes", label: "Compras recentes" },
+                    ].map((item) => (
+                      <TabsTrigger
+                        key={item.id}
+                        value={item.id}
+                        className="min-h-8 px-4 sm:flex-none"
+                      >
+                        {item.label}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
 
 
                   <TabsContent value="fornecedores" className="mt-3">
