@@ -17,6 +17,10 @@ const PREFIX_BASE = process.env.E2E_PREFIX_URL ?? "http://localhost:8001/pbp-tes
 const OUT = join(dirname(fileURLToPath(import.meta.url)), "shots");
 mkdirSync(OUT, { recursive: true });
 
+// Prefixo dos arquivos de saída (prints e notas.json), para rodadas de captura não sobrescreverem
+// as anteriores (ex.: SHOT_PREFIX=depois- para o "antes × depois" do report).
+const PREFIXO = process.env.SHOT_PREFIX ?? "";
+
 const notas: Record<string, unknown> = {};
 
 async function esperarFim(page: any) {
@@ -30,8 +34,8 @@ async function esperarFim(page: any) {
 }
 
 async function shot(page: any, nome: string, fullPage = true) {
-  await page.screenshot({ path: join(OUT, `${nome}.png`), fullPage });
-  console.log("ok", nome);
+  await page.screenshot({ path: join(OUT, `${PREFIXO}${nome}.png`), fullPage });
+  console.log("ok", `${PREFIXO}${nome}`);
 }
 
 async function cronometrar(page: any, acao: () => Promise<void>) {
@@ -138,7 +142,7 @@ async function buscarMedicamento(page: any, termo: string, catmat: string, botao
   notas.modulos_url = page.url();
   notas.modulos_recarregou = await page.evaluate(() => (window as any).__marca !== 1);
 
-  writeFileSync(join(OUT, "notas.json"), JSON.stringify(notas, null, 2));
+  writeFileSync(join(OUT, `${PREFIXO}notas.json`), JSON.stringify(notas, null, 2));
   console.log(notas);
   await browser.close();
 })();
