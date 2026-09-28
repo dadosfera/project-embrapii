@@ -1379,7 +1379,7 @@ export function Compras() {
 
       {erro && (
         <div
-          role="alert"
+          role="status"
           className="mt-5 flex items-start gap-2 rounded-[var(--radius-md)] border border-warning-border bg-[var(--warning-soft)] px-4 py-3 text-sm leading-6 text-warning-text"
         >
           <Icon name="alert" size={18} className="mt-0.5" />
