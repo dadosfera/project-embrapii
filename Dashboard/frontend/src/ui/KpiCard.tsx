@@ -13,7 +13,7 @@ type Props = {
 
 export function KpiCard({ label, value, format, exact = numeroExato, hint, loading }: Props) {
   const texto = format(value);
-  const vazio = texto === SEM_DADO;
+  const vazio = value == null || Number.isNaN(value);
   return (
     <article className="rounded-[var(--radius-md)] border border-line bg-panel p-4 shadow-[var(--shadow-card)] sm:p-5">
       <p className="text-sm font-medium text-muted">{label}</p>
@@ -24,7 +24,13 @@ export function KpiCard({ label, value, format, exact = numeroExato, hint, loadi
       ) : (
         <Tooltip>
           <TooltipTrigger asChild>
-            <p className="mt-3 w-fit cursor-default text-2xl font-bold tabular-nums text-[var(--text)] sm:text-3xl">{texto}</p>
+            <p
+              tabIndex={0}
+              aria-label={`${label}: ${exact(value)}`}
+              className="mt-3 w-fit cursor-default text-2xl font-bold tabular-nums text-[var(--text)] sm:text-3xl"
+            >
+              {texto}
+            </p>
           </TooltipTrigger>
           <TooltipContent>{exact(value)}</TooltipContent>
         </Tooltip>

@@ -25,4 +25,10 @@ describe("DataTable", () => {
     render(<DataTable data={[]} columns={cols} emptyMessage="Nada no período." />);
     expect(screen.getByText("Nada no período.")).toBeInTheDocument();
   });
+  it("o container da tabela tem altura limitada e rola dentro do card", () => {
+    render(<DataTable data={[{ nome: "A", valor: 10 }]} columns={cols} />);
+    const container = screen.getByText("A").closest("[data-slot='table-container']")!;
+    expect(container.className).toMatch(/max-h-\[70vh\]/);
+    expect(container.className).toMatch(/overflow-auto/);
+  });
 });

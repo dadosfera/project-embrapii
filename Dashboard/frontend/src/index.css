@@ -322,6 +322,7 @@ tbody td {
 
 .table-scroll::-webkit-scrollbar {
   height: 8px;
+  width: 8px;
 }
 
 .table-scroll::-webkit-scrollbar-track {

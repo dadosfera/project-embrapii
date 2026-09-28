@@ -837,6 +837,7 @@ export function Medicamentos() {
             row.original
               .numero_do_lote
             ?? "—",
+          meta: { priority: "low" },
         },
         {
           header:

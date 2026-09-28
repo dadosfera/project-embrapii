@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import {
   type ColumnDef,
@@ -43,13 +43,8 @@ export function DataTable<TData>({
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
 
-  const stableData = useMemo(
-    () => data,
-    [data],
-  );
-
   const table = useReactTable({
-    data: stableData,
+    data,
     columns,
     state: {
       sorting,
@@ -76,79 +71,83 @@ export function DataTable<TData>({
   return (
     <div className="space-y-3">
       <div className="rounded-[var(--radius-md)] border border-line bg-panel">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader className="sticky top-0 z-10 bg-panel">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => {
-                    const sortable =
-                      header.column.getCanSort();
+        <Table containerClassName="table-scroll max-h-[70vh] overflow-auto">
+          <TableHeader className="sticky top-0 z-10 bg-panel">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  const sortable =
+                    header.column.getCanSort();
 
-                    const sorted =
-                      header.column.getIsSorted();
+                  const sorted =
+                    header.column.getIsSorted();
 
-                    return (
-                      <TableHead
-                        key={header.id}
-                        className={alinhamento(header.column.columnDef.meta)}
-                      >
-                        {header.isPlaceholder ? null : (
-                          <button
-                            type="button"
-                            disabled={!sortable}
-                            onClick={
-                              sortable
-                                ? header.column.getToggleSortingHandler()
-                                : undefined
-                            }
-                            className={[
-                              "inline-flex items-center gap-1",
-                              sortable
-                                ? "cursor-pointer hover:text-primary"
-                                : "cursor-default",
-                            ].join(" ")}
-                          >
-                            {flexRender(
-                              header.column.columnDef.header,
-                              header.getContext(),
-                            )}
+                  const ariaSort = sortable
+                    ? sorted === "asc"
+                      ? "ascending"
+                      : sorted === "desc"
+                        ? "descending"
+                        : "none"
+                    : undefined;
 
-                            {sorted === "asc" && (
-                              <span aria-hidden="true">↑</span>
-                            )}
-
-                            {sorted === "desc" && (
-                              <span aria-hidden="true">↓</span>
-                            )}
-                          </button>
-                        )}
-                      </TableHead>
-                    );
-                  })}
-                </TableRow>
-              ))}
-            </TableHeader>
-
-            <TableBody>
-              {table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      className={alinhamento(cell.column.columnDef.meta)}
+                  return (
+                    <TableHead
+                      key={header.id}
+                      className={alinhamento(header.column.columnDef.meta)}
+                      aria-sort={ariaSort}
                     >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
+                      {header.isPlaceholder ? null : sortable ? (
+                        <button
+                          type="button"
+                          onClick={header.column.getToggleSortingHandler()}
+                          className="inline-flex cursor-pointer items-center gap-1 hover:text-primary"
+                        >
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+
+                          {sorted === "asc" && (
+                            <span aria-hidden="true">↑</span>
+                          )}
+
+                          {sorted === "desc" && (
+                            <span aria-hidden="true">↓</span>
+                          )}
+                        </button>
+                      ) : (
+                        <span className="inline-flex items-center gap-1">
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+                        </span>
                       )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+                    </TableHead>
+                  );
+                })}
+              </TableRow>
+            ))}
+          </TableHeader>
+
+          <TableBody>
+            {table.getRowModel().rows.map((row) => (
+              <TableRow key={row.id}>
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell
+                    key={cell.id}
+                    className={alinhamento(cell.column.columnDef.meta)}
+                  >
+                    {flexRender(
+                      cell.column.columnDef.cell,
+                      cell.getContext(),
+                    )}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
 
       {pageCount > 1 && (

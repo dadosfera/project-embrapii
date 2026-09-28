@@ -1014,6 +1014,7 @@ export function Leitos() {
           header: "ID",
           accessorKey:
             "instituicao_id",
+          meta: { priority: "low" },
         },
         {
           header:
