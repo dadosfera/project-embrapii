@@ -723,6 +723,7 @@ export function Mapa() {
               row.original
                 .estoque_total,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -736,6 +737,7 @@ export function Mapa() {
               row.original
                 .num_instituicoes,
             ),
+          meta: { align: "right" },
         },
       ],
       [],
@@ -766,6 +768,7 @@ export function Mapa() {
               row.original
                 .leitos_gerais,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -779,6 +782,7 @@ export function Mapa() {
               row.original
                 .leitos_sus,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -792,6 +796,7 @@ export function Mapa() {
               row.original
                 .leitos_uti,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -805,6 +810,7 @@ export function Mapa() {
               row.original
                 .leitos_uti_sus,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -818,6 +824,7 @@ export function Mapa() {
               row.original
                 .instituicoes,
             ),
+          meta: { align: "right" },
         },
       ],
       [],

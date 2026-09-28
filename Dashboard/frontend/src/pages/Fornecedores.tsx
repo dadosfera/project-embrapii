@@ -190,6 +190,7 @@ const resumoGeral = useMemo(() => {
         accessorKey: "cnpj",
         header: "CNPJ",
         cell: ({ getValue }) => getValue<string | null>() ?? "—",
+        meta: { priority: "low" },
       },
       {
         accessorKey: "nacional_estrangeiro",
@@ -209,16 +210,19 @@ const resumoGeral = useMemo(() => {
         accessorKey: "valor_total",
         header: "Valor total",
         cell: ({ getValue }) => formatadorMoeda.format(getValue<number>()),
+        meta: { align: "right" },
       },
       {
         accessorKey: "quantidade_itens",
         header: "Itens fornecidos",
         cell: ({ getValue }) => formatadorNumero.format(getValue<number>()),
+        meta: { align: "right" },
       },
       {
         accessorKey: "numero_compras",
         header: "Nº de compras",
         cell: ({ getValue }) => formatadorNumero.format(getValue<number>()),
+        meta: { align: "right" },
       },
     ],
     [],

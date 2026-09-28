@@ -850,6 +850,7 @@ export function Medicamentos() {
               row.original
                 .quantidade_do_item_em_estoque,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -898,6 +899,7 @@ export function Medicamentos() {
               row.original
                 .estoque_total,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -911,6 +913,7 @@ export function Medicamentos() {
               row.original
                 .num_instituicoes,
             ),
+          meta: { align: "right" },
         },
       ],
       [],
@@ -972,6 +975,7 @@ export function Medicamentos() {
               row.original
                 .quantidade_de_itens,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -985,6 +989,7 @@ export function Medicamentos() {
               row.original
                 .preco_unitario,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -998,6 +1003,7 @@ export function Medicamentos() {
               row.original
                 .preco_total,
             ),
+          meta: { align: "right" },
         },
         {
           header:

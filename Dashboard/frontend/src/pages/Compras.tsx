@@ -885,6 +885,7 @@ export function Compras() {
               row.original
                 .valor_total,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -898,6 +899,7 @@ export function Compras() {
               row.original
                 .numero_compras,
             ),
+          meta: { align: "right" },
         },
         {
           header: "Itens",
@@ -910,6 +912,7 @@ export function Compras() {
               row.original
                 .quantidade_itens,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -923,6 +926,7 @@ export function Compras() {
               row.original
                 .participacao_percentual,
             ),
+          meta: { align: "right" },
         },
       ],
       [],
@@ -959,6 +963,7 @@ export function Compras() {
               row.original
                 .valor_total,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -972,6 +977,7 @@ export function Compras() {
               row.original
                 .numero_compras,
             ),
+          meta: { align: "right" },
         },
         {
           header: "Itens",
@@ -984,6 +990,7 @@ export function Compras() {
               row.original
                 .quantidade_itens,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -997,6 +1004,7 @@ export function Compras() {
               row.original
                 .participacao_percentual,
             ),
+          meta: { align: "right" },
         },
       ],
       [],
@@ -1029,6 +1037,7 @@ export function Compras() {
               row.original
                 .valor_total,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -1042,6 +1051,7 @@ export function Compras() {
               row.original
                 .numero_compras,
             ),
+          meta: { align: "right" },
         },
         {
           header: "Itens",
@@ -1054,6 +1064,7 @@ export function Compras() {
               row.original
                 .quantidade_itens,
             ),
+          meta: { align: "right" },
         },
       ],
       [],
@@ -1086,6 +1097,7 @@ export function Compras() {
               row.original
                 .valor_total,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -1099,6 +1111,7 @@ export function Compras() {
               row.original
                 .numero_compras,
             ),
+          meta: { align: "right" },
         },
         {
           header: "Itens",
@@ -1111,6 +1124,7 @@ export function Compras() {
               row.original
                 .quantidade_itens,
             ),
+          meta: { align: "right" },
         },
       ],
       [],
@@ -1148,6 +1162,7 @@ export function Compras() {
             row.original
               .codigo_catmat
             ?? "—",
+          meta: { priority: "low" },
         },
         {
           header: "Produto",
@@ -1195,6 +1210,7 @@ export function Compras() {
               row.original
                 .quantidade_de_itens,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -1208,6 +1224,7 @@ export function Compras() {
               row.original
                 .preco_unitario,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -1221,6 +1238,7 @@ export function Compras() {
               row.original
                 .preco_total,
             ),
+          meta: { align: "right" },
         },
         {
           header:

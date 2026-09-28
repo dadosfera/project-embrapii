@@ -759,6 +759,7 @@ export function Leitos() {
               row.original
                 .leitos_gerais,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -772,6 +773,7 @@ export function Leitos() {
               row.original
                 .leitos_sus,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -785,6 +787,7 @@ export function Leitos() {
               row.original
                 .leitos_uti,
             ),
+          meta: { align: "right" },
         },
         {
           header: "UTI SUS",
@@ -797,6 +800,7 @@ export function Leitos() {
               row.original
                 .leitos_uti_sus,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -810,6 +814,7 @@ export function Leitos() {
               row.original
                 .instituicoes,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -823,6 +828,7 @@ export function Leitos() {
               row.original
                 .percentual_sus,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -836,6 +842,7 @@ export function Leitos() {
               row.original
                 .percentual_uti_sus,
             ),
+          meta: { align: "right" },
         },
       ],
       [],
@@ -869,6 +876,7 @@ export function Leitos() {
             formatarNumero(
               row.original.total,
             ),
+          meta: { align: "right" },
         },
         {
           header: "SUS",
@@ -879,6 +887,7 @@ export function Leitos() {
             formatarNumero(
               row.original.sus,
             ),
+          meta: { align: "right" },
         },
         {
           header: "SUS (%)",
@@ -891,6 +900,7 @@ export function Leitos() {
               row.original
                 .percentual_sus,
             ),
+          meta: { align: "right" },
         },
       ],
       [],
@@ -930,6 +940,7 @@ export function Leitos() {
               row.original
                 .leitos_gerais,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -943,6 +954,7 @@ export function Leitos() {
               row.original
                 .leitos_sus,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -956,6 +968,7 @@ export function Leitos() {
               row.original
                 .leitos_uti,
             ),
+          meta: { align: "right" },
         },
         {
           header: "UTI SUS",
@@ -968,6 +981,7 @@ export function Leitos() {
               row.original
                 .leitos_uti_sus,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -981,6 +995,7 @@ export function Leitos() {
               row.original
                 .instituicoes,
             ),
+          meta: { align: "right" },
         },
       ],
       [],
@@ -1011,6 +1026,7 @@ export function Leitos() {
             "Município",
           accessorKey:
             "municipio",
+          meta: { priority: "low" },
         },
         {
           header: "UF",
@@ -1041,6 +1057,7 @@ export function Leitos() {
               row.original
                 .leitos_gerais,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -1054,6 +1071,7 @@ export function Leitos() {
               row.original
                 .leitos_sus,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -1067,6 +1085,7 @@ export function Leitos() {
               row.original
                 .leitos_uti,
             ),
+          meta: { align: "right" },
         },
         {
           header: "UTI SUS",
@@ -1079,6 +1098,7 @@ export function Leitos() {
               row.original
                 .leitos_uti_sus,
             ),
+          meta: { align: "right" },
         },
       ],
       [],
