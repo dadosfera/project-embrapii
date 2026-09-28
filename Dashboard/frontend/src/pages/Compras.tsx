@@ -37,7 +37,7 @@ import { ErrorState } from "@/ui/ErrorState";
 import { Icon } from "@/ui/Icon";
 import { KpiCard } from "@/ui/KpiCard";
 import { PageHeader } from "@/ui/PageHeader";
-import { categorica, eixo, grade, linha, tooltip } from "@/ui/chartTheme";
+import { categorica, dotPara, eixo, grade, linha, tooltip } from "@/ui/chartTheme";
 import {
   SEM_DADO,
   data as dataBR,
@@ -1550,6 +1550,7 @@ export function Compras() {
                                   dataKey="valor_total"
                                   name="Valor total"
                                   stroke={paleta[0]}
+                                  dot={dotPara(mensalGrafico.length)}
                                 />
                               </LineChart>
                             </ResponsiveContainer>
@@ -1602,6 +1603,7 @@ export function Compras() {
                                   dataKey="numero_compras"
                                   name="Compras"
                                   stroke={paleta[0]}
+                                  dot={dotPara(mensalGrafico.length)}
                                 />
                               </LineChart>
                             </ResponsiveContainer>

@@ -1,3 +1,7 @@
+// Fuso fixo com deslocamento negativo: o teste de hojeLocal() só pega a regressão para
+// toISOString() (UTC) se a noite local já for o dia seguinte em UTC.
+process.env.TZ = "America/Sao_Paulo";
+
 import "@testing-library/jest-dom/vitest";
 
 import { afterEach } from "vitest";

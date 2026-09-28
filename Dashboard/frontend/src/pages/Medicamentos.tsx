@@ -29,7 +29,7 @@ import { ErrorState } from "@/ui/ErrorState";
 import { Icon } from "@/ui/Icon";
 import { KpiCard } from "@/ui/KpiCard";
 import { PageHeader } from "@/ui/PageHeader";
-import { categorica, eixo, grade, linha, tooltip } from "@/ui/chartTheme";
+import { categorica, dotPara, eixo, grade, linha, tooltip } from "@/ui/chartTheme";
 import {
   data as dataBR,
   moedaCompacta,
@@ -1378,6 +1378,7 @@ export function Medicamentos() {
                                 dataKey="preco"
                                 name="Preço médio"
                                 stroke={paleta[0]}
+                                dot={dotPara(evolucaoPrecoGrafico.length)}
                               />
                             </LineChart>
                           </ResponsiveContainer>

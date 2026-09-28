@@ -38,6 +38,11 @@ import {
 } from "../lib/fornecedoresApi";
 
 
+/** Compras vêm do DATASUS; origem e sócios do fornecedor, do CNPJ na Receita Federal. */
+const FONTE =
+  "DATASUS (compras); origem do fornecedor: Receita Federal, dados abertos de CNPJ via BrasilAPI";
+
+
 /** O Radix Select não aceita item com value "": "Todas" usa esta sentinela na UI. */
 const TODAS_UFS = "__todas__";
 
@@ -374,6 +379,7 @@ export function Fornecedores() {
           titulo="Origem dos fornecedores por estado"
           descricao="Percentual de itens comprados de fornecedores estrangeiros, por UF da mantenedora compradora. Estados mais escuros têm maior participação de fornecedores estrangeiros."
           tituloValor="% de itens estrangeiros"
+          fonte={FONTE}
         />
       )}
 
@@ -408,7 +414,12 @@ export function Fornecedores() {
               }
             />
           ) : (
-            <DataTable data={ranking} columns={colunas} pageSize={15} />
+            <>
+              <DataTable data={ranking} columns={colunas} pageSize={15} />
+              <p className="mt-3 text-xs text-muted">
+                Fonte: {FONTE}
+              </p>
+            </>
           )}
         </div>
       </section>

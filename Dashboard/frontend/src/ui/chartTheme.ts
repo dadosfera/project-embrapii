@@ -51,3 +51,8 @@ export const tooltip = {
 
 /** Séries de linha: reta, com marcador (decisão 5). */
 export const linha = { type: "linear" as const, strokeWidth: 2, dot: { r: 3 }, activeDot: { r: 5 } };
+
+/** Marcador por ponto só em séries curtas: acima de 12 pontos a linha fica limpa (activeDot continua no hover). */
+export function dotPara(n: number) {
+  return n > 12 ? false : linha.dot;
+}

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { ApiError } from "@/lib/http";
+import { ApiError, UiError } from "@/lib/http";
 import { ChartFrame } from "./ChartFrame";
 import { EmptyState } from "./EmptyState";
 import { ErrorState } from "./ErrorState";
@@ -47,6 +47,14 @@ describe("componentes de página", () => {
   it("ErrorState mostra texto genérico para erro que não é ApiError", () => {
     render(<ErrorState error={new TypeError("Failed to fetch")} />);
     expect(screen.queryByText("Failed to fetch")).not.toBeInTheDocument();
+    expect(screen.getByText("Não foi possível carregar os dados.")).toBeInTheDocument();
+  });
+  it("ErrorState mostra a mensagem de um UiError do próprio app", () => {
+    render(<ErrorState error={new UiError("Não foi possível carregar o mapa (404).")} />);
+    expect(screen.getByText("Não foi possível carregar o mapa (404).")).toBeInTheDocument();
+  });
+  it("ErrorState cai no texto genérico se a ApiError vier sem mensagem", () => {
+    render(<ErrorState error={new ApiError(500, "")} />);
     expect(screen.getByText("Não foi possível carregar os dados.")).toBeInTheDocument();
   });
   it("ChartFrame tem título e fonte", () => {

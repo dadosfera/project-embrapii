@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { contraste } from "./contrast";
-import { CATEGORICA_VARS, SEQUENCIAL_VARS } from "./chartTheme";
+import { CATEGORICA_VARS, SEQUENCIAL_VARS, dotPara, linha } from "./chartTheme";
 
 // Lê os valores reais das variáveis Beast de src/index.css (camada beast:tokens), em vez de
 // manter uma cópia hardcoded que pode ficar desatualizada em relação ao CSS de verdade.
@@ -38,4 +38,16 @@ describe("paleta categórica", () => {
     for (const v of CATEGORICA_VARS) expect(contraste(valorBeast(v), FUNDO), v).toBeGreaterThanOrEqual(3);
   });
   it("sequencial tem 5 classes", () => expect(SEQUENCIAL_VARS).toHaveLength(5));
+});
+
+describe("dotPara", () => {
+  it("marca cada ponto em séries de até 12 pontos", () => {
+    expect(dotPara(1)).toEqual(linha.dot);
+    expect(dotPara(12)).toEqual(linha.dot);
+  });
+  it("tira os marcadores acima de 12 pontos (o activeDot do hover continua em linha)", () => {
+    expect(dotPara(13)).toBe(false);
+    expect(dotPara(24)).toBe(false);
+    expect(linha.activeDot).toEqual({ r: 5 });
+  });
 });

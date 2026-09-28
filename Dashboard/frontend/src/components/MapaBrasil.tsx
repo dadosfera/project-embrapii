@@ -10,6 +10,7 @@ import {
 } from "d3-geo";
 
 import { assetUrl } from "../lib/base";
+import { UiError } from "../lib/http";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChartFrame } from "@/ui/ChartFrame";
 import { ErrorState } from "@/ui/ErrorState";
@@ -111,7 +112,7 @@ Promise<FeatureCollectionUf> {
         .then(
           async (response) => {
             if (!response.ok) {
-              throw new Error(
+              throw new UiError(
                 `Não foi possível carregar o mapa (${response.status}).`,
               );
             }
@@ -130,8 +131,8 @@ Promise<FeatureCollectionUf> {
                 dados.features,
               )
             ) {
-              throw new Error(
-                "O arquivo GeoJSON não possui o formato esperado.",
+              throw new UiError(
+                "O arquivo GeoJSON do mapa não possui o formato esperado.",
               );
             }
 

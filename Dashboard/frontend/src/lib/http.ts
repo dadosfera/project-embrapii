@@ -10,6 +10,18 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Erro com mensagem escrita pelo próprio app (em português, segura para o usuário), para
+ * falhas que não vêm da API: o ErrorState mostra a mensagem dele, como faz com a ApiError.
+ * Erros de rede/JS genéricos continuam com o texto padrão.
+ */
+export class UiError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "UiError";
+  }
+}
+
 type Param = string | number | boolean | null | undefined;
 
 function detalheDeErro(body: unknown): string | null {

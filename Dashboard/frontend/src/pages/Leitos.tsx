@@ -39,7 +39,7 @@ import { ErrorState } from "@/ui/ErrorState";
 import { Icon } from "@/ui/Icon";
 import { KpiCard } from "@/ui/KpiCard";
 import { PageHeader } from "@/ui/PageHeader";
-import { categorica, eixo, grade, linha, tooltip } from "@/ui/chartTheme";
+import { categorica, dotPara, eixo, grade, linha, tooltip } from "@/ui/chartTheme";
 import {
   data as dataBR,
   numeroCompacto,
@@ -342,6 +342,9 @@ export function Leitos() {
       })),
     [dados],
   );
+
+
+  const pontosEvolucao = dotPara(evolucaoGrafico.length);
 
 
   const rankingGrafico = useMemo(
@@ -1002,10 +1005,10 @@ export function Leitos() {
                                 />
                                 <Legend {...LEGENDA} />
                                 {/* As duas séries principais (gerais × SUS) ficam em primary × info. */}
-                                <Line {...linha} dataKey="leitos_gerais" name="Leitos gerais" stroke={paleta[0]} />
-                                <Line {...linha} dataKey="leitos_sus" name="Leitos SUS" stroke={paleta[1]} />
-                                <Line {...linha} dataKey="leitos_uti" name="Leitos de UTI" stroke={paleta[2]} />
-                                <Line {...linha} dataKey="leitos_uti_sus" name="UTI SUS" stroke={paleta[3]} />
+                                <Line {...linha} dataKey="leitos_gerais" name="Leitos gerais" stroke={paleta[0]} dot={pontosEvolucao} />
+                                <Line {...linha} dataKey="leitos_sus" name="Leitos SUS" stroke={paleta[1]} dot={pontosEvolucao} />
+                                <Line {...linha} dataKey="leitos_uti" name="Leitos de UTI" stroke={paleta[2]} dot={pontosEvolucao} />
+                                <Line {...linha} dataKey="leitos_uti_sus" name="UTI SUS" stroke={paleta[3]} dot={pontosEvolucao} />
                               </LineChart>
                             </ResponsiveContainer>
                           </div>
