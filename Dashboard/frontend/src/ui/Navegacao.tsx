@@ -1,9 +1,9 @@
 import { NavLink } from "react-router";
 
-import { Icon } from "./Icon";
-import type { IconName } from "./icons";
+import { ShellIcon } from "./ShellIcon";
+import type { ShellIconName } from "./icons-shell";
 
-const DESTINOS: { to: string; label: string; icon: IconName; end?: boolean }[] = [
+const DESTINOS: { to: string; label: string; icon: ShellIconName; end?: boolean }[] = [
   { to: "/", label: "Início", icon: "home", end: true },
   { to: "/medicamentos", label: "Medicamentos", icon: "droplet" },
   { to: "/compras", label: "Compras", icon: "cart" },
@@ -25,7 +25,7 @@ export function Navegacao({ onNavigate }: { onNavigate?: () => void }) {
     <>
       {DESTINOS.map((d) => (
         <NavLink key={d.to} to={d.to} end={d.end} className={linkClass} onClick={onNavigate}>
-          <Icon name={d.icon} size={18} />
+          <ShellIcon name={d.icon} size={18} />
           {d.label}
         </NavLink>
       ))}

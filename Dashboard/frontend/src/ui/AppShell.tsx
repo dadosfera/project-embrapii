@@ -4,7 +4,7 @@ import { NavLink, useLocation } from "react-router";
 import { AutodriveChat } from "@/components/AutodriveChat";
 import { assetUrl } from "@/lib/base";
 import { ChunkErrorBoundary } from "./ChunkErrorBoundary";
-import { Icon } from "./Icon";
+import { ShellIcon } from "./ShellIcon";
 import { Navegacao } from "./Navegacao";
 
 // O menu mobile (Radix Dialog + focus scope + remove-scroll) fica fora da entrada. O chunk é pré-carregado
@@ -82,7 +82,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               setAberto(true);
             }}
           >
-            <Icon name="menu" size={22} />
+            <ShellIcon name="menu" size={22} />
           </button>
           {menuMontado && (
             <ChunkErrorBoundary
