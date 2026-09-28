@@ -3,6 +3,7 @@
 @import "@fontsource/quicksand/600.css";
 @import "@fontsource/quicksand/700.css";
 @import "tailwindcss";
+@import "tw-animate-css";
 
 /* beast:tokens:start */
 /* Fonte: beast/src/framework/theme/styles/themes/_default.scss (commit 25709803). Única camada com hex. */
@@ -77,6 +78,28 @@
   text-rendering: optimizeLegibility;
 }
 
+/* Variáveis do shadcn/ui: só apontam para os semânticos (sem valores próprios, sem tema escuro).
+   --primary e --border já existem acima com o mesmo nome. */
+:root {
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--panel);
+  --card-foreground: var(--text);
+  --popover: var(--panel);
+  --popover-foreground: var(--text);
+  --primary-foreground: var(--beast-basic-100);
+  --secondary: var(--subtle);
+  --secondary-foreground: var(--text);
+  --muted: var(--subtle);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--primary-soft);
+  --accent-foreground: var(--primary);
+  --destructive: var(--danger);
+  --input: var(--border);
+  --ring: var(--focus-ring);
+  --radius: var(--radius-md);
+}
+
 /* Ponte: as classes que as páginas já usam passam a apontar para os semânticos. */
 @theme inline {
   --font-sans: var(--font-body);
@@ -142,6 +165,33 @@
   --color-danger-text: var(--danger-text);
   --color-danger-border: var(--danger-border);
   --color-info: var(--info);
+
+  /* shadcn/ui. --color-primary e --color-muted ficam com a definição acima
+     (bg-muted do shadcn foi trocado por bg-subtle nas primitivas). */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+/* Primitivas shadcn usam `border` sem cor; aqui ele vira --border. Fica em @layer base
+   para perder das utilidades (border-input etc.) e só vale para [data-slot]. */
+@layer base {
+  [data-slot] {
+    border-color: var(--border);
+  }
 }
 
 html {
@@ -266,17 +316,17 @@ textarea:focus {
 }
 
 .nav-link-active {
-  color: white;
+  color: var(--primary-foreground);
   background: var(--primary);
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.16);
 }
 
 .bg-teal-700.text-white {
-  color: white;
+  color: var(--primary-foreground);
 }
 
 .button-cta {
-  color: white !important;
+  color: var(--primary-foreground) !important;
   background: var(--primary) !important;
   border-radius: var(--radius-md) !important;
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.16);
