@@ -14,9 +14,10 @@ function montar(mensagem: string, recarregar: () => void, autoReload = true) {
     <ChunkErrorBoundary
       autoReload={autoReload}
       recarregar={recarregar}
-      fallback={(r) => (
+      fallback={(r, ehChunk) => (
         <div>
           <p>Não foi possível carregar a página</p>
+          <p>{ehChunk ? "chunk" : "generico"}</p>
           <button onClick={r}>Recarregar</button>
         </div>
       )}
@@ -54,15 +55,17 @@ describe("ChunkErrorBoundary", () => {
     montar(ERRO_CHUNK, recarregar);
     expect(recarregar).not.toHaveBeenCalled();
     expect(screen.getByText("Não foi possível carregar a página")).toBeInTheDocument();
+    expect(screen.getByText("chunk")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Recarregar" }));
     expect(recarregar).toHaveBeenCalledTimes(1);
   });
 
-  it("erro que não é de chunk mostra o fallback sem recarregar", () => {
+  it("erro que não é de chunk mostra o fallback sem recarregar, sinalizando ehChunk=false", () => {
     const recarregar = vi.fn();
     montar("x is undefined", recarregar);
     expect(recarregar).not.toHaveBeenCalled();
     expect(screen.getByText("Não foi possível carregar a página")).toBeInTheDocument();
+    expect(screen.getByText("generico")).toBeInTheDocument();
   });
 
   it("sem autoReload mostra o fallback direto", () => {

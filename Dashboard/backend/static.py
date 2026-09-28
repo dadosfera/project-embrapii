@@ -53,4 +53,9 @@ def install(app: FastAPI) -> None:
         candidate = (dist / full_path).resolve()
         if full_path and candidate.is_file() and dist.resolve() in candidate.parents:
             return FileResponse(candidate)
+        # Caminhos com extensão (ex.: assets/app.js) são arquivos estáticos ausentes, não rotas
+        # de página: devolve 404 em vez do index.html da SPA. Só caminhos sem extensão (rotas
+        # como /leitos) caem no fallback da SPA.
+        if "." in Path(full_path).name:
+            return Response(status_code=404)
         return HTMLResponse(index, headers={"Cache-Control": "no-cache"})

@@ -49,7 +49,8 @@ export function ChunkCarregado() {
 
 type Props = {
   children: ReactNode;
-  fallback: (recarregar: () => void) => ReactNode;
+  /** `ehChunk` indica se o erro capturado é de import dinâmico (chunk) ou outro erro qualquer. */
+  fallback: (recarregar: () => void, ehChunk: boolean) => ReactNode;
   /** Recarrega a página sozinho, uma vez, na primeira falha de chunk. */
   autoReload?: boolean;
   /** Muda a chave (ex.: pathname) para sair do estado de erro ao navegar. */
@@ -89,7 +90,7 @@ export class ChunkErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.recarregando) return null;
-    if (this.state.erro) return this.props.fallback(this.recarregar);
+    if (this.state.erro) return this.props.fallback(this.recarregar, ehErroDeChunk(this.state.erro));
     return this.props.children;
   }
 }

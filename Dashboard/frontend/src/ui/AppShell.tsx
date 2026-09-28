@@ -79,7 +79,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             onTouchStart={preCarregarMenu}
             onClick={() => {
               setMenuMontado(true);
-              setAberto(true);
+              setAberto((a) => !a);
             }}
           >
             <ShellIcon name="menu" size={22} />

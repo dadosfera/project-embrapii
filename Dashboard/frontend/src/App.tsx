@@ -27,12 +27,16 @@ function Carregando() {
 }
 
 // Sem <Button> (cn/tailwind-merge) de propósito: este fallback fica no chunk de entrada.
-function FalhaAoCarregar({ recarregar }: { recarregar: () => void }) {
+function FalhaAoCarregar({ recarregar, ehChunk }: { recarregar: () => void; ehChunk: boolean }) {
   return (
     <main id="conteudo" tabIndex={-1} className="mx-auto max-w-[1440px] px-4 py-8 md:px-8">
       <EmptyState
         title="Não foi possível carregar a página"
-        cause="O painel pode ter sido atualizado enquanto esta aba estava aberta. Recarregue para buscar a versão nova."
+        cause={
+          ehChunk
+            ? "O painel pode ter sido atualizado enquanto esta aba estava aberta. Recarregue para buscar a versão nova."
+            : "Ocorreu um erro inesperado ao exibir esta página."
+        }
         action={
           <button
             type="button"
@@ -51,7 +55,11 @@ export default function App() {
   const { pathname } = useLocation();
   return (
     <AppShell>
-      <ChunkErrorBoundary autoReload resetKey={pathname} fallback={(recarregar) => <FalhaAoCarregar recarregar={recarregar} />}>
+      <ChunkErrorBoundary
+        autoReload
+        resetKey={pathname}
+        fallback={(recarregar, ehChunk) => <FalhaAoCarregar recarregar={recarregar} ehChunk={ehChunk} />}
+      >
         <Suspense fallback={<Carregando />}>
           <Routes>
             <Route path="/" element={<Home />} />
