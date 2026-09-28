@@ -1,5 +1,6 @@
 import { Route, Routes } from "react-router";
 
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppShell } from "./ui/AppShell";
 import { Compras } from "./pages/Compras";
 import { Home } from "./pages/Home";
@@ -11,37 +12,39 @@ import { Fornecedores } from "./pages/Fornecedores";
 
 export default function App() {
   return (
-    <AppShell>
-      <Routes>
-        <Route
-          path="/"
-          element={<Home />}
-        />
+    <TooltipProvider delayDuration={200}>
+      <AppShell>
+        <Routes>
+          <Route
+            path="/"
+            element={<Home />}
+          />
 
-        <Route
-          path="/medicamentos"
-          element={<Medicamentos />}
-        />
+          <Route
+            path="/medicamentos"
+            element={<Medicamentos />}
+          />
 
-        <Route
-          path="/compras"
-          element={<Compras />}
-        />
+          <Route
+            path="/compras"
+            element={<Compras />}
+          />
 
-        <Route
-          path="/leitos"
-          element={<Leitos />}
-        />
+          <Route
+            path="/leitos"
+            element={<Leitos />}
+          />
 
-        <Route
-          path="/mapa"
-          element={<Mapa />}
-        />
-        <Route
-          path="/fornecedores"
-          element={<Fornecedores />}
-/>
-      </Routes>
-    </AppShell>
+          <Route
+            path="/mapa"
+            element={<Mapa />}
+          />
+          <Route
+            path="/fornecedores"
+            element={<Fornecedores />}
+          />
+        </Routes>
+      </AppShell>
+    </TooltipProvider>
   );
 }

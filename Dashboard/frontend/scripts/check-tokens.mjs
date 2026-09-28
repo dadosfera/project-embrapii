@@ -19,7 +19,7 @@ import { join } from "node:path";
 
 const HEX = /#[0-9a-fA-F]{3,8}\b/g;
 const REF_VAR = /var\(\s*(--[\w-]+)/g;
-const REF_ATALHO = /[\w\]:]-\((--[\w-]+)\)/g;
+const REF_ATALHO = /[\w\]:]-\((?:\w+:)?(--[\w-]+)\)/g;
 const IGNORADAS = /^--(radix|tw)-/;
 const erros = [];
 
