@@ -13,7 +13,9 @@ export function useEhTelaEstreita(breakpoint = 640): boolean {
   );
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    // jsdom (Vitest) e navegadores muito antigos não têm matchMedia: sem ele, fica só no
+    // valor inicial (window.innerWidth), sem reagir a resize.
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
     const mq = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
     const atualizar = () => setEstreita(mq.matches);
     atualizar();

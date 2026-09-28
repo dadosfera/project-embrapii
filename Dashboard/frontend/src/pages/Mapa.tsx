@@ -28,7 +28,7 @@ import { EmptyState } from "@/ui/EmptyState";
 import { ErrorState } from "@/ui/ErrorState";
 import { Icon } from "@/ui/Icon";
 import { PageHeader } from "@/ui/PageHeader";
-import { numeroExato } from "@/ui/format";
+import { numeroExato, quantidade } from "@/ui/format";
 
 import {
   MapaBrasilUf,
@@ -453,7 +453,7 @@ export function Mapa() {
       {
         header: "Estoque",
         accessorKey: "estoque_total",
-        cell: ({ row }) => numeroExato(row.original.estoque_total),
+        cell: ({ row }) => quantidade(row.original.estoque_total),
         meta: { align: "right" },
       },
       {

@@ -8,10 +8,11 @@ const moedaCompactaFmt = new Intl.NumberFormat("pt-BR", {
 });
 const moedaExataFmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const inteiro = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
-// Quantidades (itens fornecidos, unidades em estoque, etc.): sempre contagens inteiras vindas
-// da API, mas o valor numérico às vezes chega com resíduo de ponto flutuante (ex.: 53852468.1,
-// 234110.00000001). maximumFractionDigits: 0 arredonda para a casa inteira em vez de mostrar
-// o resíduo, para o mesmo tipo de coluna não variar entre "668.027,14", "53.852.468,1" e "234.110".
+// Quantidades (itens fornecidos, unidades em estoque, etc.): a soma agregada que a API devolve
+// pode legitimamente vir fracionária (é soma de quantidades de várias compras, não uma contagem
+// de linhas) — não é só resíduo de ponto flutuante. Ainda assim, para a tabela ficar legível e
+// não variar o nº de casas por linha ("668.027,14", "53.852.468,1", "234.110" na mesma coluna),
+// mostramos sempre arredondado para inteiro; quem precisar da fração exata vai à API, não à tela.
 const quantidadeFmt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
 
 function vazio(v: Num): v is null | undefined {

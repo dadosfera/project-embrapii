@@ -28,10 +28,14 @@ type Param = string | number | boolean | null | undefined;
 // (proxy/servidor não-API na frente, prefixo errado, etc.): têm exatamente a mesma forma
 // `{"detail": "..."}` do erro "de verdade" da nossa API, mas não vêm de um handler nosso —
 // mostrar essa frase crua ("Not Found") ao usuário não ajuda em nada.
-const DETALHE_GENERICO = /^(not found|method not allowed|forbidden|unauthorized|internal server error|not acceptable|bad request)$/i;
+const DETALHE_GENERICO =
+  /^(not found|method not allowed|forbidden|unauthorized|internal server error|not acceptable|bad request|service unavailable|gateway timeout|bad gateway|too many requests|unprocessable entity)$/i;
 
 function mensagemPorStatus(status: number): string {
+  if (status === 401 || status === 403) return "Sua sessão pode ter expirado. Recarregue a página.";
   if (status === 404) return "Recurso não encontrado.";
+  if (status === 500) return "O servidor encontrou um erro.";
+  if (status === 502 || status === 503 || status === 504) return "O servidor não respondeu.";
   if (status >= 500) return "O servidor não respondeu.";
   return `Erro ${status} ao acessar a API.`;
 }

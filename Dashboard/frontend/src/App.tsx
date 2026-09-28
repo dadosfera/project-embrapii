@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Link, Route, Routes, useLocation } from "react-router";
 
 import { AppShell } from "./ui/AppShell";
@@ -72,10 +72,31 @@ function FalhaAoCarregar({ recarregar, ehChunk }: { recarregar: () => void; ehCh
   );
 }
 
+/**
+ * true numa conexão explicitamente "Economia de dados" (Data Saver) ou 2G/muito lenta: pula o
+ * pré-carregamento em massa (só o hover/foco no link, em Navegacao.tsx, continua pré-carregando
+ * sob demanda). `navigator.connection` é Chromium-only; onde não existe, o pré-carregamento roda
+ * normalmente.
+ */
+function devePularPreCargaPorConexao(): boolean {
+  const conexao = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } })
+    .connection;
+  if (!conexao) return false;
+  if (conexao.saveData) return true;
+  return conexao.effectiveType === "2g" || conexao.effectiveType === "slow-2g";
+}
+
 // Roda o import() de todas as rotas depois do primeiro paint, em ocioso, para o clique em
 // qualquer link do menu já encontrar o chunk (ou boa parte dele) na memória do navegador.
+//
+// Se o usuário estiver offline nesse momento, o import() falha e a promise rejeitada não fica
+// cacheada pelo navegador (a rota simplesmente não pré-carregou) — não precisa de tratamento
+// aqui: se uma navegação real mais tarde precisar desse chunk e ele ainda não existir/tiver sido
+// trocado por um redeploy, cai no autoReload do ChunkErrorBoundary (App.tsx), que recarrega a
+// página uma vez.
 function usarPreCargaEmOcioso() {
   useEffect(() => {
+    if (devePularPreCargaPorConexao()) return;
     const scheduler =
       typeof window.requestIdleCallback === "function"
         ? window.requestIdleCallback.bind(window)
@@ -87,35 +108,78 @@ function usarPreCargaEmOcioso() {
   }, []);
 }
 
+const TEMPO_LIMITE_PENDENCIA_MS = 15_000;
+
 /**
  * Indicador de navegação pendente independente do Suspense: o BrowserRouter atualiza a
  * localização dentro de um `startTransition` (react-router 7), e o React 19 mantém a página
  * antiga visível enquanto a rota nova está pendente — o <Suspense fallback> só apareceria se
  * o chunk ainda não tivesse sido baixado quando a transição finalmente comitar. `marcarPendente`
- * é um `setState` comum (fora da transition do router), então ele têm prioridade e aparece de
- * imediato; o efeito abaixo limpa a marca assim que `pathname` alcança o destino pedido.
+ * é um `setState` comum (fora da transition do router), então ele tem prioridade e aparece de
+ * imediato.
+ *
+ * A pendência é limpa (a) por `resolver`, chamado por <RotaRevelada> quando o <Suspense> REALMENTE
+ * revela uma rota nova — não confundir com `location.pathname`/`useLocation()`, que já muda assim
+ * que o BrowserRouter aceita a navegação, ANTES do chunk da rota nova terminar de carregar (o
+ * `startTransition` do router só segura o conteúdo do próprio <Suspense>, não o resto da árvore;
+ * confirmado throttlando a rede e observando os dois momentos por logs). Limpar pelo location
+ * mudaria a barra quase no mesmo instante em que ela aparece, na maioria das navegações — e (b)
+ * por um timeout de segurança: se por algum motivo a rota nunca for revelada (chunk que nunca
+ * chega, erro que o ChunkErrorBoundary trata sem autoReload), a barra não fica presa para sempre.
  */
 function usarNavegacaoPendente(pathnameAtual: string) {
-  const [destino, setDestino] = useState<string | null>(null);
+  const [pendente, setPendente] = useState(false);
+  const timeoutRef = useRef<number | null>(null);
+
+  const limparTimeout = useCallback(() => {
+    if (timeoutRef.current !== null) {
+      window.clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }, []);
 
   const marcarPendente = useCallback(
-    (para: string) => {
-      setDestino((atual) => (para === pathnameAtual ? atual : para));
+    (destino: string) => {
+      if (destino === pathnameAtual) return; // já está nessa rota: não houve navegação de fato
+      setPendente(true);
+      limparTimeout();
+      timeoutRef.current = window.setTimeout(() => setPendente(false), TEMPO_LIMITE_PENDENCIA_MS);
     },
-    [pathnameAtual],
+    [pathnameAtual, limparTimeout],
   );
 
-  useEffect(() => {
-    if (destino !== null && destino === pathnameAtual) setDestino(null);
-  }, [destino, pathnameAtual]);
+  // Limpa em QUALQUER revelação de rota (não só a que foi clicada pelo menu): cobre Voltar/
+  // Avançar do navegador, um <Link> fora do menu, ou o usuário mudar de ideia e clicar noutro
+  // destino antes do primeiro terminar de carregar (só a última rota chega a ser revelada).
+  const resolver = useCallback(() => {
+    setPendente(false);
+    limparTimeout();
+  }, [limparTimeout]);
 
-  return { pendente: destino !== null, marcarPendente };
+  useEffect(() => limparTimeout, [limparTimeout]);
+
+  return { pendente, marcarPendente, resolver };
+}
+
+/**
+ * Monta de novo toda vez que o `pathname` muda — mas, como só existe dentro do <Suspense>, o
+ * remount (e o efeito de mount) só chega a comitar quando o conteúdo da rota nova realmente
+ * aparece: se o chunk ainda estiver pendente, React segura esse remount junto com o resto do
+ * conteúdo do <Suspense> (ver comentário de usarNavegacaoPendente). É esse atraso natural que
+ * torna esse componente o sinal certo de "a rota revelou", diferente de `location.pathname`.
+ */
+function RotaRevelada({ aoRevelar }: { aoRevelar: () => void }) {
+  useEffect(() => {
+    aoRevelar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só quer rodar uma vez por remount
+  }, []);
+  return null;
 }
 
 export default function App() {
   const { pathname } = useLocation();
   usarPreCargaEmOcioso();
-  const { pendente, marcarPendente } = usarNavegacaoPendente(pathname);
+  const { pendente, marcarPendente, resolver } = usarNavegacaoPendente(pathname);
 
   return (
     <AppShell pendente={pendente} aoNavegar={marcarPendente}>
@@ -134,6 +198,7 @@ export default function App() {
             <Route path="/fornecedores" element={<Fornecedores />} />
             <Route path="*" element={<PaginaNaoEncontrada />} />
           </Routes>
+          <RotaRevelada key={pathname} aoRevelar={resolver} />
           <ChunkCarregado />
         </Suspense>
       </ChunkErrorBoundary>

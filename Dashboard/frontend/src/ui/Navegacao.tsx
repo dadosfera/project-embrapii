@@ -39,9 +39,13 @@ export function Navegacao({
           className={linkClass}
           onPointerEnter={() => preCarregarRota(d.to)}
           onFocus={() => preCarregarRota(d.to)}
-          onClick={() => {
-            aoNavegar?.(d.to);
+          onClick={(e) => {
             onNavigate?.();
+            // Clique modificado (abre em nova aba/janela, ex.: Cmd/Ctrl/Shift/Alt+clique ou botão
+            // do meio) ou já tratado por outro handler: não navega nesta aba, então marcar como
+            // pendente deixaria a barra de progresso presa (nada nunca troca a location aqui).
+            if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+            aoNavegar?.(d.to);
           }}
         >
           <ShellIcon name={d.icon} size={18} />

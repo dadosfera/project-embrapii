@@ -32,17 +32,35 @@ function MenuSimples({ onNavigate, aoNavegar }: { onNavigate: () => void; aoNave
 
 // Barra fina no topo, visível enquanto a navegação está pendente (ver App.tsx/usarNavegacaoPendente).
 // Sem <Skeleton> (cn/tailwind-merge) de propósito: fica no chunk de entrada.
+//
+// Só aparece depois de ~150ms de `ativa` contínuo: a maioria dos cliques em rota já pré-carregada
+// (idle + hover/foco, ver rotas.ts/Navegacao.tsx) resolve bem antes disso, e sem o atraso a barra
+// e o aria-live piscariam a cada navegação — ruído visual e sonoro (leitor de tela) para quem não
+// precisa esperar nada.
+const ATRASO_BARRA_MS = 150;
+
 function BarraDeProgresso({ ativa }: { ativa: boolean }) {
+  const [mostrar, setMostrar] = useState(false);
+
+  useEffect(() => {
+    if (!ativa) {
+      setMostrar(false);
+      return;
+    }
+    const id = window.setTimeout(() => setMostrar(true), ATRASO_BARRA_MS);
+    return () => window.clearTimeout(id);
+  }, [ativa]);
+
+  if (!mostrar) return null;
+
   return (
     <>
-      <span className="sr-only" role="status" aria-live="polite">
-        {ativa ? "Carregando página" : ""}
-      </span>
-      {ativa && (
-        <div aria-hidden="true" className="absolute inset-x-0 top-full h-0.5 overflow-hidden bg-primary-soft">
-          <div className="h-full w-1/3 animate-pulse bg-primary" />
-        </div>
-      )}
+      {/* aria-label (não o texto do nó) dá o nome acessível: o e2e mira este role=status dentro
+          do <header> para não confundir com o skeleton do Suspense (mesmo texto, dentro do <main>). */}
+      <span className="sr-only" role="status" aria-live="polite" aria-label="Carregando página" />
+      <div aria-hidden="true" className="absolute inset-x-0 top-full h-0.5 overflow-hidden bg-primary-soft">
+        <div className="h-full w-1/3 animate-pulse bg-primary" />
+      </div>
     </>
   );
 }

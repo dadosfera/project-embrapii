@@ -7,8 +7,9 @@
     "dev": "vite",
     "build": "npm run check:tokens && tsc -b && vite build && npm run check:bundle",
     "preview": "vite preview",
-    "e2e": "playwright test",
-    "e2e:prefix": "E2E_BASE_URL=http://localhost:8000/pbp-test_8000/ playwright test",
+    "e2e": "playwright test --grep-invert @slow",
+    "e2e:slow": "playwright test --grep @slow",
+    "e2e:prefix": "E2E_BASE_URL=http://127.0.0.1:8000/pbp-test_8000/ playwright test --grep-invert @slow",
     "test": "vitest run",
     "check:tokens": "node scripts/check-tokens.mjs",
     "check:bundle": "node scripts/check-bundle.mjs"
