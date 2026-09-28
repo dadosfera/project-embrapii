@@ -1,11 +1,6 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode } from "react";
 import { NavLink } from "react-router";
 
-import {
-  getThemePreference,
-  setThemePreference,
-  type ThemePreference,
-} from "../theme";
 import { assetUrl } from "../lib/base";
 import { AutodriveChat } from "./AutodriveChat";
 
@@ -20,26 +15,7 @@ function navClass({ isActive }: { isActive: boolean }) {
   ].join(" ");
 }
 
-const themeMeta: Record<ThemePreference, { icon: string; label: string }> = {
-  system: { icon: "◐", label: "Tema do sistema" },
-  light: { icon: "☀", label: "Tema claro" },
-  dark: { icon: "☾", label: "Tema escuro" },
-};
-
 export function Layout({ children }: LayoutProps) {
-  const [theme, setTheme] = useState<ThemePreference>(getThemePreference);
-
-  function cycleTheme() {
-    const next: Record<ThemePreference, ThemePreference> = {
-      system: "light",
-      light: "dark",
-      dark: "system",
-    };
-    const nextTheme = next[theme];
-    setTheme(nextTheme);
-    setThemePreference(nextTheme);
-  }
-
   return (
     <div className="app-shell">
       <header className="app-header sticky top-0 z-20 border-b backdrop-blur-xl">
@@ -52,13 +28,7 @@ export function Layout({ children }: LayoutProps) {
             <img
               src={assetUrl("logos/logodadosfera.png")}
               alt=""
-              className="brand-logo brand-logo-light"
-              aria-hidden="true"
-            />
-            <img
-              src={assetUrl("logos/dadosferabranco.png")}
-              alt=""
-              className="brand-logo brand-logo-dark"
+              className="brand-logo"
               aria-hidden="true"
             />
           </NavLink>
@@ -105,16 +75,6 @@ export function Layout({ children }: LayoutProps) {
               Fornecedores
             </NavLink>
           </nav>
-
-          <button
-            type="button"
-            className="theme-toggle"
-            onClick={cycleTheme}
-            aria-label={`${themeMeta[theme].label}. Alterar tema.`}
-            title={themeMeta[theme].label}
-          >
-            <span aria-hidden="true">{themeMeta[theme].icon}</span>
-          </button>
         </div>
       </header>
 
