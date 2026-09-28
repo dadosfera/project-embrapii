@@ -10,7 +10,11 @@ import {
 } from "d3-geo";
 
 import { assetUrl } from "../lib/base";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ChartFrame } from "@/ui/ChartFrame";
+import { ErrorState } from "@/ui/ErrorState";
 import { sequencial } from "@/ui/chartTheme";
+import { numeroExato } from "@/ui/format";
 
 type Coordenadas =
   | number[]
@@ -62,20 +66,12 @@ type MapaBrasilUfProps = {
   titulo?: string;
   descricao?: string;
   tituloValor?: string;
+  fonte?: string;
 };
 
 
 const LARGURA = 800;
 const ALTURA = 720;
-
-
-const formatadorNumero =
-  new Intl.NumberFormat(
-    "pt-BR",
-    {
-      maximumFractionDigits: 0,
-    },
-  );
 
 
 let geojsonCache:
@@ -164,6 +160,7 @@ export function MapaBrasilUf({
   titulo = "Mapa do Brasil",
   descricao = "Distribuição por Unidade Federativa.",
   tituloValor = "Valor",
+  fonte = "DATASUS",
 }: MapaBrasilUfProps) {
   const [
     geojson,
@@ -183,13 +180,24 @@ export function MapaBrasilUf({
       !geojsonCache,
     );
 
+  // Falha ao baixar o GeoJSON: guarda o erro real; a tentativa refaz o efeito de carga.
   const [
     erro,
     setErro,
   ] =
-    useState<
-      string | null
-    >(null);
+    useState<unknown>(null);
+
+  const [
+    tentativa,
+    setTentativa,
+  ] = useState(0);
+
+  // Resolve a escala sequencial uma vez por montagem (lê as variáveis CSS do documento).
+  const escala =
+    useMemo(
+      () => sequencial(),
+      [],
+    );
 
   const [
     estadoAtivo,
@@ -232,12 +240,7 @@ export function MapaBrasilUf({
             return;
           }
 
-          setErro(
-            error
-              instanceof Error
-              ? error.message
-              : "Não foi possível carregar o mapa do Brasil.",
-          );
+          setErro(error);
         } finally {
           if (ativo) {
             setCarregando(
@@ -253,7 +256,7 @@ export function MapaBrasilUf({
         ativo = false;
       };
     },
-    [],
+    [tentativa],
   );
 
 
@@ -400,38 +403,32 @@ export function MapaBrasilUf({
 
   if (carregando) {
     return (
-      <div className="flex min-h-[420px] items-center justify-center rounded-2xl border border-teal-100 bg-white p-6 shadow-sm">
-        <p className="text-sm font-medium text-teal-700">
-          Carregando mapa do Brasil...
-        </p>
+      <div aria-busy="true" className="rounded-[var(--radius-md)] border border-line bg-panel p-4 shadow-[var(--shadow-card)] sm:p-5">
+        <Skeleton className="h-6 w-64 max-w-full" />
+        <Skeleton className="mt-5 h-[420px]" />
+        <p className="sr-only">Carregando mapa do Brasil...</p>
       </div>
     );
   }
 
 
-  if (erro) {
+  if (erro != null) {
     return (
-      <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm leading-6 text-red-800">
-        {erro}
-      </div>
+      <ErrorState
+        error={erro}
+        onRetry={() => setTentativa((n) => n + 1)}
+      />
     );
   }
 
 
   return (
-    <section className="rounded-2xl border border-teal-100 bg-white p-4 shadow-sm sm:p-6">
-      <div>
-        <h2 className="text-lg font-semibold text-slate-900">
-          {titulo}
-        </h2>
-
-        <p className="mt-1 text-sm leading-6 text-slate-500">
-          {descricao}
-        </p>
-      </div>
-
-
-      <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_220px]">
+    <ChartFrame
+      title={titulo}
+      subtitle={descricao}
+      source={fonte}
+    >
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_220px]">
         <div className="mx-auto w-full max-w-4xl">
           <svg
             viewBox={`0 0 ${LARGURA} ${ALTURA}`}
@@ -439,77 +436,57 @@ export function MapaBrasilUf({
             aria-label="Mapa do Brasil dividido por Unidades Federativas"
             className="h-auto w-full"
           >
-            {caminhos.map(
-              (estado) => (
-                <path
-                  key={
-                    estado.id
-                  }
-                  d={
-                    estado.d
-                  }
-                  fill={sequencial().at(-1)}
-                  fillOpacity={estado.opacidade}
-                  stroke="var(--panel)"
-                  strokeWidth={1}
-                  vectorEffect="non-scaling-stroke"
-                  className="cursor-pointer"
-                  onMouseEnter={() =>
-                    setEstadoAtivo(
-                      estado.id,
-                    )
-                  }
-                  onMouseLeave={() =>
-                    setEstadoAtivo(
-                      null,
-                    )
-                  }
-                >
-                  <title>
-                    {estado.nome}
-                    {estado.sigla
-                      ? ` (${estado.sigla})`
-                      : ""}
-                    {` — ${tituloValor}: ${formatadorNumero.format(
-                      estado.valor,
-                    )}`}
-                  </title>
-                </path>
-              ),
-            )}
+            {caminhos.map((estado) => (
+              <path
+                key={estado.id}
+                d={estado.d}
+                fill={escala.at(-1)}
+                fillOpacity={estado.opacidade}
+                stroke={estadoAtivo === estado.id ? "var(--text)" : "var(--panel)"}
+                strokeWidth={estadoAtivo === estado.id ? 2 : 1}
+                vectorEffect="non-scaling-stroke"
+                className="cursor-pointer"
+                onMouseEnter={() => setEstadoAtivo(estado.id)}
+                onMouseLeave={() => setEstadoAtivo(null)}
+              >
+                <title>
+                  {estado.nome}
+                  {estado.sigla ? ` (${estado.sigla})` : ""}
+                  {` — ${tituloValor}: ${numeroExato(estado.valor)}`}
+                </title>
+              </path>
+            ))}
           </svg>
         </div>
 
 
-        <aside className="rounded-xl border border-teal-100 bg-teal-50/50 p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal-700">
+        <aside className="self-start rounded-[var(--radius-md)] border border-line bg-surface p-4">
+          <p className="text-xs font-semibold text-muted">
             Estado
           </p>
 
           {estadoSelecionado ? (
             <>
-              <p className="mt-2 text-lg font-semibold text-slate-900">
+              <p className="mt-2 text-lg font-semibold text-[var(--text)]">
                 {estadoSelecionado.nome}
               </p>
 
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-muted">
                 {estadoSelecionado.sigla}
               </p>
 
               <div className="mt-5">
-                <p className="text-xs font-medium text-slate-500">
+                <p className="text-xs font-medium text-muted">
                   {tituloValor}
                 </p>
 
-                <p className="mt-1 text-2xl font-semibold tracking-tight text-teal-800">
-                  {formatadorNumero.format(
-                    estadoSelecionado.valor,
-                  )}
+                <p className="mt-1 text-2xl font-bold tabular-nums tracking-tight text-primary">
+                  {numeroExato(estadoSelecionado.valor)}
                 </p>
               </div>
             </>
           ) : (
-            <p className="mt-2 text-sm leading-6 text-slate-500">
+            <p className="mt-2 text-sm leading-6 text-muted">
               Passe o mouse sobre uma UF para ver o valor.
             </p>
           )}
@@ -519,25 +496,19 @@ export function MapaBrasilUf({
 
       <div className="mt-5">
         <div
+          aria-hidden="true"
           className="h-2 w-full rounded-full"
           style={{
             background:
-              `linear-gradient(to right, ${sequencial()[0]}, ${sequencial().at(-1)})`,
+              `linear-gradient(to right, ${escala[0]}, ${escala.at(-1)})`,
           }}
         />
 
-        <div className="mt-2 flex items-center justify-between gap-4 text-xs text-slate-500">
-          <span>
-            0
-          </span>
-
-          <span>
-            {formatadorNumero.format(
-              maiorValor,
-            )}
-          </span>
+        <div className="mt-2 flex items-center justify-between gap-4 text-xs tabular-nums text-muted">
+          <span>0</span>
+          <span>{numeroExato(maiorValor)}</span>
         </div>
       </div>
-    </section>
+    </ChartFrame>
   );
 }
