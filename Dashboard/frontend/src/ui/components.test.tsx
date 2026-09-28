@@ -25,13 +25,27 @@ describe("componentes de página", () => {
     render(<TooltipProvider><KpiCard label="Valor" value={10} format={moedaCompacta} loading /></TooltipProvider>);
     expect(screen.queryByText(/R\$/)).not.toBeInTheDocument();
   });
-  it("KpiCard com valor zero mostra '0', não 'sem dado', e é acessível por teclado", () => {
-    render(<TooltipProvider><KpiCard label="Instituições" value={0} format={numeroCompacto} /></TooltipProvider>);
-    const valor = screen.getByText("0").closest("p")!;
+  it("KpiCard é acessível por teclado e o leitor ouve só o valor exato", () => {
+    const { container } = render(<TooltipProvider><KpiCard label="Instituições" value={50_923_000_000} format={numeroCompacto} /></TooltipProvider>);
+    const valor = container.querySelector<HTMLElement>('p[tabindex="0"]')!;
     expect(valor).toBeInTheDocument();
-    expect(valor).toHaveAttribute("tabIndex", "0");
     expect(valor).not.toHaveAttribute("aria-label");
-    expect(valor).toHaveTextContent(`Instituições: ${numeroExato(0)}`);
+    // Leitor de tela: só o valor exato (o rótulo visível já é lido antes, sem repetir).
+    const lido = [...valor.children].filter((c) => c.getAttribute("aria-hidden") !== "true").map((c) => c.textContent).join("");
+    expect(lido).toBe(numeroExato(50_923_000_000));
+    expect(valor).not.toHaveTextContent("Instituições");
+    // Foco por teclado abre o tooltip sem aria-describedby duplicando o valor.
+    vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
+    fireEvent.focus(valor);
+    expect(valor).not.toHaveAttribute("data-state", "closed");
+    expect(screen.getByRole("tooltip")).toHaveTextContent(numeroExato(50_923_000_000));
+    expect(valor).not.toHaveAttribute("aria-describedby");
+    vi.unstubAllGlobals();
+  });
+  it("KpiCard com valor zero mostra '0', não 'sem dado'", () => {
+    render(<TooltipProvider><KpiCard label="Instituições" value={0} format={numeroCompacto} /></TooltipProvider>);
+    expect(screen.getAllByText("0").length).toBeGreaterThan(0);
+    expect(screen.queryByText("sem dado")).not.toBeInTheDocument();
   });
   it("EmptyState mostra causa e ação", () => {
     render(<EmptyState title="Sem estoque" cause="Nenhuma instituição registrou." action={<button>Ver outro</button>} />);

@@ -1,18 +1,43 @@
-import { lazy, type ReactNode, Suspense, useRef, useState } from "react";
-import { NavLink } from "react-router";
+import { lazy, type ReactNode, Suspense, useEffect, useRef, useState } from "react";
+import { NavLink, useLocation } from "react-router";
 
 import { AutodriveChat } from "@/components/AutodriveChat";
 import { assetUrl } from "@/lib/base";
+import { ChunkErrorBoundary } from "./ChunkErrorBoundary";
 import { Icon } from "./Icon";
 import { Navegacao } from "./Navegacao";
 
-// O menu mobile (Radix Dialog + focus scope + remove-scroll) só é baixado no primeiro toque no botão.
-const MobileMenu = lazy(() => import("./MobileMenu").then((m) => ({ default: m.MobileMenu })));
+// O menu mobile (Radix Dialog + focus scope + remove-scroll) fica fora da entrada. O chunk é pré-carregado
+// quando o ponteiro/foco chega no botão e montado no primeiro toque. O import() é memoizado pelo navegador.
+const carregarMenu = () => import("./MobileMenu");
+const MobileMenu = lazy(() => carregarMenu().then((m) => ({ default: m.MobileMenu })));
+const preCarregarMenu = () => {
+  carregarMenu().catch(() => {
+    /* a falha real aparece (e é tratada) quando o lazy montar */
+  });
+};
+
+// Se o chunk do menu não carregar, mostra a navegação num painel simples, sem Dialog.
+function MenuSimples({ onNavigate }: { onNavigate: () => void }) {
+  return (
+    <nav
+      id="menu-mobile"
+      aria-label="Navegação principal (menu)"
+      className="absolute inset-x-0 top-full flex flex-col gap-1 border-b border-line bg-panel p-4 shadow-[var(--shadow-card)] lg:hidden"
+    >
+      <Navegacao onNavigate={onNavigate} />
+    </nav>
+  );
+}
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [aberto, setAberto] = useState(false);
   const [menuMontado, setMenuMontado] = useState(false);
   const botaoMenu = useRef<HTMLButtonElement>(null);
+  const { pathname } = useLocation();
+
+  // Fecha o menu em qualquer troca de rota (link do menu, voltar do navegador, link na página).
+  useEffect(() => setAberto(false), [pathname]);
 
   return (
     <div className="min-h-screen bg-surface">
@@ -48,7 +73,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             aria-label="Abrir menu"
             aria-haspopup="dialog"
             aria-expanded={aberto}
-            aria-controls={aberto ? "menu-mobile" : undefined}
+            aria-controls={menuMontado && aberto ? "menu-mobile" : undefined}
+            onPointerEnter={preCarregarMenu}
+            onFocus={preCarregarMenu}
+            onTouchStart={preCarregarMenu}
             onClick={() => {
               setMenuMontado(true);
               setAberto(true);
@@ -57,9 +85,13 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Icon name="menu" size={22} />
           </button>
           {menuMontado && (
-            <Suspense fallback={null}>
-              <MobileMenu open={aberto} onOpenChange={setAberto} triggerRef={botaoMenu} />
-            </Suspense>
+            <ChunkErrorBoundary
+              fallback={() => (aberto ? <MenuSimples onNavigate={() => setAberto(false)} /> : null)}
+            >
+              <Suspense fallback={null}>
+                <MobileMenu open={aberto} onOpenChange={setAberto} triggerRef={botaoMenu} />
+              </Suspense>
+            </ChunkErrorBoundary>
           )}
         </div>
       </header>

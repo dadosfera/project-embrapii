@@ -24,14 +24,16 @@ export function KpiCard({ label, value, format, exact = numeroExato, hint, loadi
       ) : (
         <Tooltip>
           <TooltipTrigger asChild>
-            {/* aria-label não é permitido em <p> sem role (axe aria-prohibited-attr): o valor exato
-                vai em texto só para leitor de tela, e o compacto visível fica fora da árvore de acessibilidade. */}
+            {/* aria-label não é permitido em <p> sem role (axe aria-prohibited-attr). O rótulo visível acima
+                já é lido; aqui o leitor ouve só o valor exato, e o compacto fica fora da árvore de acessibilidade.
+                aria-describedby={undefined} impede o Radix de apontar para o conteúdo do tooltip, que repete o valor. */}
             <p
               tabIndex={0}
+              aria-describedby={undefined}
               className="mt-3 w-fit cursor-default text-2xl font-bold tabular-nums text-[var(--text)] sm:text-3xl"
             >
               <span aria-hidden="true">{texto}</span>
-              <span className="sr-only">{`${label}: ${exact(value)}`}</span>
+              <span className="sr-only">{exact(value)}</span>
             </p>
           </TooltipTrigger>
           <TooltipContent>{exact(value)}</TooltipContent>

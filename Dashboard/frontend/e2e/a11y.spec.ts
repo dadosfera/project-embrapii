@@ -11,9 +11,19 @@ async function semViolacoesGraves(page: Page) {
     document.getAnimations().every((a) => a.playState !== "running" || a.effect?.getComputedTiming().endTime === Infinity),
   );
   const r = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+  // "incomplete" = o axe não conseguiu decidir (ex.: fundo em gradiente). Vai para o relatório, não reprova.
+  for (const v of r.incomplete) {
+    test.info().annotations.push({ type: "axe-incomplete", description: `${v.id} (${v.impact ?? "?"}): ${v.nodes.length} nós` });
+  }
   const graves = r.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
   expect(
-    graves.map((v) => `${v.id}: ${v.nodes.length} nós — ${v.help} — ${v.nodes.slice(0, 3).map((n) => `${n.target.join(" ")} [${n.any.map((c) => c.message).join(";")}] ${n.html.slice(0, 160)}`).join(" | ")}`),
+    graves.map(
+      (v) =>
+        `${v.id}: ${v.nodes.length} nós — ${v.help} — ${v.nodes
+          .slice(0, 3)
+          .map((n) => `${n.target.join(" ")}: ${n.failureSummary ?? ""} ${n.html.slice(0, 160)}`)
+          .join(" | ")}`,
+    ),
   ).toEqual([]);
 }
 
@@ -89,4 +99,27 @@ test("link 'Pular para o conteúdo' é o primeiro foco e leva ao <main>", async 
   await expect(pular).toBeVisible();
   await page.keyboard.press("Enter");
   await expect(page.locator("main#conteudo")).toBeFocused();
+});
+
+test("menu mobile @390px: abre, passa no axe, Escape devolve o foco, link navega e fecha", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.goto("");
+  await page.waitForLoadState("networkidle");
+
+  const botao = page.getByRole("button", { name: "Abrir menu" });
+  await botao.click();
+  const menu = page.getByRole("dialog", { name: "Navegação" });
+  await expect(menu).toBeVisible();
+  await semViolacoesGraves(page);
+
+  await page.keyboard.press("Escape");
+  await expect(menu).toBeHidden();
+  await expect(botao).toBeFocused();
+
+  await botao.click();
+  await expect(menu).toBeVisible();
+  await menu.getByRole("link", { name: "Compras" }).click();
+  await expect(menu).toBeHidden();
+  await expect(page).toHaveURL(/\/compras$/);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Compras");
 });
