@@ -15,10 +15,17 @@ function TooltipProvider({
   )
 }
 
+// Cada Tooltip traz o próprio Provider (padrão atual do shadcn). Assim o App não precisa de um
+// TooltipProvider global, e o Radix Tooltip + floating-ui ficam fora do chunk de entrada.
 function Tooltip({
+  delayDuration = 200,
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Root>) {
-  return <TooltipPrimitive.Root data-slot="tooltip" {...props} />
+  return (
+    <TooltipProvider delayDuration={delayDuration}>
+      <TooltipPrimitive.Root data-slot="tooltip" {...props} />
+    </TooltipProvider>
+  )
 }
 
 function TooltipTrigger({
