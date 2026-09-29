@@ -31,6 +31,8 @@ export function PeriodoAnos({ id, anos, de, ate, onChange, disabled, className }
             value={`${de}`}
             onValueChange={(v) => {
               const novoDe = Number(v);
+              // Se o novo "De" passar do "Até" atual, o "Até" acompanha para o mesmo ano
+              // (nunca um intervalo invertido) em vez de deixar a UI num estado inconsistente.
               onChange(novoDe, novoDe > ate ? novoDe : ate);
             }}
           >

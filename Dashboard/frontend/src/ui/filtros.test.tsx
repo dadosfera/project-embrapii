@@ -95,6 +95,8 @@ describe("Alternador", () => {
     fireEvent.keyDown(mensal, { key: "ArrowRight" });
     expect(screen.getByRole("radio", { name: "Anual" })).toHaveAttribute("aria-checked", "true");
     expect(screen.getByRole("radio", { name: "Mensal" })).toHaveAttribute("aria-checked", "false");
+    // Roving tabindex (WAI-ARIA): o foco do DOM tem de seguir a opção recém-marcada.
+    expect(document.activeElement).toBe(screen.getByRole("radio", { name: "Anual" }));
   });
 
   it("só a opção marcada tem tabindex 0 (roving)", () => {

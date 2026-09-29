@@ -5,6 +5,7 @@ type Props = {
   pendente?: boolean;
   type?: "submit" | "button";
   onClick?: () => void;
+  /** Precisa conter "Aplicar" (regra label-in-name): o nome acessível não pode divergir do rótulo visível. */
   ariaLabel?: string;
   className?: string;
 };
