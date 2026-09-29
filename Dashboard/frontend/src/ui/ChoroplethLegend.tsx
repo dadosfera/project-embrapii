@@ -16,17 +16,19 @@ function Amostra({ className }: { className: string }) {
 }
 
 export function ChoroplethLegend({ escala, cores, unidade, formatar, mostrarSemRegistro, mostrarZero }: Props) {
+  const semRegistro = mostrarSemRegistro ?? escala.temSemRegistro;
+  const zero = mostrarZero ?? escala.temZero;
   return (
     <figure>
       <figcaption className="tabular-nums text-xs text-muted">Legenda ({unidade})</figcaption>
       <ul className="mt-2 flex flex-col gap-1">
-        {mostrarSemRegistro ? (
+        {semRegistro ? (
           <li className="flex items-center gap-2">
             <Amostra className="hachura-sem-registro" />
             <span className="tabular-nums text-xs text-muted">sem registro</span>
           </li>
         ) : null}
-        {mostrarZero ? (
+        {zero ? (
           <li className="flex items-center gap-2">
             <Amostra className="bg-subtle" />
             <span className="tabular-nums text-xs text-muted">0</span>

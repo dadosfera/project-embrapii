@@ -37,4 +37,27 @@ describe("ChoroplethLegend", () => {
     expect(screen.queryByText("sem registro")).not.toBeInTheDocument();
     expect(screen.queryByText("0")).not.toBeInTheDocument();
   });
+
+  it("com props omitidas, segue os dados: null e 0 na entrada mostram as duas linhas", () => {
+    const escala = escalaQuantis([null, 0, 5, 100]);
+    render(<ChoroplethLegend escala={escala} cores={["#111", "#222"]} unidade="itens" formatar={numeroExato} />);
+    expect(screen.getByText("sem registro")).toBeInTheDocument();
+    expect(screen.getByText("0")).toBeInTheDocument();
+  });
+
+  it("false explícito esconde mesmo quando os dados têm null e 0", () => {
+    const escala = escalaQuantis([null, 0, 5, 100]);
+    render(
+      <ChoroplethLegend
+        escala={escala}
+        cores={["#111", "#222"]}
+        unidade="itens"
+        formatar={numeroExato}
+        mostrarSemRegistro={false}
+        mostrarZero={false}
+      />,
+    );
+    expect(screen.queryByText("sem registro")).not.toBeInTheDocument();
+    expect(screen.queryByText("0")).not.toBeInTheDocument();
+  });
 });

@@ -8,15 +8,22 @@ export type ClasseMapa =
 export type EscalaMapa = {
   classeDe(v: number | null | undefined): ClasseMapa;
   faixas: { indice: number; min: number; max: number }[];
+  /** true se `valores` tinha algum `null`/`undefined`. */
+  temSemRegistro: boolean;
+  /** true se `valores` tinha algum `0`. */
+  temZero: boolean;
 };
 
 /**
  * Quantis calculados só sobre os valores > 0. `null`/`undefined` vira "sem-registro",
  * `0` vira "zero". O limiar da classe `i` (1..k-1) é `ordenados[floor(i*n/k)]`; limiares
  * repetidos são removidos (valores iguais nunca ficam em classes diferentes), então com
- * menos de `k` valores distintos o número de classes cai junto.
+ * menos de `k` valores distintos o número de classes cai junto. O índice da classe é a
+ * quantidade de limiares ≤ v.
  */
 export function escalaQuantis(valores: (number | null | undefined)[], k = 5): EscalaMapa {
+  const temSemRegistro = valores.some((v) => v == null || Number.isNaN(v));
+  const temZero = valores.some((v) => v === 0);
   const positivos = valores.filter((v): v is number => v != null && !Number.isNaN(v) && v > 0);
   const ordenados = [...positivos].sort((a, b) => a - b);
   const n = ordenados.length;
@@ -28,36 +35,39 @@ export function escalaQuantis(valores: (number | null | undefined)[], k = 5): Es
   }
   limiares.sort((a, b) => a - b);
 
-  const numClasses = limiares.length + 1;
-  const mins = new Array<number>(numClasses).fill(Infinity);
-  const maxs = new Array<number>(numClasses).fill(-Infinity);
-
   function indiceDe(v: number): number {
     let idx = 0;
-    for (const l of limiares) if (v > l) idx++;
+    for (const l of limiares) if (v >= l) idx++;
     return idx;
   }
 
+  const membros = new Map<number, { min: number; max: number }>();
   for (const v of ordenados) {
     const idx = indiceDe(v);
-    if (v < mins[idx]) mins[idx] = v;
-    if (v > maxs[idx]) maxs[idx] = v;
+    const atual = membros.get(idx);
+    if (!atual) membros.set(idx, { min: v, max: v });
+    else {
+      if (v < atual.min) atual.min = v;
+      if (v > atual.max) atual.max = v;
+    }
   }
 
-  const faixas = mins
-    .map((min, indice) => ({ indice, min, max: maxs[indice] }))
-    .filter((f) => Number.isFinite(f.min));
+  const faixas = [...membros.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([indice, { min, max }]) => ({ indice, min, max }));
+  const faixaPorIndice = membros;
 
   function classeDe(v: number | null | undefined): ClasseMapa {
     if (v == null || Number.isNaN(v)) return { tipo: "sem-registro" };
     if (v === 0) return { tipo: "zero" };
     if (v < 0 || n === 0) return { tipo: "sem-registro" };
     const idx = indiceDe(v);
-    const f = faixas[idx] ?? faixas[faixas.length - 1];
-    return { tipo: "faixa", indice: f.indice, min: f.min, max: f.max };
+    const f = faixaPorIndice.get(idx);
+    if (!f) return { tipo: "sem-registro" };
+    return { tipo: "faixa", indice: idx, min: f.min, max: f.max };
   }
 
-  return { classeDe, faixas };
+  return { classeDe, faixas, temSemRegistro, temZero };
 }
 
 /** "1–500", ou "500" se min === max. */
