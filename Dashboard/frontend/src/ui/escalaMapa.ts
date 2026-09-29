@@ -52,18 +52,27 @@ export function escalaQuantis(valores: (number | null | undefined)[], k = 5): Es
     }
   }
 
-  const faixas = [...membros.entries()]
-    .sort(([a], [b]) => a - b)
-    .map(([indice, { min, max }]) => ({ indice, min, max }));
-  const faixaPorIndice = membros;
+  // Os índices "crus" (contagem de limiares ≤ v) podem ter buracos — ex.: [5, 100] só
+  // popula os índices 1 e 2. Renumeramos para 0..m-1 em ordem crescente, para que
+  // `faixas[i].indice === i` sempre valha e `cores[classeDe(v).indice]` combine com
+  // `cores[i]` da legenda (mesma indexação nos dois lugares).
+  const brutosOrdenados = [...membros.keys()].sort((a, b) => a - b);
+  const renumeracao = new Map<number, number>(brutosOrdenados.map((bruto, i) => [bruto, i]));
+
+  const faixas = brutosOrdenados.map((bruto) => {
+    const { min, max } = membros.get(bruto)!;
+    return { indice: renumeracao.get(bruto)!, min, max };
+  });
+  const faixaPorIndiceNovo = new Map(faixas.map((f) => [f.indice, f]));
 
   function classeDe(v: number | null | undefined): ClasseMapa {
     if (v == null || Number.isNaN(v)) return { tipo: "sem-registro" };
     if (v === 0) return { tipo: "zero" };
-    if (v < 0 || n === 0) return { tipo: "sem-registro" };
-    const idx = indiceDe(v);
-    const f = faixaPorIndice.get(idx);
-    if (!f) return { tipo: "sem-registro" };
+    if (v < 0) return { tipo: "sem-registro" };
+    const bruto = indiceDe(v);
+    const idx = renumeracao.get(bruto);
+    const f = idx === undefined ? undefined : faixaPorIndiceNovo.get(idx);
+    if (!f || idx === undefined) return { tipo: "sem-registro" };
     return { tipo: "faixa", indice: idx, min: f.min, max: f.max };
   }
 

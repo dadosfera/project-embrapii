@@ -36,40 +36,39 @@ describe("escalaQuantis", () => {
     expect(escala.temZero).toBe(true);
     expect(escala.temSemRegistro).toBe(true);
     expect(escala.faixas).toHaveLength(1);
-    const c = escala.classeDe(10);
-    expect(c.tipo).toBe("faixa");
-    if (c.tipo === "faixa") {
-      expect(c.min).toBe(10);
-      expect(c.max).toBe(10);
-    }
+    expect(escala.classeDe(10)).toEqual({ tipo: "faixa", indice: 0, min: 10, max: 10 });
   });
 
-  it("valores empatados na borda ficam na mesma classe", () => {
+  it("valores empatados na borda ficam na mesma classe (índice 0, única faixa)", () => {
     // Muitos valores repetidos no limiar de corte: garantimos que os limiares
-    // duplicados são removidos e o valor de corte não separa iguais.
+    // duplicados são removidos e o valor de corte não separa iguais. Aqui o único limiar
+    // acaba sendo o próprio 1 (o mínimo), então todo o conjunto (1's e o 2) cai numa faixa só.
     const valores = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2];
     const escala = escalaQuantis(valores);
+    expect(escala.faixas).toEqual([{ indice: 0, min: 1, max: 2 }]);
     const classes = valores.filter((v) => v === 1).map((v) => escala.classeDe(v));
-    const indices = new Set(classes.map((c) => (c.tipo === "faixa" ? c.indice : -1)));
-    expect(indices.size).toBe(1);
+    for (const c of classes) expect(c).toEqual({ tipo: "faixa", indice: 0, min: 1, max: 2 });
   });
 
-  it("dois valores positivos distintos dão 2 faixas", () => {
+  it("dois valores positivos distintos dão 2 faixas com índices 0 e 1", () => {
     const escala = escalaQuantis([5, 100]);
     expect(escala.faixas).toHaveLength(2);
-    const c5 = escala.classeDe(5);
-    const c100 = escala.classeDe(100);
-    expect(c5.tipo).toBe("faixa");
-    expect(c100.tipo).toBe("faixa");
-    if (c5.tipo === "faixa" && c100.tipo === "faixa") {
-      expect(c5.min).toBe(5);
-      expect(c5.max).toBe(5);
-      expect(c100.min).toBe(100);
-      expect(c100.max).toBe(100);
-      expect(c5.indice).not.toBe(c100.indice);
-    }
+    expect(escala.classeDe(5)).toEqual({ tipo: "faixa", indice: 0, min: 5, max: 5 });
+    expect(escala.classeDe(100)).toEqual({ tipo: "faixa", indice: 1, min: 100, max: 100 });
     expect(escala.temSemRegistro).toBe(false);
     expect(escala.temZero).toBe(false);
+  });
+
+  it("invariante: faixas[i].indice === i (contíguo a partir de 0), mesmo com buracos nos índices crus", () => {
+    for (const valores of [
+      [5, 100],
+      [0, null, 10, 10, 10],
+      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2],
+      Array.from({ length: 27 }, (_, i) => i + 1),
+    ]) {
+      const escala = escalaQuantis(valores);
+      escala.faixas.forEach((f, i) => expect(f.indice).toBe(i));
+    }
   });
 
   it('rotuloFaixa({min: 1, max: 500}, numeroExato) === "1–500"', () => {
