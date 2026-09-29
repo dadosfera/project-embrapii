@@ -14,8 +14,8 @@ import {
   DataTable,
 } from "../components/DataTable";
 
-import { Button } from "@/components/ui/button";
 import { CatmatPicker } from "../components/CatmatPicker";
+import { BotaoAplicar } from "@/ui/BotaoAplicar";
 import {
   Select,
   SelectContent,
@@ -47,6 +47,14 @@ import {
   type ModoLeitos,
 } from "../lib/api";
 
+import {
+  normalizarEstoque,
+  normalizarLeitos,
+  ordenarNulosPorUltimo,
+  type LinhaEstoque,
+  type LinhaLeitos,
+} from "./mapaDados";
+
 
 type AbaMapa =
   | "estoque"
@@ -54,58 +62,33 @@ type AbaMapa =
 
 
 type MetricaLeitos =
+  | "percentual_sus"
   | "leitos_gerais"
   | "leitos_sus"
   | "leitos_uti"
   | "leitos_uti_sus";
 
 
-type LinhaEstoque = {
-  uf: string;
-  estoque_total: number;
-  num_instituicoes: number;
-};
+/** "sem registro" (não "sem dado"): mesma linguagem do mapa para UF ausente. */
+function numeroExatoCel(v: number | null): string {
+  return v == null ? "sem registro" : numeroExato(v);
+}
 
+function quantidadeCel(v: number | null): string {
+  return v == null ? "sem registro" : quantidade(v);
+}
 
-type LinhaLeitos = {
-  uf: string;
-  leitos_gerais: number;
-  leitos_sus: number;
-  leitos_uti: number;
-  leitos_uti_sus: number;
-  instituicoes: number;
-};
+/** Participação com uma casa ("12,3%"), igual a `Fornecedores.tsx`. */
+function percentualUmaCasa(v: number): string {
+  return `${v.toLocaleString("pt-BR", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })}%`;
+}
 
-
-const TODAS_UFS = [
-  "AC",
-  "AL",
-  "AP",
-  "AM",
-  "BA",
-  "CE",
-  "DF",
-  "ES",
-  "GO",
-  "MA",
-  "MT",
-  "MS",
-  "MG",
-  "PA",
-  "PB",
-  "PR",
-  "PE",
-  "PI",
-  "RJ",
-  "RN",
-  "RS",
-  "RO",
-  "RR",
-  "SC",
-  "SP",
-  "SE",
-  "TO",
-];
+function percentualCel(v: number | null): string {
+  return v == null ? "sem registro" : percentualUmaCasa(v);
+}
 
 
 const ROTULOS_METRICA:
@@ -113,6 +96,9 @@ const ROTULOS_METRICA:
     MetricaLeitos,
     string
   > = {
+    percentual_sus:
+      "Participação do SUS (%)",
+
     leitos_gerais:
       "Leitos gerais",
 
@@ -144,145 +130,6 @@ const AVISO =
   "flex items-start gap-2 rounded-[var(--radius-md)] border border-warning-border bg-[var(--warning-soft)] px-4 py-3 text-sm leading-6 text-warning-text";
 
 
-function numero(
-  valor: unknown,
-) {
-  const convertido =
-    Number(valor);
-
-  return Number.isFinite(
-    convertido,
-  )
-    ? convertido
-    : 0;
-}
-
-
-function normalizarEstoque(
-  dados: EstoqueUf[],
-): LinhaEstoque[] {
-  const porUf =
-    new Map<
-      string,
-      LinhaEstoque
-    >();
-
-  dados.forEach(
-    (item) => {
-      if (!item.uf) {
-        return;
-      }
-
-      const uf =
-        item.uf
-          .trim()
-          .toUpperCase();
-
-      porUf.set(
-        uf,
-        {
-          uf,
-          estoque_total:
-            numero(
-              item.estoque_total,
-            ),
-          num_instituicoes:
-            numero(
-              item.num_instituicoes,
-            ),
-        },
-      );
-    },
-  );
-
-  return TODAS_UFS.map(
-    (uf) =>
-      porUf.get(
-        uf,
-      )
-      ?? {
-        uf,
-        estoque_total: 0,
-        num_instituicoes: 0,
-      },
-  );
-}
-
-
-function normalizarLeitos(
-  dados: LeitosPorUf[],
-): LinhaLeitos[] {
-  const porUf =
-    new Map<
-      string,
-      LinhaLeitos
-    >();
-
-  dados.forEach(
-    (item) => {
-      if (!item.uf) {
-        return;
-      }
-
-      const uf =
-        item.uf
-          .trim()
-          .toUpperCase();
-
-      if (
-        !TODAS_UFS.includes(
-          uf,
-        )
-      ) {
-        return;
-      }
-
-      porUf.set(
-        uf,
-        {
-          uf,
-          leitos_gerais:
-            numero(
-              item.leitos_gerais,
-            ),
-          leitos_sus:
-            numero(
-              item.leitos_sus,
-            ),
-          leitos_uti:
-            numero(
-              item.leitos_uti,
-            ),
-          leitos_uti_sus:
-            numero(
-              item.leitos_uti_sus,
-            ),
-          instituicoes:
-            numero(
-              item.instituicoes,
-            ),
-        },
-      );
-    },
-  );
-
-  return TODAS_UFS.map(
-    (uf) =>
-      porUf.get(
-        uf,
-      )
-      ?? {
-        uf,
-        leitos_gerais: 0,
-        leitos_sus: 0,
-        leitos_uti: 0,
-        leitos_uti_sus: 0,
-        instituicoes: 0,
-      },
-  );
-}
-
-
 export function Mapa() {
   const [aba, setAba] = useState<AbaMapa>("estoque");
 
@@ -310,7 +157,7 @@ export function Mapa() {
 
   const [modoLeitos, setModoLeitos] = useState<ModoLeitos>("ultima_competencia");
   const [modoLeitosAplicado, setModoLeitosAplicado] = useState<ModoLeitos | null>(null);
-  const [metricaLeitos, setMetricaLeitos] = useState<MetricaLeitos>("leitos_gerais");
+  const [metricaLeitos, setMetricaLeitos] = useState<MetricaLeitos>("percentual_sus");
   const [carregandoLeitos, setCarregandoLeitos] = useState(false);
   const [leitosBruto, setLeitosBruto] = useState<LeitosPorUf[] | null>(null);
   const [falhaLeitos, setFalhaLeitos] = useState<unknown>(null);
@@ -406,6 +253,15 @@ export function Mapa() {
   }
 
 
+  // Aba Leitos: carrega ao abrir, com o modo padrão, sem exigir clique.
+  useEffect(() => {
+    if (aba === "leitos" && !leitosBruto && !carregandoLeitos && falhaLeitos == null) {
+      void buscarMapaLeitos();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aba, leitosBruto, carregandoLeitos, falhaLeitos]);
+
+
   const estoqueNormalizado = useMemo(
     () => (estoqueBruto ? normalizarEstoque(estoqueBruto) : []),
     [estoqueBruto],
@@ -417,7 +273,7 @@ export function Mapa() {
   );
 
   const estoqueTabela = useMemo(
-    () => [...estoqueNormalizado].sort((a, b) => b.estoque_total - a.estoque_total),
+    () => ordenarNulosPorUltimo(estoqueNormalizado, (item) => item.estoque_total),
     [estoqueNormalizado],
   );
 
@@ -432,9 +288,12 @@ export function Mapa() {
   );
 
   const leitosTabela = useMemo(
-    () => [...leitosNormalizado].sort((a, b) => b[metricaLeitos] - a[metricaLeitos]),
+    () => ordenarNulosPorUltimo(leitosNormalizado, (item) => item[metricaLeitos]),
     [leitosNormalizado, metricaLeitos],
   );
+
+  const unidadeLeitos = metricaLeitos === "percentual_sus" ? "%" : "leitos";
+  const formatarLeitos = metricaLeitos === "percentual_sus" ? percentualUmaCasa : numeroExato;
 
 
   const colunasEstoque = useMemo<ColumnDef<LinhaEstoque, unknown>[]>(
@@ -443,13 +302,13 @@ export function Mapa() {
       {
         header: "Estoque",
         accessorKey: "estoque_total",
-        cell: ({ row }) => quantidade(row.original.estoque_total),
+        cell: ({ row }) => quantidadeCel(row.original.estoque_total),
         meta: { align: "right" },
       },
       {
         header: "Instituições",
         accessorKey: "num_instituicoes",
-        cell: ({ row }) => numeroExato(row.original.num_instituicoes),
+        cell: ({ row }) => numeroExatoCel(row.original.num_instituicoes),
         meta: { align: "right" },
       },
     ],
@@ -463,31 +322,37 @@ export function Mapa() {
       {
         header: "Leitos gerais",
         accessorKey: "leitos_gerais",
-        cell: ({ row }) => numeroExato(row.original.leitos_gerais),
+        cell: ({ row }) => numeroExatoCel(row.original.leitos_gerais),
         meta: { align: "right" },
       },
       {
         header: "Leitos SUS",
         accessorKey: "leitos_sus",
-        cell: ({ row }) => numeroExato(row.original.leitos_sus),
+        cell: ({ row }) => numeroExatoCel(row.original.leitos_sus),
+        meta: { align: "right" },
+      },
+      {
+        header: "Leitos SUS (%)",
+        accessorKey: "percentual_sus",
+        cell: ({ row }) => percentualCel(row.original.percentual_sus),
         meta: { align: "right" },
       },
       {
         header: "Leitos de UTI",
         accessorKey: "leitos_uti",
-        cell: ({ row }) => numeroExato(row.original.leitos_uti),
+        cell: ({ row }) => numeroExatoCel(row.original.leitos_uti),
         meta: { align: "right" },
       },
       {
         header: "Leitos de UTI SUS",
         accessorKey: "leitos_uti_sus",
-        cell: ({ row }) => numeroExato(row.original.leitos_uti_sus),
+        cell: ({ row }) => numeroExatoCel(row.original.leitos_uti_sus),
         meta: { align: "right" },
       },
       {
         header: "Instituições",
         accessorKey: "instituicoes",
-        cell: ({ row }) => numeroExato(row.original.instituicoes),
+        cell: ({ row }) => numeroExatoCel(row.original.instituicoes),
         meta: { align: "right" },
       },
     ],
@@ -582,6 +447,8 @@ export function Mapa() {
                       catmatAplicado.descricao_catmat ?? "Medicamento selecionado"
                     } — CATMAT ${catmatAplicado.codigo_catmat ?? "N/I"}`}
                     tituloValor="Estoque"
+                    unidade="unidades"
+                    formatar={quantidade}
                   />
 
 
@@ -592,7 +459,7 @@ export function Mapa() {
                       </h2>
 
                       <p className="mt-1 text-sm leading-6 text-muted">
-                        A tabela e o mapa usam a mesma resposta da consulta. UFs sem registro são mantidas com valor zero.
+                        UFs sem registro aparecem hachuradas no mapa e como "sem registro" na tabela; 0 indica registro com estoque zerado.
                       </p>
                     </div>
 
@@ -623,7 +490,7 @@ export function Mapa() {
               </h2>
 
               <p className="mt-1 text-sm leading-6 text-muted">
-                Escolha a base utilizada. A métrica pode ser alterada depois sem realizar uma nova consulta.
+                A base é aplicada com o botão Aplicar; a métrica muda o mapa na hora.
               </p>
             </div>
 
@@ -680,6 +547,7 @@ export function Mapa() {
                   </SelectTrigger>
 
                   <SelectContent position="popper">
+                    <SelectItem value="percentual_sus">Participação do SUS (%)</SelectItem>
                     <SelectItem value="leitos_gerais">Leitos gerais</SelectItem>
                     <SelectItem value="leitos_sus">Leitos SUS</SelectItem>
                     <SelectItem value="leitos_uti">Leitos de UTI</SelectItem>
@@ -690,16 +558,13 @@ export function Mapa() {
             </div>
 
 
-            <Button
+            <BotaoAplicar
               type="button"
               onClick={buscarMapaLeitos}
-              disabled={carregandoLeitos}
-              className="mx-auto mt-5 flex h-10 w-full sm:w-1/2 lg:w-1/4"
-            >
-              {carregandoLeitos
-                ? "Carregando..."
-                : "Buscar"}
-            </Button>
+              carregando={carregandoLeitos}
+              pendente={modoLeitos !== modoLeitosAplicado}
+              className="mx-auto mt-5 flex w-full flex-col items-center sm:w-1/2 lg:w-1/4"
+            />
           </div>
 
 
@@ -729,6 +594,8 @@ export function Mapa() {
                     titulo={ROTULOS_METRICA[metricaLeitos]}
                     descricao={ROTULOS_MODO[modoLeitosAplicado]}
                     tituloValor={ROTULOS_METRICA[metricaLeitos]}
+                    unidade={unidadeLeitos}
+                    formatar={formatarLeitos}
                   />
 
 
