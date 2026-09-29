@@ -1,0 +1,66 @@
+/** Escala coroplética por quantis, sem d3-scale (só o necessário para os mapas). */
+
+export type ClasseMapa =
+  | { tipo: "sem-registro" }
+  | { tipo: "zero" }
+  | { tipo: "faixa"; indice: number; min: number; max: number };
+
+export type EscalaMapa = {
+  classeDe(v: number | null | undefined): ClasseMapa;
+  faixas: { indice: number; min: number; max: number }[];
+};
+
+/**
+ * Quantis calculados só sobre os valores > 0. `null`/`undefined` vira "sem-registro",
+ * `0` vira "zero". O limiar da classe `i` (1..k-1) é `ordenados[floor(i*n/k)]`; limiares
+ * repetidos são removidos (valores iguais nunca ficam em classes diferentes), então com
+ * menos de `k` valores distintos o número de classes cai junto.
+ */
+export function escalaQuantis(valores: (number | null | undefined)[], k = 5): EscalaMapa {
+  const positivos = valores.filter((v): v is number => v != null && !Number.isNaN(v) && v > 0);
+  const ordenados = [...positivos].sort((a, b) => a - b);
+  const n = ordenados.length;
+
+  const limiares: number[] = [];
+  for (let i = 1; i < k; i++) {
+    const limiar = ordenados[Math.floor((i * n) / k)];
+    if (limiar !== undefined && !limiares.includes(limiar)) limiares.push(limiar);
+  }
+  limiares.sort((a, b) => a - b);
+
+  const numClasses = limiares.length + 1;
+  const mins = new Array<number>(numClasses).fill(Infinity);
+  const maxs = new Array<number>(numClasses).fill(-Infinity);
+
+  function indiceDe(v: number): number {
+    let idx = 0;
+    for (const l of limiares) if (v > l) idx++;
+    return idx;
+  }
+
+  for (const v of ordenados) {
+    const idx = indiceDe(v);
+    if (v < mins[idx]) mins[idx] = v;
+    if (v > maxs[idx]) maxs[idx] = v;
+  }
+
+  const faixas = mins
+    .map((min, indice) => ({ indice, min, max: maxs[indice] }))
+    .filter((f) => Number.isFinite(f.min));
+
+  function classeDe(v: number | null | undefined): ClasseMapa {
+    if (v == null || Number.isNaN(v)) return { tipo: "sem-registro" };
+    if (v === 0) return { tipo: "zero" };
+    if (v < 0 || n === 0) return { tipo: "sem-registro" };
+    const idx = indiceDe(v);
+    const f = faixas[idx] ?? faixas[faixas.length - 1];
+    return { tipo: "faixa", indice: f.indice, min: f.min, max: f.max };
+  }
+
+  return { classeDe, faixas };
+}
+
+/** "1–500", ou "500" se min === max. */
+export function rotuloFaixa(f: { min: number; max: number }, formatar: (v: number) => string): string {
+  return f.min === f.max ? formatar(f.min) : `${formatar(f.min)}–${formatar(f.max)}`;
+}
