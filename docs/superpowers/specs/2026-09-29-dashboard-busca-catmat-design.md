@@ -2,6 +2,27 @@
 
 **Data:** 29/09/2026 · **Branch:** `feat/dashboard-busca` (sobre `feat/dashboard-beast`) · **Achados do report de UX:** G6, G7, M1, M2, M3 (e o seletor CATMAT de Mapa e Compras)
 
+## Status (29/09/2026)
+
+As decisões da seção 3 foram tomadas pela opção recomendada. Os itens da seção 4 estão abaixo.
+
+| Etapa | Status | Onde |
+|---|---|---|
+| 1. Backend: índice, `busca-agrupada`, `grupo/{chave}`, `?escopo=grupo` | Feito | `747fa0a`; `backend/catmat_index.py`, `backend/api/medicamentos.py` |
+| 1b. Casos de grupo no teste de paridade Postgres × Snowflake | **Pendente**. Exige o túnel para o Postgres da UFMG, que é compartilhado; nele a flag de estoque fica `NULL` para não varrer a tabela de 39 GB | `tests/parity/cases.yaml` |
+| 2. Front: `CatmatPicker`, chips de variante, estado na URL e estados vazios em Medicamentos; Mapa e Compras | Feito | `01682ed`; `components/CatmatPicker.tsx` |
+| 3. `ui_context` do chat com item-base e códigos reunidos | Feito (`selection.item_base`, `selection.codigos_reunidos`, `filters.escopo`) | `pages/Medicamentos.tsx` |
+| 4a. Testes locais: pytest, vitest, e2e smoke com prefixo | Feito: 127 · 57 · 12/12 | `backend/tests/test_catmat_index.py`, `e2e/smoke.spec.ts` |
+| 4b. Prints em 1440 px e 390 px | Feito (conferência visual; não versionados) | — |
+| 4c. Deploy no demo2 | Feito em 29/09 18:40, com `--skip-env-build` porque o Docker Hub segue devolvendo 429 no build do ambiente | `deploy/manifest.json` (`77b1097`) |
+| 4d. Smoke e `chat.spec.ts` no publicado, com SSO | **Pendente** | `deploy/sso_storage_state.py` |
+| 4e. PR `feat/dashboard-busca` | **Pendente** (depende do PR da `feat/dashboard-beast`) | — |
+
+Em aberto fora do plano:
+- Confirmar com a UFMG o que significam os prefixos B/E/S/O do BNAFAR. Hoje a UI mostra só "BNAFAR B", sem nome.
+- Somar bases diferentes da mesma composição (seção 2.5).
+- O filtro de Compras continua com o botão "Pesquisar", que é do subprojeto C.
+
 ## 1. Problema, com números do Snowflake (`EMBRAPII_DATASUS`)
 
 A mesma coisa aparece várias vezes na busca, e cada cópia tem só uma parte dos dados.
