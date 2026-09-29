@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const GEOJSON = {
@@ -78,6 +78,43 @@ describe("MapaBrasilUf", () => {
 
     await screen.findByRole("button", { name: /MG.*10 unidades/ });
     expect(screen.getByText("5 maiores")).toBeInTheDocument();
+  });
+
+  it("5 maiores só lista UF com valor positivo (exclui 0 e sem registro)", async () => {
+    const MapaBrasilUf = await importarComponente();
+
+    render(<MapaBrasilUf dados={[{ uf: "MG", valor: 10 }, { uf: "SP", valor: 0 }]} unidade="unidades" />);
+
+    await screen.findByRole("button", { name: /MG.*10 unidades/ });
+    const painel = screen.getByRole("complementary");
+    expect(within(painel).getByText("Minas Gerais")).toBeInTheDocument();
+    expect(within(painel).queryByText("São Paulo")).not.toBeInTheDocument();
+    expect(within(painel).queryByText("Acre")).not.toBeInTheDocument();
+  });
+
+  it("sem nenhuma UF com valor positivo, mostra aviso em vez da lista", async () => {
+    const MapaBrasilUf = await importarComponente();
+
+    render(<MapaBrasilUf dados={[{ uf: "MG", valor: 0 }, { uf: "SP", valor: 0 }]} unidade="unidades" />);
+
+    await screen.findByRole("button", { name: /MG.*unidades/ });
+    const painel = screen.getByRole("complementary");
+    expect(within(painel).getByText("Nenhuma UF com valor")).toBeInTheDocument();
+    expect(within(painel).queryByRole("list")).not.toBeInTheDocument();
+  });
+
+  it("Escape no botão 'Limpar seleção' (fora do path) também limpa a UF fixada", async () => {
+    const MapaBrasilUf = await importarComponente();
+
+    render(<MapaBrasilUf dados={[{ uf: "MG", valor: 10 }, { uf: "SP", valor: 0 }]} unidade="unidades" />);
+
+    const mg = await screen.findByRole("button", { name: /MG.*10 unidades/ });
+    fireEvent.click(mg);
+    expect(mg).toHaveAttribute("aria-pressed", "true");
+
+    const limpar = screen.getByRole("button", { name: "Limpar seleção" });
+    fireEvent.keyDown(limpar, { key: "Escape" });
+    expect(mg).toHaveAttribute("aria-pressed", "false");
   });
 
   it("no modo controlado, clicar chama onFixarUf com a sigla", async () => {

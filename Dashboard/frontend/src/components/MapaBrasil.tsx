@@ -450,10 +450,11 @@ export function MapaBrasilUf({
     [caminhos],
   );
 
+  // "0" e "sem registro" não são "maiores": só faixas de valor positivo entram na lista.
   const cincoMaiores = useMemo(
     () =>
       [...caminhos]
-        .filter((estado) => estado.classe.tipo !== "sem-registro")
+        .filter((estado) => estado.classe.tipo === "faixa")
         .sort((a, b) => (b.valor ?? 0) - (a.valor ?? 0))
         .slice(0, 5),
     [caminhos],
@@ -462,6 +463,8 @@ export function MapaBrasilUf({
   const siglaAtiva = estadoHover ?? fixada;
   const estadoAtivo = siglaAtiva ? caminhoPorSigla.get(siglaAtiva) ?? null : null;
   const estadoFixado = fixada ? caminhoPorSigla.get(fixada) ?? null : null;
+  const estadoHoverObj = estadoHover && estadoHover !== fixada ? caminhoPorSigla.get(estadoHover) ?? null : null;
+  const estadoTooltip = tooltip ? caminhoPorSigla.get(tooltip.sigla) ?? null : null;
 
   function corDe(classe: ClasseMapa): string {
     if (classe.tipo === "sem-registro") return `url(#${idPatternSemRegistro})`;
@@ -482,7 +485,13 @@ export function MapaBrasilUf({
     if (evento.key === "Enter" || evento.key === " " || evento.key === "Spacebar") {
       evento.preventDefault();
       alternarFixacao(sigla);
-    } else if (evento.key === "Escape") {
+    }
+  }
+
+  // No nível do contêiner (não só no path focado): Escape limpa a UF fixada onde quer que o
+  // foco esteja dentro do mapa (um path, o botão "Limpar seleção", um item de "5 maiores"...).
+  function onKeyDownContainer(evento: KeyboardEvent<HTMLDivElement>) {
+    if (evento.key === "Escape") {
       fixar(null);
     }
   }
@@ -515,7 +524,10 @@ export function MapaBrasilUf({
       subtitle={descricao}
       source={fonte}
     >
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_220px]">
+      <div
+        className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_220px]"
+        onKeyDown={onKeyDownContainer}
+      >
         <div ref={containerRef} className="relative mx-auto w-full max-w-4xl">
           <svg
             viewBox={`0 0 ${LARGURA} ${ALTURA}`}
@@ -523,16 +535,18 @@ export function MapaBrasilUf({
             aria-label={`Mapa do Brasil: ${titulo}`}
             className="h-auto w-full"
           >
+            {/* Mesma proporção da hachura CSS da legenda (.hachura-sem-registro no index.css):
+                3px claro (basic-200) + 1px escuro (basic-600) a cada 4px, a 45°. */}
             <defs>
               <pattern
                 id={idPatternSemRegistro}
-                width={8}
-                height={8}
+                width={4}
+                height={4}
                 patternUnits="userSpaceOnUse"
                 patternTransform="rotate(45)"
               >
-                <rect width={8} height={8} fill="var(--beast-basic-200)" />
-                <rect width={4} height={8} fill="var(--beast-basic-600)" />
+                <rect width={4} height={4} fill="var(--beast-basic-200)" />
+                <rect x={3} width={1} height={4} fill="var(--beast-basic-600)" />
               </pattern>
             </defs>
 
@@ -572,9 +586,9 @@ export function MapaBrasilUf({
               />
             ) : null}
 
-            {estadoHover && estadoHover !== fixada && caminhoPorSigla.get(estadoHover) ? (
+            {estadoHoverObj ? (
               <path
-                d={caminhoPorSigla.get(estadoHover)!.d}
+                d={estadoHoverObj.d}
                 fill="none"
                 stroke="var(--text)"
                 strokeWidth={3}
@@ -584,19 +598,18 @@ export function MapaBrasilUf({
             ) : null}
           </svg>
 
-          {tooltip && caminhoPorSigla.get(tooltip.sigla) ? (
+          {tooltip && estadoTooltip ? (
             <div
               aria-hidden="true"
               className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-[var(--radius-md)] border border-line bg-panel px-2 py-1 text-xs whitespace-nowrap text-[var(--text)] shadow-[var(--shadow-card)]"
               style={{ left: tooltip.x, top: tooltip.y - 8 }}
             >
               {(() => {
-                const estado = caminhoPorSigla.get(tooltip.sigla)!;
-                const base = estado.sigla ? `${estado.nome} (${estado.sigla})` : estado.nome;
+                const base = estadoTooltip.sigla ? `${estadoTooltip.nome} (${estadoTooltip.sigla})` : estadoTooltip.nome;
                 const valorTexto =
-                  estado.classe.tipo === "sem-registro"
+                  estadoTooltip.classe.tipo === "sem-registro"
                     ? "sem registro"
-                    : `${formatar(estado.classe.tipo === "zero" ? 0 : (estado.valor ?? 0))} ${unidade}`;
+                    : `${formatar(estadoTooltip.classe.tipo === "zero" ? 0 : (estadoTooltip.valor ?? 0))} ${unidade}`;
                 return `${base}: ${valorTexto}`;
               })()}
             </div>
@@ -647,22 +660,24 @@ export function MapaBrasilUf({
                 5 maiores
               </p>
 
-              <ol className="mt-2 flex flex-col gap-1">
-                {cincoMaiores.map((estado) => (
-                  <li key={estado.id}>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-between px-2"
-                      onClick={() => alternarFixacao(estado.sigla)}
-                    >
-                      <span className="truncate">{estado.nome}</span>
-                      <span className="tabular-nums">
-                        {formatar(estado.classe.tipo === "zero" ? 0 : (estado.valor ?? 0))}
-                      </span>
-                    </Button>
-                  </li>
-                ))}
-              </ol>
+              {cincoMaiores.length > 0 ? (
+                <ol className="mt-2 flex flex-col gap-1">
+                  {cincoMaiores.map((estado) => (
+                    <li key={estado.id}>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-between px-2"
+                        onClick={() => alternarFixacao(estado.sigla)}
+                      >
+                        <span className="truncate">{estado.nome}</span>
+                        <span className="tabular-nums">{formatar(estado.valor ?? 0)}</span>
+                      </Button>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="mt-2 text-sm text-muted">Nenhuma UF com valor</p>
+              )}
             </>
           )}
         </aside>
