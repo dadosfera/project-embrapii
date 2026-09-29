@@ -16,15 +16,8 @@ test("pergunta sobre o medicamento da tela e recebe gráfico", async ({ page }) 
   });
 
   await page.goto("medicamentos");
-  await page.locator("#busca-medicamento").fill("lamotrigina");
-  await page.getByRole("button", { name: "Buscar" }).click();
-  const select = page.locator("#catmat");
-  await expect(select).toBeVisible({ timeout: 60_000 });
-  await select.selectOption({ label: /LAMOTRIGINA, DOSAGEM:100 MG/ } as never).catch(async () => {
-    const valor = await select.locator("option", { hasText: "LAMOTRIGINA, DOSAGEM:100 MG" }).first().getAttribute("value");
-    await select.selectOption(valor ?? "");
-  });
-  await page.getByRole("button", { name: "Pesquisar" }).click();
+  await page.locator("#busca-medicamento").fill("lamotrigina 100");
+  await page.getByRole("option").filter({ hasText: "LAMOTRIGINA, DOSAGEM:100 MG" }).first().click({ timeout: 60_000 });
   await expect(page.locator('[data-chat-context="KPIs"]')).toBeVisible({ timeout: 90_000 });
 
   await page.locator(".ad-chat__launcher").click();

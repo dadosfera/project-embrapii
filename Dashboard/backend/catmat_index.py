@@ -72,6 +72,16 @@ def composicao_de(descricao: str) -> str:
     return base or n
 
 
+def rotulo_composicao(descricao: str) -> str:
+    """Mesmo corte de composicao_de, mas sobre o texto original (com acento), para exibir."""
+    texto = _limpar(descricao).upper()
+    corte = _FIM_COMPOSICAO.search(texto)
+    base = (texto[: corte.start()] if corte else texto).strip(" -.")
+    if _ASSOCIACAO.search(texto.lower()) and "+" not in base:
+        base += " · ASSOCIAÇÕES"
+    return base or texto
+
+
 @dataclass
 class Variante:
     catmat_id: int
@@ -116,6 +126,7 @@ class Grupo:
         self.nome_norm = normalizar(self.nome)
         self.textos = {normalizar(v.descricao) for v in self.variantes} | {self.nome_norm}
         self.composicao = composicao_de(self.nome)
+        self.composicao_rotulo = rotulo_composicao(self.nome)
         self.associacao = "associacao" in self.composicao or "+" in self.composicao
         self.principal = self.variantes[0].catmat_id
         self.tem_compras = any(v.tem_compras for v in self.variantes)
@@ -197,8 +208,9 @@ class Indice:
                 continue
             sem_dado = 2 - int(g.tem_compras) - int(bool(g.tem_estoque))
             outro_principio = not g.nome_norm.startswith(tokens[0])  # "dipirona 500" não abre com dexametasona
-            achados.append((faixa, outro_principio, g.associacao, sem_dado, g.nome_norm, g.base, g))
-        achados.sort(key=lambda a: a[:6])
+            veterinario = "veterinari" in g.nome_norm and "veterinari" not in t
+            achados.append((faixa, outro_principio, g.associacao, veterinario, sem_dado, g.nome_norm, g.base, g))
+        achados.sort(key=lambda a: a[:7])
         return [a[-1] for a in achados[:limite]]
 
 
@@ -233,10 +245,11 @@ def aquecer() -> None:
 
 def buscar_agrupado(termo: str, limite: int = LIMITE_PADRAO, incluir_inativos: bool = False) -> List[dict]:
     """Resultados agrupados por composição, na ordem do melhor item de cada composição."""
-    blocos: Dict[str, List[dict]] = {}
+    blocos: Dict[str, dict] = {}
     for g in indice().buscar(termo, limite, incluir_inativos):
-        blocos.setdefault(g.composicao, []).append(g.to_dict())
-    return [{"composicao": c.upper(), "itens": itens} for c, itens in blocos.items()]
+        bloco = blocos.setdefault(g.composicao, {"composicao": g.composicao_rotulo, "itens": []})
+        bloco["itens"].append(g.to_dict())
+    return list(blocos.values())
 
 
 def ids_do_escopo(catmat_id: int, escopo: str) -> List[int]:

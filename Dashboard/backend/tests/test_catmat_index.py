@@ -89,3 +89,15 @@ def test_estoque_desconhecido_no_postgres():
     linhas = [{"catmat_id": 1, "codigo_catmat": "BR0000001", "descricao_catmat": "X", "tem_compras": True, "tem_estoque": None}]
     g = ci.Indice(linhas).grupo(1)
     assert g.tem_estoque is None and g.to_dict()["variantes"][0]["tem_estoque"] is None
+
+
+def test_rotulo_da_composicao_mantem_acento():
+    assert ci.rotulo_composicao("ÁCIDO FÓLICO, DOSAGEM:5 MG") == "ÁCIDO FÓLICO"
+    assert ci.rotulo_composicao("DIPIRONA SÓDICA, APRESENTAÇÃO:ASSOCIADA À ESCOPOLAMINA") == "DIPIRONA SÓDICA · ASSOCIAÇÕES"
+
+
+def test_buscar_agrupado_agrupa_por_composicao(monkeypatch, ix):
+    monkeypatch.setattr(ci, "indice", lambda: ix)
+    blocos = ci.buscar_agrupado("acido folico")
+    assert blocos[0]["composicao"] == "ÁCIDO FÓLICO"
+    assert all(i["composicao"] == "acido folico" for i in blocos[0]["itens"])

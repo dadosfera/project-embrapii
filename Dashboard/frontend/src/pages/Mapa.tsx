@@ -1,9 +1,10 @@
 import {
-  type FormEvent,
+  useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
+import { useSearchParams } from "react-router";
 
 import type {
   ColumnDef,
@@ -14,7 +15,7 @@ import {
 } from "../components/DataTable";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { CatmatPicker } from "../components/CatmatPicker";
 import {
   Select,
   SelectContent,
@@ -38,8 +39,9 @@ import {
 import {
   buscarEstoquePorUf,
   buscarLeitosPorUf,
-  buscarMedicamentos,
+  buscarGrupoCatmat,
   type CatmatItem,
+  type GrupoCatmat,
   type EstoqueUf,
   type LeitosPorUf,
   type ModoLeitos,
@@ -289,17 +291,16 @@ export function Mapa() {
   // ESTOQUE
   // =========================================
 
-  const [termoMedicamento, setTermoMedicamento] = useState("");
-  const [buscandoCatmat, setBuscandoCatmat] = useState(false);
-  const [opcoesCatmat, setOpcoesCatmat] = useState<CatmatItem[]>([]);
-  const [catmatSelecionado, setCatmatSelecionado] = useState("");
+  // Medicamento na URL (?catmat=<código-base>), igual à página Medicamentos.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const chaveUrl = searchParams.get("catmat");
+  const [grupo, setGrupo] = useState<GrupoCatmat | null>(null);
   const [carregandoEstoque, setCarregandoEstoque] = useState(false);
   const [estoqueBruto, setEstoqueBruto] = useState<EstoqueUf[] | null>(null);
   const [catmatAplicado, setCatmatAplicado] = useState<CatmatItem | null>(null);
   // Mensagens da página (validação, busca sem resultado): aviso inline.
   const [erroEstoque, setErroEstoque] = useState<string | null>(null);
   // Falhas de requisição: guardam o erro real para o ErrorState.
-  const [falhaBusca, setFalhaBusca] = useState<unknown>(null);
   const [falhaEstoque, setFalhaEstoque] = useState<unknown>(null);
 
 
@@ -316,80 +317,69 @@ export function Mapa() {
 
 
   // Cache de consultas enquanto a rota permanecer aberta.
-  const cacheEstoque = useRef(new Map<number, EstoqueUf[]>());
+  const cacheEstoque = useRef(new Map<string, EstoqueUf[]>());
   const cacheLeitos = useRef(new Map<ModoLeitos, LeitosPorUf[]>());
 
-  const formBusca = useRef<HTMLFormElement>(null);
+  const pedidoEstoque = useRef(0);
 
 
-  const itemCatmatSelecionado = useMemo(
-    () => opcoesCatmat.find((item) => String(item.catmat_id) === catmatSelecionado) ?? null,
-    [opcoesCatmat, catmatSelecionado],
-  );
-
-
-  async function localizarCatmat(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const termo = termoMedicamento.trim();
-
-    if (!termo) {
-      setErroEstoque("Digite um medicamento para localizar itens no CATMAT.");
-      return;
-    }
-
-    setBuscandoCatmat(true);
-    setErroEstoque(null);
-    setFalhaBusca(null);
-    setFalhaEstoque(null);
-    setOpcoesCatmat([]);
-    setCatmatSelecionado("");
-
-    try {
-      const resposta = await buscarMedicamentos(termo);
-
-      setOpcoesCatmat(resposta);
-
-      if (resposta.length === 0) {
-        setErroEstoque("Nenhum item do CATMAT foi encontrado para essa busca.");
-        return;
-      }
-
-      setCatmatSelecionado(String(resposta[0].catmat_id));
-    } catch (error) {
-      setFalhaBusca(error);
-    } finally {
-      setBuscandoCatmat(false);
-    }
+  function selecionarGrupo(novo: GrupoCatmat | null) {
+    if (novo) setGrupo(novo);
+    setSearchParams(novo ? { catmat: novo.base } : {});
   }
 
 
-  async function buscarMapaEstoque() {
-    if (!itemCatmatSelecionado) {
-      setErroEstoque("Selecione um item do CATMAT antes de buscar.");
+  useEffect(() => {
+    if (!chaveUrl) {
+      setGrupo(null);
       return;
     }
+    if (grupo?.base === chaveUrl) return;
+    let vivo = true;
+    buscarGrupoCatmat(chaveUrl)
+      .then((g) => vivo && setGrupo(g))
+      .catch(() => vivo && setErroEstoque(`O código CATMAT ${chaveUrl} não existe no catálogo.`));
+    return () => {
+      vivo = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chaveUrl]);
 
+
+  useEffect(() => {
+    if (grupo) {
+      void buscarMapaEstoque(grupo);
+    } else {
+      pedidoEstoque.current++;
+      setEstoqueBruto(null);
+      setCatmatAplicado(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [grupo]);
+
+
+  // Soma todas as variantes do item-base (escopo grupo), como em Medicamentos.
+  async function buscarMapaEstoque(g: GrupoCatmat) {
+    const meu = ++pedidoEstoque.current;
     setCarregandoEstoque(true);
     setErroEstoque(null);
     setFalhaEstoque(null);
 
-    const catmatId = itemCatmatSelecionado.catmat_id;
-
     try {
-      const armazenado = cacheEstoque.current.get(catmatId);
-      const resposta = armazenado ?? await buscarEstoquePorUf(catmatId);
+      const armazenado = cacheEstoque.current.get(g.base);
+      const resposta = armazenado ?? await buscarEstoquePorUf(g.catmat_id, "grupo");
+      if (meu !== pedidoEstoque.current) return;
 
       if (!armazenado) {
-        cacheEstoque.current.set(catmatId, resposta);
+        cacheEstoque.current.set(g.base, resposta);
       }
 
       setEstoqueBruto(resposta);
-      setCatmatAplicado(itemCatmatSelecionado);
+      setCatmatAplicado({ catmat_id: g.catmat_id, codigo_catmat: g.base, descricao_catmat: g.nome } as CatmatItem);
     } catch (error) {
-      setFalhaEstoque(error);
+      if (meu === pedidoEstoque.current) setFalhaEstoque(error);
     } finally {
-      setCarregandoEstoque(false);
+      if (meu === pedidoEstoque.current) setCarregandoEstoque(false);
     }
   }
 
@@ -541,86 +531,18 @@ export function Mapa() {
               </h2>
 
               <p className="mt-1 text-sm leading-6 text-muted">
-                Localize um item no CATMAT e carregue a distribuição de estoque das instituições.
+                Escolha um medicamento: o mapa soma o estoque de todos os códigos do item (apresentações e componentes do BNAFAR).
               </p>
             </div>
 
 
-            <form
-              ref={formBusca}
-              onSubmit={localizarCatmat}
+            <CatmatPicker
+              id="mapa-busca-catmat"
+              label="Medicamento / CATMAT"
+              value={grupo}
+              onSelect={selecionarGrupo}
               className="mt-5"
-            >
-              <label
-                htmlFor="mapa-busca-catmat"
-                className="block text-sm font-semibold text-[var(--text)]"
-              >
-                Medicamento / CATMAT
-              </label>
-
-              <div className="mt-2 flex flex-col gap-3 sm:flex-row">
-                <Input
-                  id="mapa-busca-catmat"
-                  type="search"
-                  value={termoMedicamento}
-                  onChange={(event) => setTermoMedicamento(event.target.value)}
-                  placeholder="Ex.: dipirona, insulina, seringa..."
-                  className="h-10 min-w-0 bg-panel sm:flex-1"
-                />
-
-                <Button
-                  type="submit"
-                  variant="outline"
-                  disabled={buscandoCatmat || !termoMedicamento.trim()}
-                  className="h-10 w-full px-5 sm:w-auto sm:min-w-36"
-                >
-                  <Icon name="search" size={16} />
-                  {buscandoCatmat
-                    ? "Localizando..."
-                    : "Localizar itens"}
-                </Button>
-              </div>
-            </form>
-
-
-            {opcoesCatmat.length > 0 && (
-              <div className="mt-5">
-                <label
-                  htmlFor="mapa-catmat-selecionado"
-                  className="block text-sm font-semibold text-[var(--text)]"
-                >
-                  Item
-                </label>
-
-                {/* Continua <select> nativo: o smoke usa selectOption() no campo "Item". */}
-                <select
-                  id="mapa-catmat-selecionado"
-                  value={catmatSelecionado}
-                  onChange={(event) => setCatmatSelecionado(event.target.value)}
-                  className="mt-2 h-10 w-full min-w-0 rounded-[var(--radius-md)] border border-line bg-panel px-3 text-sm text-[var(--text)] shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                >
-                  {opcoesCatmat.map((item) => (
-                    <option key={item.catmat_id} value={item.catmat_id}>
-                      {item.descricao_catmat ?? "Descrição não informada"}
-                      {" — CATMAT "}
-                      {item.codigo_catmat ?? "N/I"}
-                    </option>
-                  ))}
-                </select>
-
-
-                <Button
-                  type="button"
-                  onClick={buscarMapaEstoque}
-                  disabled={carregandoEstoque || !itemCatmatSelecionado}
-                  className="mx-auto mt-5 flex h-10 w-full sm:w-1/2 lg:w-1/4"
-                >
-                  {carregandoEstoque
-                    ? "Carregando..."
-                    : "Buscar"}
-                </Button>
-              </div>
-            )}
+            />
 
 
             {erroEstoque && (
@@ -632,21 +554,11 @@ export function Mapa() {
           </div>
 
 
-          {falhaBusca != null && (
-            <div className="mt-5">
-              <ErrorState
-                error={falhaBusca}
-                onRetry={() => formBusca.current?.requestSubmit()}
-              />
-            </div>
-          )}
-
-
           {falhaEstoque != null && (
             <div className="mt-5">
               <ErrorState
                 error={falhaEstoque}
-                onRetry={itemCatmatSelecionado ? buscarMapaEstoque : undefined}
+                onRetry={grupo ? () => void buscarMapaEstoque(grupo) : undefined}
               />
             </div>
           )}

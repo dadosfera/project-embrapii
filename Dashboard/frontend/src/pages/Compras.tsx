@@ -22,6 +22,7 @@ import {
 import { DataTable } from "../components/DataTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CatmatPicker } from "../components/CatmatPicker";
 import {
   Select,
   SelectContent,
@@ -55,11 +56,10 @@ import {
   buscarComprasPorTipo,
   buscarComprasRecentes,
   buscarKpisCompras,
-  buscarMedicamentos,
   buscarRankingFabricantes,
   buscarRankingFornecedores,
   listarProdutos,
-  type CatmatItem,
+  type GrupoCatmat,
   type CompraPorMes,
   type CompraPorModalidade,
   type CompraPorTipo,
@@ -95,8 +95,6 @@ type FiltrosConfirmados = FiltrosCompras & {
 };
 
 
-/** O Radix Select não aceita item com value "": "Todos os produtos" usa esta sentinela na UI. */
-const TODOS_PRODUTOS = "__todos__";
 
 
 /** Coerção numérica (a API pode mandar decimal como string). */
@@ -218,19 +216,6 @@ function umAnoAntesIso() {
     );
 
   return `${ano}-${mes}-${dia}`;
-}
-
-
-function rotuloCatmat(
-  item: CatmatItem,
-) {
-  return `${
-    item.descricao_catmat
-    ?? "Sem descrição"
-  } — CATMAT ${
-    item.codigo_catmat
-    ?? "sem código"
-  }`;
 }
 
 
@@ -357,36 +342,11 @@ function GraficoRanking({
 
 
 export function Compras() {
+  // Filtro de medicamento: item-base CATMAT (as compras ficam no código-base puro, ver backend/catmat_index.py).
   const [
-    buscaProduto,
-    setBuscaProduto,
-  ] = useState("");
-
-  const [
-    buscandoProduto,
-    setBuscandoProduto,
-  ] = useState(false);
-
-  const [
-    opcoesCatmat,
-    setOpcoesCatmat,
-  ] =
-    useState<
-      CatmatItem[]
-    >([]);
-
-  const [
-    avisoBusca,
-    setAvisoBusca,
-  ] =
-    useState<
-      string | null
-    >(null);
-
-  const [
-    catmatSelecionado,
-    setCatmatSelecionado,
-  ] = useState("");
+    grupoFiltro,
+    setGrupoFiltro,
+  ] = useState<GrupoCatmat | null>(null);
 
   const [
     dataInicio,
@@ -458,68 +418,6 @@ export function Compras() {
     );
 
 
-  const catmatAtual =
-    opcoesCatmat.find(
-      (item) =>
-        String(
-          item.catmat_id,
-        )
-        === catmatSelecionado,
-    );
-
-
-  async function buscarProduto(
-    event:
-      FormEvent<HTMLFormElement>,
-  ) {
-    event.preventDefault();
-
-    const termo =
-      buscaProduto.trim();
-
-    if (!termo) {
-      setOpcoesCatmat([]);
-      setCatmatSelecionado("");
-      setAvisoBusca(null);
-      return;
-    }
-
-    setBuscandoProduto(true);
-    setAvisoBusca(null);
-
-    try {
-      const itens =
-        await buscarMedicamentos(
-          termo,
-        );
-
-      setOpcoesCatmat(
-        itens,
-      );
-      setCatmatSelecionado(
-        "",
-      );
-
-      if (
-        itens.length === 0
-      ) {
-        setAvisoBusca(
-          "Nenhum CATMAT foi encontrado para essa busca. Você ainda pode consultar todos os produtos.",
-        );
-      }
-    } catch (error) {
-      setAvisoBusca(
-        error
-          instanceof Error
-          ? error.message
-          : "Não foi possível buscar produtos.",
-      );
-    } finally {
-      setBuscandoProduto(false);
-    }
-  }
-
-
   async function aplicarFiltros(
     event:
       FormEvent<HTMLFormElement>,
@@ -556,26 +454,9 @@ export function Compras() {
     let produtoDescricao =
       "Todos os produtos";
 
-    if (
-      catmatSelecionado
-    ) {
-      if (
-        !catmatAtual
-      ) {
-        setErro(
-          "Selecione um produto válido.",
-        );
-        return;
-      }
-
-      catmatId =
-        catmatAtual
-          .catmat_id;
-
-      produtoDescricao =
-        rotuloCatmat(
-          catmatAtual,
-        );
+    if (grupoFiltro) {
+      catmatId = grupoFiltro.catmat_id;
+      produtoDescricao = `${grupoFiltro.nome} — CATMAT ${grupoFiltro.base}`;
     }
 
     setCarregando(true);
@@ -1218,52 +1099,6 @@ export function Compras() {
         </h2>
 
         <form
-          onSubmit={buscarProduto}
-          className="mt-5"
-        >
-          <label
-            htmlFor="busca-produto-compras"
-            className="block text-sm font-semibold text-[var(--text)]"
-          >
-            Filtrar por medicamento ou produto CATMAT (opcional)
-          </label>
-
-          <div className="mt-2 flex flex-col gap-3 sm:flex-row">
-            <Input
-              id="busca-produto-compras"
-              value={buscaProduto}
-              onChange={(event) => setBuscaProduto(event.target.value)}
-              placeholder="Ex.: dipirona, insulina, seringa..."
-              className="h-10 bg-panel sm:flex-1"
-            />
-
-            <Button
-              type="submit"
-              variant="outline"
-              disabled={buscandoProduto}
-              className="h-10 w-full px-5 sm:w-auto"
-            >
-              <Icon name="search" size={16} />
-              {buscandoProduto
-                ? "Buscando..."
-                : "Buscar CATMAT"}
-            </Button>
-          </div>
-        </form>
-
-
-        {avisoBusca && (
-          <div
-            role="status"
-            className="mt-3 flex items-start gap-2 rounded-[var(--radius-md)] border border-warning-border bg-[var(--warning-soft)] px-4 py-3 text-sm leading-6 text-warning-text"
-          >
-            <Icon name="alert" size={18} className="mt-0.5" />
-            {avisoBusca}
-          </div>
-        )}
-
-
-        <form
           ref={formFiltros}
           onSubmit={aplicarFiltros}
           className="mt-6 border-t border-line pt-6"
@@ -1305,43 +1140,14 @@ export function Compras() {
               />
             </div>
 
-            <div className="min-w-0">
-              <label
-                htmlFor="produto-compras"
-                className="block text-sm font-semibold text-[var(--text)]"
-              >
-                Produto
-              </label>
-
-              <Select
-                value={catmatSelecionado || TODOS_PRODUTOS}
-                onValueChange={(valor) =>
-                  setCatmatSelecionado(valor === TODOS_PRODUTOS ? "" : valor)
-                }
-              >
-                <SelectTrigger
-                  id="produto-compras"
-                  className="mt-2 h-10 w-full min-w-0 bg-panel data-[size=default]:h-10"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-
-                <SelectContent position="popper" className="max-w-[min(90vw,48rem)]">
-                  <SelectItem value={TODOS_PRODUTOS}>
-                    Todos os produtos
-                  </SelectItem>
-
-                  {opcoesCatmat.map((item) => (
-                    <SelectItem
-                      key={item.catmat_id}
-                      value={String(item.catmat_id)}
-                    >
-                      {rotuloCatmat(item)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <CatmatPicker
+              id="produto-compras"
+              label="Medicamento (opcional)"
+              value={grupoFiltro}
+              onSelect={setGrupoFiltro}
+              placeholder="Todos os produtos — digite para filtrar"
+              className="min-w-0"
+            />
 
             <div>
               <label
