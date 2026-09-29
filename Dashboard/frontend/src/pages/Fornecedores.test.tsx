@@ -133,4 +133,16 @@ describe("Fornecedores", () => {
     await screen.findByRole("button", { name: /Minas Gerais \(MG\)/ });
     expect(screen.queryByLabelText("UF (tabela)")).not.toBeInTheDocument();
   });
+
+  it("o mapa mostra um único '%' (sem duplicar), na legenda e no rótulo da UF", async () => {
+    stubApi();
+    render(<Fornecedores />);
+
+    // MG: 20/100 = 20,0% — o rótulo tem "20,0 %" (um símbolo), nunca "20,0% %".
+    const mg = await screen.findByRole("button", { name: /Minas Gerais \(MG\)/ });
+    expect(mg.getAttribute("aria-label")).toMatch(/20,0 %$/);
+    expect(mg.getAttribute("aria-label")).not.toMatch(/%\s*%/);
+
+    expect(screen.getByText("Legenda (%)")).toBeInTheDocument();
+  });
 });

@@ -90,6 +90,15 @@ function percentualCel(v: number | null): string {
   return v == null ? "sem registro" : percentualUmaCasa(v);
 }
 
+/**
+ * Mesma casa decimal, mas sem o "%": é o `formatar` do mapa quando a métrica é
+ * `percentual_sus`, que já recebe `unidade="%"` e monta o rótulo sozinho — com
+ * `percentualUmaCasa` viraria "12,3% %".
+ */
+function numeroUmaCasa(v: number): string {
+  return v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+}
+
 
 const ROTULOS_METRICA:
   Record<
@@ -293,7 +302,7 @@ export function Mapa() {
   );
 
   const unidadeLeitos = metricaLeitos === "percentual_sus" ? "%" : "leitos";
-  const formatarLeitos = metricaLeitos === "percentual_sus" ? percentualUmaCasa : numeroExato;
+  const formatarLeitos = metricaLeitos === "percentual_sus" ? numeroUmaCasa : numeroExato;
 
 
   const colunasEstoque = useMemo<ColumnDef<LinhaEstoque, unknown>[]>(
