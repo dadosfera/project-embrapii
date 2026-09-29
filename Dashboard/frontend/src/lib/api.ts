@@ -228,6 +228,22 @@ export interface CompraRecente {
   nome_mantenedora: string | null;
 }
 
+export interface IntervaloCompras {
+  data_minima: string | null;
+  data_maxima: string | null;
+  ano_minimo: number | null;
+  ano_maximo: number | null;
+}
+
+export interface CompraPorAno {
+  ano: number;
+  valor_total: number;
+  numero_compras: number;
+  quantidade_itens: number;
+  maior_registro: number | null;
+  maior_registro_fornecedor: string | null;
+}
+
 function paramsCompras(f: FiltrosCompras) {
   return {
     data_inicio: f.data_inicio,
@@ -243,6 +259,14 @@ export function buscarKpisCompras(filtros: FiltrosCompras): Promise<KpisCompras>
 
 export function buscarComprasPorMes(filtros: FiltrosCompras): Promise<CompraPorMes[]> {
   return request<CompraPorMes[]>("/api/compras/por-mes", paramsCompras(filtros));
+}
+
+export function buscarIntervaloCompras(): Promise<IntervaloCompras> {
+  return request<IntervaloCompras>("/api/compras/intervalo");
+}
+
+export function buscarComprasPorAno(filtros: FiltrosCompras): Promise<CompraPorAno[]> {
+  return request<CompraPorAno[]>("/api/compras/por-ano", paramsCompras(filtros));
 }
 
 export function buscarRankingFornecedores(

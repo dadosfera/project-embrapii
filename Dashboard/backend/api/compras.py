@@ -95,6 +95,127 @@ def _params_comuns(
     )
 
 
+@router.get("/intervalo")
+def get_intervalo_compras():
+    # Q(pg, sf): altere as duas versões juntas
+    query = Q(
+        pg="""
+        SELECT
+            MIN(c.data_de_compra) AS data_minima,
+            MAX(c.data_de_compra) AS data_maxima
+        FROM mantenedora_compra_produto c;
+    """,
+        sf="""
+        SELECT
+            MIN(c.data_de_compra) AS data_minima,
+            MAX(c.data_de_compra) AS data_maxima
+        FROM mantenedora_compra_produto c
+        """,
+    )
+
+    try:
+        linha = fetch_one(query) or {
+            "data_minima": None,
+            "data_maxima": None,
+        }
+    except (DatabaseError, RuntimeError) as exc:
+        raise _database_error(exc) from exc
+
+    data_minima = linha.get("data_minima")
+    data_maxima = linha.get("data_maxima")
+
+    return {
+        "data_minima": data_minima,
+        "data_maxima": data_maxima,
+        "ano_minimo": _extrair_ano(data_minima),
+        "ano_maximo": _extrair_ano(data_maxima),
+    }
+
+
+def _extrair_ano(valor) -> Optional[int]:
+    if valor is None:
+        return None
+    if hasattr(valor, "year"):
+        return valor.year
+    return int(str(valor)[:4])
+
+
+@router.get("/por-ano")
+def get_compras_por_ano(
+    data_inicio: date,
+    data_fim: date,
+    catmat_id: Optional[int] = Query(default=None, ge=1),
+    tipo_compra: str = Query(default=""),
+):
+    where_sql, parametros = _params_comuns(
+        data_inicio,
+        data_fim,
+        catmat_id,
+        tipo_compra,
+    )
+
+    # Q(pg, sf): altere as duas versões juntas
+    query = Q(
+        pg=f"""
+        WITH base AS (
+            SELECT
+                EXTRACT(YEAR FROM c.data_de_compra)::int AS ano,
+                c.preco_total,
+                c.quantidade_de_itens,
+                COALESCE(NULLIF(BTRIM(f.nome_fornecedor), ''), 'Nao informado') AS fornecedor,
+                ROW_NUMBER() OVER (
+                    PARTITION BY EXTRACT(YEAR FROM c.data_de_compra)
+                    ORDER BY c.preco_total DESC NULLS LAST, c.mantenedora_compra_produto_id DESC
+                ) AS posicao
+            FROM mantenedora_compra_produto c
+            LEFT JOIN fornecedor f ON f.fornecedor_id = c.fornecedor_id
+            WHERE {where_sql}
+        )
+        SELECT
+            ano,
+            COALESCE(SUM(preco_total), 0) AS valor_total,
+            COUNT(*) AS numero_compras,
+            COALESCE(SUM(quantidade_de_itens), 0) AS quantidade_itens,
+            MAX(CASE WHEN posicao = 1 THEN preco_total END) AS maior_registro,
+            MAX(CASE WHEN posicao = 1 THEN fornecedor END) AS maior_registro_fornecedor
+        FROM base
+        GROUP BY ano
+        ORDER BY ano;
+    """,
+        sf=f"""
+        WITH base AS (
+            SELECT
+                YEAR(c.data_de_compra) AS ano,
+                c.preco_total,
+                c.quantidade_de_itens,
+                COALESCE(NULLIF(TRIM(f.nome_fornecedor), ''), 'Nao informado') AS fornecedor,
+                ROW_NUMBER() OVER (
+                    PARTITION BY YEAR(c.data_de_compra)
+                    ORDER BY c.preco_total DESC NULLS LAST, c.mantenedora_compra_produto_id DESC
+                ) AS posicao
+            FROM mantenedora_compra_produto c
+            LEFT JOIN fornecedor f ON f.fornecedor_id = c.fornecedor_id
+            WHERE {where_sql}
+        )
+        SELECT
+            ano,
+            COALESCE(SUM(preco_total), 0) AS valor_total,
+            COUNT(*) AS numero_compras,
+            COALESCE(SUM(quantidade_de_itens), 0) AS quantidade_itens,
+            MAX(CASE WHEN posicao = 1 THEN preco_total END) AS maior_registro,
+            MAX(CASE WHEN posicao = 1 THEN fornecedor END) AS maior_registro_fornecedor
+        FROM base
+        GROUP BY ano
+        ORDER BY ano
+        """,
+    )
+
+    try:
+        return fetch_all(query, parametros)
+    except (DatabaseError, RuntimeError) as exc:
+        raise _database_error(exc) from exc
+
+
 @router.get("/kpis")
 def get_kpis_compras(
     data_inicio: date,

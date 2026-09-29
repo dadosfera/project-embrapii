@@ -15,6 +15,10 @@ cases:
   - /api/compras/kpis?data_inicio={data_inicio}&data_fim={data_fim}&catmat_id={catmat_compras}
   - /api/compras/kpis?data_inicio={data_inicio}&data_fim={data_fim}&tipo_compra=JUDICIAL
   - /api/compras/kpis?data_inicio={data_inicio}&data_fim={data_fim}&catmat_id={catmat_compras}&tipo_compra=ADMINISTRATIVA
+  - /api/compras/intervalo
+  - /api/compras/por-ano?data_inicio={data_inicio}&data_fim={data_fim}
+  - /api/compras/por-ano?data_inicio=2020-01-01&data_fim=2025-12-31
+  - /api/compras/por-ano?data_inicio=2020-01-01&data_fim=2025-12-31&catmat_id={catmat_compras}&tipo_compra=ADMINISTRATIVA
   - /api/compras/por-mes?data_inicio={data_inicio}&data_fim={data_fim}
   - /api/compras/fornecedores?data_inicio={data_inicio}&data_fim={data_fim}&limite=15
   - /api/compras/fabricantes?data_inicio={data_inicio}&data_fim={data_fim}&limite=15
