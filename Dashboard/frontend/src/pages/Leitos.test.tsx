@@ -49,6 +49,25 @@ function stubApi() {
   ]);
 }
 
+// Radix Select em jsdom precisa desses stubs (não implementados no jsdom): o Content usa
+// ResizeObserver para medir o popper, e o Item usa hasPointerCapture ao lidar com seleção por
+// ponteiro.
+function comStubsDoRadixSelect() {
+  Object.assign(HTMLElement.prototype, {
+    hasPointerCapture: () => false,
+    scrollIntoView: () => {},
+  });
+}
+
+/** Promise controlável de fora, para simular uma resposta de evolução que demora a resolver. */
+function deferido<T>() {
+  let resolve!: (v: T) => void;
+  const promise = new Promise<T>((r) => {
+    resolve = r;
+  });
+  return { promise, resolve };
+}
+
 function renderLeitos() {
   return render(
     <MemoryRouter>
@@ -128,5 +147,71 @@ describe("Leitos", () => {
     fireEvent.click(within(grupo).getByRole("radio", { name: "UTI" }));
 
     expect(within(grupo).getByRole("radio", { name: "UTI" })).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("uma evolução isolada em voo não sobrescreve o painel mais novo (outra UF)", async () => {
+    vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
+    comStubsDoRadixSelect();
+
+    vi.mocked(buscarOpcoesLeitos).mockResolvedValue({
+      data_minima: "2010-01-01",
+      data_maxima: "2026-01-01",
+      ufs: ["SP", "RJ"],
+    });
+
+    // O painel para "" (Todas) e o painel para "RJ" trazem evoluções bem distintas, para
+    // conseguirmos identificar qual delas sobrou na tela no final do teste.
+    vi.mocked(buscarPainelLeitos).mockImplementation(async (filtros) => {
+      if (filtros.uf === "RJ") {
+        return {
+          ...painelPadrao(),
+          evolucao: [
+            { competencia: "2021-06-01", leitos_gerais: 777_777, leitos_sus: 1, leitos_uti: 1, leitos_uti_sus: 1, instituicoes: 1 },
+          ],
+        };
+      }
+      return painelPadrao();
+    });
+
+    const evolucaoAntiga = deferido<Awaited<ReturnType<typeof buscarEvolucaoLeitos>>>();
+    vi.mocked(buscarEvolucaoLeitos).mockReturnValue(evolucaoAntiga.promise);
+
+    renderLeitos();
+
+    // 1) Carga inicial (uf ""), depois abre a aba Evolução e dispara um pedido de evolução
+    // que fica pendente (a resposta só chega mais tarde, por mockReturnValue acima).
+    await screen.findByRole("tab", { name: "Evolução histórica" });
+    fireEvent.mouseDown(screen.getByRole("tab", { name: "Evolução histórica" }));
+
+    const inicio = await screen.findByLabelText("Início da evolução");
+    fireEvent.change(inicio, { target: { value: "2025-01-01" } });
+    fireEvent.click(screen.getByRole("button", { name: "Aplicar período da evolução" }));
+
+    await waitFor(() => expect(buscarEvolucaoLeitos).toHaveBeenCalledWith("", "2025-01-01", "2026-01-01"));
+
+    // 2) Enquanto isso ainda está em voo, troca a UF para RJ e aplica os filtros gerais: um
+    // painel novo (com evolução própria, marcador 777.777) é carregado por cima.
+    fireEvent.click(screen.getByLabelText("Unidade Federativa"));
+    fireEvent.click(await screen.findByRole("option", { name: "RJ" }));
+    fireEvent.click(screen.getByRole("button", { name: "Aplicar" }));
+
+    await waitFor(() => expect(buscarPainelLeitos).toHaveBeenCalledWith({ modo: "ultima_competencia", uf: "RJ" }, "2024-01-01", "2026-01-01"));
+
+    // carregarPainel volta a aba para "uf"; volta para "Evolução histórica" para conferir
+    // o dado exibido na tabela de evolução.
+    fireEvent.mouseDown(await screen.findByRole("tab", { name: "Evolução histórica" }));
+    expect(await screen.findByText("777.777")).toBeInTheDocument();
+
+    // 3) Só agora a resposta velha da evolução (uf "") chega. Ela não pode sobrescrever a
+    // evolução do painel de RJ que já está na tela.
+    evolucaoAntiga.resolve([
+      { competencia: "1999-12-01", leitos_gerais: 424_242, leitos_sus: 1, leitos_uti: 1, leitos_uti_sus: 1, instituicoes: 1 },
+    ]);
+
+    // Dá tempo para a promise resolvida se propagar (se ela for aplicada, o marcador aparece).
+    await new Promise((r) => setTimeout(r, 20));
+
+    expect(screen.queryByText("424.242")).not.toBeInTheDocument();
+    expect(screen.getByText("777.777")).toBeInTheDocument();
   });
 });

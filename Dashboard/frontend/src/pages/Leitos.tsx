@@ -224,12 +224,25 @@ export function Leitos() {
   const pedidoPainel = useRef(0);
   const pedidoEvolucao = useRef(0);
 
+  // Espelha filtrosConfirmados de forma síncrona (a closure de aplicarEvolucao capturaria
+  // um valor velho): usado para checar, depois do await, se o painel mudou de UF enquanto
+  // o pedido de evolução estava em voo.
+  const filtrosConfirmadosRef = useRef<FiltrosConfirmados | null>(null);
+  useEffect(() => {
+    filtrosConfirmadosRef.current = filtrosConfirmados;
+  }, [filtrosConfirmados]);
+
   // Resolve a paleta uma vez por montagem (lê as variáveis CSS do documento).
   const paleta = useMemo(() => categorica(), []);
 
 
   async function carregarPainel(filtros: FiltrosLeitos, dataInicio: string, dataFim: string) {
     const meu = ++pedidoPainel.current;
+
+    // Invalida qualquer requisição de evolução isolada em voo: se ela resolver depois deste
+    // painel (possivelmente para outra UF), não pode sobrescrever dados.evolucao com dado velho.
+    pedidoEvolucao.current += 1;
+    setCarregandoEvolucao(false);
 
     setFalhaPainel(null);
     setAvisos([]);
@@ -299,6 +312,7 @@ export function Leitos() {
           setDataInicioEvolucao(inicio);
           setDataFimEvolucao(fim);
 
+          if (!ativo) return;
           await carregarPainel({ modo: "ultima_competencia", uf: "" }, inicio, fim);
         }
       } catch (error) {
@@ -349,16 +363,21 @@ export function Leitos() {
     if (!filtrosConfirmados) return;
 
     const meu = ++pedidoEvolucao.current;
+    const ufPedido = filtrosConfirmados.uf;
 
     setCarregandoEvolucao(true);
 
     try {
       const evolucao = await buscarEvolucaoLeitos(
-        filtrosConfirmados.uf,
+        ufPedido,
         dataInicioEvolucao,
         dataFimEvolucao,
       );
+      // Descarta se: (a) um pedido mais novo (outra evolução, ou um carregarPainel) já
+      // invalidou este; ou (b) o painel mudou de UF enquanto este pedido estava em voo —
+      // aplicar a resposta antiga sobrescreveria a evolução da UF nova com dado da antiga.
       if (meu !== pedidoEvolucao.current) return;
+      if (filtrosConfirmadosRef.current?.uf !== ufPedido) return;
 
       setDados((atual) => (atual ? { ...atual, evolucao } : atual));
       setFiltrosConfirmados((atual) =>
