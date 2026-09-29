@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
 
+from backend.catmat_index import buscar_agrupado, com_ids, ids_do_escopo, indice
 from backend.database import DatabaseError, Q, fetch_all, fetch_one
 
 
@@ -77,8 +78,38 @@ def buscar_medicamentos(
         raise _database_error(exc) from exc
 
 
+# item = só o catmat_id pedido (comportamento original); grupo = todas as variantes do item-base
+# (código-base + apresentações + componentes BNAFAR), ver backend/catmat_index.py
+ESCOPO = Query("item", pattern="^(item|grupo)$")
+
+
+@router.get("/busca-agrupada")
+def buscar_agrupado_route(
+    q: str = Query(..., min_length=1, max_length=120, description="Nome, princípio ativo ou código CATMAT."),
+    limite: int = Query(30, ge=1, le=100),
+    incluir_inativos: bool = False,
+):
+    """Itens-base CATMAT agrupados por composição, sem acento e com o princípio ativo antes das associações."""
+    try:
+        return buscar_agrupado(q, limite, incluir_inativos)
+    except (DatabaseError, RuntimeError) as exc:
+        raise _database_error(exc) from exc
+
+
+@router.get("/grupo/{chave}")
+def grupo_catmat(chave: str):
+    """Item-base de um código CATMAT (base ou variante) ou catmat_id — usado para restaurar a seleção da URL."""
+    try:
+        g = indice().grupo(chave)
+    except (DatabaseError, RuntimeError) as exc:
+        raise _database_error(exc) from exc
+    if not g:
+        raise HTTPException(status_code=404, detail=f"CATMAT {chave} não encontrado.")
+    return g.to_dict()
+
+
 @router.get("/{catmat_id}/produtos")
-def listar_produtos_do_catmat(catmat_id: int):
+def listar_produtos_do_catmat(catmat_id: int, escopo: str = ESCOPO):
     """
     Equivalente ao get_produtos_by_catmat() do Streamlit.
     """
@@ -107,6 +138,8 @@ def listar_produtos_do_catmat(catmat_id: int):
         """,
     )
 
+    query = com_ids(query, ids_do_escopo(catmat_id, escopo))
+
     try:
         return fetch_all(
             query,
@@ -117,7 +150,7 @@ def listar_produtos_do_catmat(catmat_id: int):
 
 
 @router.get("/{catmat_id}/resumo")
-def resumo_medicamento(catmat_id: int):
+def resumo_medicamento(catmat_id: int, escopo: str = ESCOPO):
     """
     KPIs da página de medicamentos seguindo a mesma lógica
     do Streamlit.
@@ -227,6 +260,8 @@ def resumo_medicamento(catmat_id: int):
         """,
     )
 
+    query = com_ids(query, ids_do_escopo(catmat_id, escopo))
+
     try:
         result = fetch_one(
             query,
@@ -246,6 +281,7 @@ def resumo_medicamento(catmat_id: int):
 @router.get("/{catmat_id}/lotes-vencendo")
 def lotes_vencendo(
     catmat_id: int,
+    escopo: str = ESCOPO,
     dias: int = Query(
         90,
         ge=1,
@@ -342,6 +378,8 @@ def lotes_vencendo(
         """,
     )
 
+    query = com_ids(query, ids_do_escopo(catmat_id, escopo))
+
     try:
         items = fetch_all(
             query,
@@ -361,7 +399,7 @@ def lotes_vencendo(
 
 
 @router.get("/{catmat_id}/estoque-por-uf")
-def estoque_por_uf(catmat_id: int):
+def estoque_por_uf(catmat_id: int, escopo: str = ESCOPO):
     """
     Equivalente ao get_estoque_por_uf() do Streamlit.
 
@@ -436,6 +474,8 @@ def estoque_por_uf(catmat_id: int):
         """,
     )
 
+    query = com_ids(query, ids_do_escopo(catmat_id, escopo))
+
     try:
         return fetch_all(
             query,
@@ -446,7 +486,7 @@ def estoque_por_uf(catmat_id: int):
 
 
 @router.get("/{catmat_id}/compras/evolucao-preco")
-def evolucao_preco_compra(catmat_id: int):
+def evolucao_preco_compra(catmat_id: int, escopo: str = ESCOPO):
     """
     Média do preço unitário por data de compra.
     """
@@ -489,6 +529,8 @@ def evolucao_preco_compra(catmat_id: int):
         """,
     )
 
+    query = com_ids(query, ids_do_escopo(catmat_id, escopo))
+
     try:
         return fetch_all(
             query,
@@ -501,6 +543,7 @@ def evolucao_preco_compra(catmat_id: int):
 @router.get("/{catmat_id}/compras/fornecedores")
 def compras_por_fornecedor(
     catmat_id: int,
+    escopo: str = ESCOPO,
     limite: int = Query(15, ge=1, le=100),
 ):
     """
@@ -555,6 +598,8 @@ def compras_por_fornecedor(
         """,
     )
 
+    query = com_ids(query, ids_do_escopo(catmat_id, escopo))
+
     try:
         return fetch_all(
             query,
@@ -570,6 +615,7 @@ def compras_por_fornecedor(
 @router.get("/{catmat_id}/compras/fabricantes")
 def compras_por_fabricante(
     catmat_id: int,
+    escopo: str = ESCOPO,
     limite: int = Query(15, ge=1, le=100),
 ):
     """
@@ -624,6 +670,8 @@ def compras_por_fabricante(
         """,
     )
 
+    query = com_ids(query, ids_do_escopo(catmat_id, escopo))
+
     try:
         return fetch_all(
             query,
@@ -639,6 +687,7 @@ def compras_por_fabricante(
 @router.get("/{catmat_id}/compras")
 def historico_compras(
     catmat_id: int,
+    escopo: str = ESCOPO,
     limite: int = Query(500, ge=1, le=1000),
     offset: int = Query(0, ge=0),
 ):
@@ -711,6 +760,8 @@ def historico_compras(
         OFFSET %(offset)s
         """,
     )
+
+    query = com_ids(query, ids_do_escopo(catmat_id, escopo))
 
     try:
         items = fetch_all(
