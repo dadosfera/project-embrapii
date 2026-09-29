@@ -5,7 +5,7 @@ import {
   useRef,
   useState,
   type KeyboardEvent,
-  type MouseEvent,
+  type PointerEvent,
 } from "react";
 
 import {
@@ -261,6 +261,10 @@ export function MapaBrasilUf({
   }
 
   function alternarFixacao(sigla: string) {
+    // Limpa o hover ao (des)fixar: no touch (e depois do foco por teclado), o hover pode ter
+    // ficado "grudado" na UF tocada/focada — sem isto, ao desafixar o painel não voltaria para
+    // "5 maiores" porque `siglaAtiva = estadoHover ?? fixada` continuaria lendo o hover velho.
+    setEstadoHover(null);
     fixar(fixada === sigla ? null : sigla);
   }
 
@@ -472,13 +476,28 @@ export function MapaBrasilUf({
     return cores[classe.indice] ?? cores.at(-1) ?? "var(--beast-basic-300)";
   }
 
-  function onMouseMove(evento: MouseEvent<SVGPathElement>, sigla: string) {
+  // Só o mouse aciona hover/tooltip: no touch (e no synthetic mouseover que alguns navegadores
+  // disparam após o toque), `onPointerEnter` não teria como disparar `onPointerLeave` de volta
+  // (não há "sair" sem tocar em outro lugar), e o hover ficava travado na UF tocada.
+  function onPointerEnter(evento: PointerEvent<SVGPathElement>, sigla: string) {
+    if (evento.pointerType !== "mouse") return;
+    setEstadoHover(sigla);
+  }
+
+  function onPointerMove(evento: PointerEvent<SVGPathElement>, sigla: string) {
+    if (evento.pointerType !== "mouse") return;
     const rect = containerRef.current?.getBoundingClientRect();
     setTooltip({
       sigla,
       x: evento.clientX - (rect?.left ?? 0),
       y: evento.clientY - (rect?.top ?? 0),
     });
+  }
+
+  function onPointerLeave(evento: PointerEvent<SVGPathElement>) {
+    if (evento.pointerType !== "mouse") return;
+    setEstadoHover(null);
+    setTooltip(null);
   }
 
   function onKeyDownPath(evento: KeyboardEvent<SVGPathElement>, sigla: string) {
@@ -562,12 +581,9 @@ export function MapaBrasilUf({
                 role="button"
                 aria-pressed={fixada === estado.sigla}
                 aria-label={rotuloAria(estado, unidade, formatar)}
-                onMouseEnter={() => setEstadoHover(estado.sigla)}
-                onMouseMove={(evento) => onMouseMove(evento, estado.sigla)}
-                onMouseLeave={() => {
-                  setEstadoHover(null);
-                  setTooltip(null);
-                }}
+                onPointerEnter={(evento) => onPointerEnter(evento, estado.sigla)}
+                onPointerMove={(evento) => onPointerMove(evento, estado.sigla)}
+                onPointerLeave={onPointerLeave}
                 onFocus={() => setEstadoHover(estado.sigla)}
                 onBlur={() => setEstadoHover(null)}
                 onClick={() => alternarFixacao(estado.sigla)}

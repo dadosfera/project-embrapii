@@ -117,6 +117,26 @@ describe("MapaBrasilUf", () => {
     expect(mg).toHaveAttribute("aria-pressed", "false");
   });
 
+  it("toque não trava o hover: após tocar e (des)fixar duas vezes, o painel volta a '5 maiores'", async () => {
+    const MapaBrasilUf = await importarComponente();
+
+    render(<MapaBrasilUf dados={[{ uf: "MG", valor: 10 }, { uf: "SP", valor: 0 }]} unidade="unidades" />);
+
+    const mg = await screen.findByRole("button", { name: /MG.*10 unidades/ });
+
+    // Simula o toque: pointerType "touch" não deve setar hover/tooltip (só "mouse" seta).
+    fireEvent.pointerEnter(mg, { pointerType: "touch" });
+    fireEvent.pointerMove(mg, { pointerType: "touch" });
+
+    fireEvent.click(mg);
+    expect(mg).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText("Minas Gerais")).toBeInTheDocument();
+
+    fireEvent.click(mg);
+    expect(mg).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByText("5 maiores")).toBeInTheDocument();
+  });
+
   it("no modo controlado, clicar chama onFixarUf com a sigla", async () => {
     const MapaBrasilUf = await importarComponente();
     const onFixarUf = vi.fn();

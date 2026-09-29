@@ -42,6 +42,9 @@ function renderMapa() {
 
 describe("Mapa: aba Leitos, métrica Participação do SUS", () => {
   beforeEach(() => {
+    // Sem isto, a contagem de chamadas de buscarLeitosPorUf vaza entre testes (vi.mock não
+    // reseta sozinho), o que quebra qualquer teste que confira toHaveBeenCalledTimes.
+    vi.clearAllMocks();
     vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true,
@@ -67,4 +70,19 @@ describe("Mapa: aba Leitos, métrica Participação do SUS", () => {
 
     expect(screen.getByText("Legenda (%)")).toBeInTheDocument();
   });
+
+  it("o botão Aplicar de Leitos não começa 'pendente' antes da primeira aplicação", async () => {
+    renderMapa();
+
+    fireEvent.mouseDown(screen.getByRole("tab", { name: "Leitos por estado" }));
+
+    // Antes de qualquer clique em Aplicar, modoLeitosAplicado é null: não deve marcar pendente
+    // (senão o botão mostraria "Há alterações não aplicadas." assim que a aba abre).
+    await screen.findByRole("button", { name: "Aplicar" });
+    expect(screen.queryByText("Há alterações não aplicadas.")).not.toBeInTheDocument();
+
+    await waitFor(() => expect(buscarLeitosPorUf).toHaveBeenCalled());
+    expect(screen.queryByText("Há alterações não aplicadas.")).not.toBeInTheDocument();
+  });
+
 });

@@ -335,13 +335,15 @@ export function Leitos() {
   async function aplicarFiltros(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!filtrosConfirmados) return;
+    // Se a carga automática inicial falhou, `filtrosConfirmados` nunca chega a existir — sem
+    // este fallback para as datas da evolução, "Tentar de novo" (ErrorState) e "Aplicar" ficam
+    // sem efeito algum (o retorno antecipado abaixo nunca deixava carregarPainel rodar).
+    const dataInicio = filtrosConfirmados?.dataInicio ?? dataInicioEvolucao;
+    const dataFim = filtrosConfirmados?.dataFim ?? dataFimEvolucao;
 
-    await carregarPainel(
-      { modo, uf },
-      filtrosConfirmados.dataInicio,
-      filtrosConfirmados.dataFim,
-    );
+    if (!dataInicio || !dataFim) return;
+
+    await carregarPainel({ modo, uf }, dataInicio, dataFim);
   }
 
 

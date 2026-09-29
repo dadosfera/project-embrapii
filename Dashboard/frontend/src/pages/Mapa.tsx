@@ -559,7 +559,7 @@ export function Mapa() {
               type="button"
               onClick={buscarMapaLeitos}
               carregando={carregandoLeitos}
-              pendente={modoLeitos !== modoLeitosAplicado}
+              pendente={modoLeitosAplicado != null && modoLeitos !== modoLeitosAplicado}
               className="mx-auto mt-5 flex w-full flex-col items-center sm:w-1/2 lg:w-1/4"
             />
           </div>

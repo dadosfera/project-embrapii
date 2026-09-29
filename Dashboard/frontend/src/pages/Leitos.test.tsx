@@ -135,6 +135,34 @@ describe("Leitos", () => {
     expect(buscarPainelLeitos).toHaveBeenCalledTimes(1);
   });
 
+  it("quando a carga automática inicial falha, 'Tentar de novo' chama buscarPainelLeitos de novo", async () => {
+    vi.mocked(buscarOpcoesLeitos).mockResolvedValue({
+      data_minima: "2010-01-01",
+      data_maxima: "2026-01-01",
+      ufs: ["SP", "RJ"],
+    });
+    vi.mocked(buscarPainelLeitos).mockRejectedValueOnce(new Error("falhou"));
+    renderLeitos();
+
+    const retry = await screen.findByRole("button", { name: "Tentar de novo" });
+    expect(buscarPainelLeitos).toHaveBeenCalledTimes(1);
+
+    vi.mocked(buscarPainelLeitos).mockResolvedValue(painelPadrao());
+    fireEvent.click(retry);
+
+    // Sem filtrosConfirmados (a carga inicial nunca chegou a aplicar), aplicarFiltros cai
+    // para as datas da evolução (dataInicioEvolucao/dataFimEvolucao), que a carga de opções
+    // já preencheu com o intervalo padrão.
+    await waitFor(() => {
+      expect(buscarPainelLeitos).toHaveBeenCalledTimes(2);
+    });
+    expect(buscarPainelLeitos).toHaveBeenLastCalledWith(
+      { modo: "ultima_competencia", uf: "" },
+      "2024-01-01",
+      "2026-01-01",
+    );
+  });
+
   it("o Alternador 'UTI' troca as barras da aba Distribuição por UF", async () => {
     stubApi();
     renderLeitos();
