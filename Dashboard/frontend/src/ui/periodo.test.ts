@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { anoDeIso, anosEntre, datasDoPeriodo, rotuloPeriodo } from "./periodo";
+import { anosEntre, datasDoPeriodo, rotuloPeriodo } from "./periodo";
 
 describe("anosEntre", () => {
   it("lista os anos do intervalo, inclusive as pontas", () => {
@@ -25,20 +25,5 @@ describe("rotuloPeriodo", () => {
   });
   it("intervalo usa meia-risca", () => {
     expect(rotuloPeriodo(2020, 2025)).toBe("2020–2025");
-  });
-});
-
-describe("anoDeIso", () => {
-  it("lê o ano dos 4 primeiros caracteres", () => {
-    expect(anoDeIso("2023-05-10")).toBe(2023);
-  });
-  it("funciona com data e hora", () => {
-    expect(anoDeIso("2024-01-01T00:00:00Z")).toBe(2024);
-  });
-  it("null devolve null", () => {
-    expect(anoDeIso(null)).toBeNull();
-  });
-  it("string vazia devolve null", () => {
-    expect(anoDeIso("")).toBeNull();
   });
 });

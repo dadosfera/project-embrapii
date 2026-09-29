@@ -179,13 +179,6 @@ export interface KpisCompras {
   numero_mantenedoras: number;
 }
 
-export interface CompraPorMes {
-  mes: string;
-  valor_total: number;
-  numero_compras: number;
-  quantidade_itens: number;
-}
-
 export interface RankingFornecedorCompra {
   fornecedor: string;
   valor_total: number;
@@ -255,10 +248,6 @@ function paramsCompras(f: FiltrosCompras) {
 
 export function buscarKpisCompras(filtros: FiltrosCompras): Promise<KpisCompras> {
   return request<KpisCompras>("/api/compras/kpis", paramsCompras(filtros));
-}
-
-export function buscarComprasPorMes(filtros: FiltrosCompras): Promise<CompraPorMes[]> {
-  return request<CompraPorMes[]>("/api/compras/por-mes", paramsCompras(filtros));
 }
 
 export function buscarIntervaloCompras(): Promise<IntervaloCompras> {

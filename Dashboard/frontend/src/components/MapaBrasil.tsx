@@ -686,7 +686,7 @@ export function MapaBrasilUf({
                         onClick={() => alternarFixacao(estado.sigla)}
                       >
                         <span className="truncate">{estado.nome}</span>
-                        <span className="tabular-nums">{formatar(estado.valor ?? 0)}</span>
+                        <span className="tabular-nums">{formatar(estado.valor ?? 0)} {unidade}</span>
                       </Button>
                     </li>
                   ))}

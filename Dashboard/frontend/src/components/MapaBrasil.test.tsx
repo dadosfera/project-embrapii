@@ -137,6 +137,16 @@ describe("MapaBrasilUf", () => {
     expect(screen.getByText("5 maiores")).toBeInTheDocument();
   });
 
+  it("5 maiores mostra a unidade, igual ao painel de estado selecionado", async () => {
+    const MapaBrasilUf = await importarComponente();
+
+    render(<MapaBrasilUf dados={[{ uf: "MG", valor: 10 }, { uf: "SP", valor: 0 }]} unidade="unidades" />);
+
+    await screen.findByRole("button", { name: /MG.*10 unidades/ });
+    const painel = screen.getByRole("complementary");
+    expect(within(painel).getByText(/10 unidades/)).toBeInTheDocument();
+  });
+
   it("no modo controlado, clicar chama onFixarUf com a sigla", async () => {
     const MapaBrasilUf = await importarComponente();
     const onFixarUf = vi.fn();

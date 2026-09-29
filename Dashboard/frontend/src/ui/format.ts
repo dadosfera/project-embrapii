@@ -44,6 +44,11 @@ export function quantidade(v: Num): string {
 export function numeroUmaCasa(v: Num): string {
   return vazio(v) ? SEM_DADO : umaCasaFmt.format(v);
 }
+/** Participação com uma casa ("12,3%"): `numeroUmaCasa` mais o símbolo "%", ou SEM_DADO. */
+export function percentual(v: Num): string {
+  const texto = numeroUmaCasa(v);
+  return texto === SEM_DADO ? SEM_DADO : `${texto}%`;
+}
 /** "AAAA-MM-DD" (com ou sem hora) → "DD/MM/AAAA", sem passar por Date para não deslocar o fuso. */
 export function data(v: string | null | undefined): string {
   if (!v) return SEM_DADO;

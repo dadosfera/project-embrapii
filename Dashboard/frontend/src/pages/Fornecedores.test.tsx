@@ -67,6 +67,8 @@ function stubApi() {
 
 describe("Fornecedores", () => {
   beforeEach(() => {
+    // Sem isto, chamadas de testes anteriores vazam nas contagens (vi.mock não reseta sozinho).
+    vi.clearAllMocks();
     vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true,
@@ -132,6 +134,44 @@ describe("Fornecedores", () => {
 
     await screen.findByRole("button", { name: /Minas Gerais \(MG\)/ });
     expect(screen.queryByLabelText("UF (tabela)")).not.toBeInTheDocument();
+  });
+
+  it("sem anos na base (/intervalo devolve null), mostra EmptyState em vez de skeleton eterno", async () => {
+    vi.mocked(buscarIntervaloCompras).mockResolvedValue({
+      data_minima: null,
+      data_maxima: null,
+      ano_minimo: null,
+      ano_maximo: null,
+    });
+
+    render(<Fornecedores />);
+
+    expect(await screen.findByText("Sem compras na base")).toBeInTheDocument();
+    // Nem o mapa nem o ranking devem ficar presos num skeleton de carregamento.
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(buscarMapaFornecedoresPorUf).not.toHaveBeenCalled();
+    expect(buscarRankingFornecedores).not.toHaveBeenCalled();
+  });
+
+  it("quando /intervalo falha, o mapa e o ranking não ficam presos num skeleton eterno", async () => {
+    vi.mocked(buscarIntervaloCompras).mockRejectedValue(new Error("falhou"));
+
+    render(<Fornecedores />);
+
+    await screen.findByText("Não foi possível carregar");
+    // Sem o reset de carregandoMapa/carregandoRanking, estes dois `aria-busy` continuariam
+    // montados para sempre (o efeito que os desliga nunca roda sem anoDe/anoAte).
+    expect(screen.queryAllByRole("status", { busy: true })).toHaveLength(0);
+    expect(document.querySelector('[aria-busy="true"]')).not.toBeInTheDocument();
+  });
+
+  it("passa 'disabled' ao PeriodoAnos enquanto mapa/ranking carregam", async () => {
+    stubApi();
+    render(<Fornecedores />);
+
+    await screen.findByRole("button", { name: /Minas Gerais \(MG\)/ });
+    const fieldset = document.querySelector("fieldset");
+    expect(fieldset).not.toBeDisabled();
   });
 
   it("o mapa mostra um único '%' (sem duplicar), na legenda e no rótulo da UF", async () => {

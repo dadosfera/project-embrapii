@@ -177,6 +177,34 @@ describe("Leitos", () => {
     expect(within(grupo).getByRole("radio", { name: "UTI" })).toHaveAttribute("aria-checked", "true");
   });
 
+  it("falha na evolução isolada mostra um ErrorState próprio na aba, sem acionar o da página inteira", async () => {
+    stubApi();
+    renderLeitos();
+
+    await screen.findByRole("tab", { name: "Evolução histórica" });
+    fireEvent.mouseDown(screen.getByRole("tab", { name: "Evolução histórica" }));
+
+    vi.mocked(buscarEvolucaoLeitos).mockRejectedValueOnce(new Error("evolução falhou"));
+
+    const inicio = await screen.findByLabelText("Início da evolução");
+    fireEvent.change(inicio, { target: { value: "2025-01-01" } });
+    fireEvent.click(screen.getByRole("button", { name: "Aplicar período da evolução" }));
+
+    await waitFor(() => expect(buscarEvolucaoLeitos).toHaveBeenCalledTimes(1));
+
+    // ErrorState próprio dentro da aba: a página continua mostrando o painel (KPIs) normal.
+    expect(await screen.findByText("Não foi possível carregar")).toBeInTheDocument();
+    expect((await screen.findAllByText("Leitos gerais")).length).toBeGreaterThan(0);
+
+    vi.mocked(buscarEvolucaoLeitos).mockResolvedValue([
+      { competencia: "2025-06-01", leitos_gerais: 200, leitos_sus: 100, leitos_uti: 20, leitos_uti_sus: 10, instituicoes: 30 },
+    ]);
+    fireEvent.click(screen.getByRole("button", { name: "Tentar de novo" }));
+
+    await waitFor(() => expect(buscarEvolucaoLeitos).toHaveBeenCalledTimes(2));
+    expect(screen.queryByText("Não foi possível carregar")).not.toBeInTheDocument();
+  });
+
   it("uma evolução isolada em voo não sobrescreve o painel mais novo (outra UF)", async () => {
     vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
     comStubsDoRadixSelect();

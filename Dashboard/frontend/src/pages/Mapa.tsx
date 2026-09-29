@@ -29,7 +29,7 @@ import { EmptyState } from "@/ui/EmptyState";
 import { ErrorState } from "@/ui/ErrorState";
 import { Icon } from "@/ui/Icon";
 import { PageHeader } from "@/ui/PageHeader";
-import { numeroExato, numeroUmaCasa, quantidade } from "@/ui/format";
+import { numeroExato, numeroUmaCasa, percentual, quantidade } from "@/ui/format";
 
 import {
   MapaBrasilUf,
@@ -78,13 +78,8 @@ function quantidadeCel(v: number | null): string {
   return v == null ? "sem registro" : quantidade(v);
 }
 
-/** Participação com uma casa ("12,3%"), igual a `Fornecedores.tsx`. */
-function percentualUmaCasa(v: number): string {
-  return `${numeroUmaCasa(v)}%`;
-}
-
 function percentualCel(v: number | null): string {
-  return v == null ? "sem registro" : percentualUmaCasa(v);
+  return v == null ? "sem registro" : percentual(v);
 }
 
 
@@ -165,6 +160,9 @@ export function Mapa() {
   const cacheLeitos = useRef(new Map<ModoLeitos, LeitosPorUf[]>());
 
   const pedidoEstoque = useRef(0);
+  // Descarta respostas de pedidos antigos: sem isto, dois cliques rápidos em "Aplicar" (ou
+  // um "Aplicar" seguido de troca de aba) podiam deixar uma resposta velha sobrescrever a nova.
+  const pedidoLeitos = useRef(0);
 
 
   function selecionarGrupo(novo: GrupoCatmat | null) {
@@ -229,12 +227,14 @@ export function Mapa() {
 
 
   async function buscarMapaLeitos() {
+    const meu = ++pedidoLeitos.current;
     setCarregandoLeitos(true);
     setFalhaLeitos(null);
 
     try {
       const armazenado = cacheLeitos.current.get(modoLeitos);
       const resposta = armazenado ?? await buscarLeitosPorUf({ modo: modoLeitos, uf: "" });
+      if (meu !== pedidoLeitos.current) return;
 
       if (!armazenado) {
         cacheLeitos.current.set(modoLeitos, resposta);
@@ -243,9 +243,9 @@ export function Mapa() {
       setLeitosBruto(resposta);
       setModoLeitosAplicado(modoLeitos);
     } catch (error) {
-      setFalhaLeitos(error);
+      if (meu === pedidoLeitos.current) setFalhaLeitos(error);
     } finally {
-      setCarregandoLeitos(false);
+      if (meu === pedidoLeitos.current) setCarregandoLeitos(false);
     }
   }
 

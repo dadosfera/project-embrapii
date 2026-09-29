@@ -85,4 +85,25 @@ describe("Mapa: aba Leitos, métrica Participação do SUS", () => {
     expect(screen.queryByText("Há alterações não aplicadas.")).not.toBeInTheDocument();
   });
 
+  it("uma falha seguida de 'Tentar de novo' dispara só mais um pedido, e o painel reflete a resposta dele", async () => {
+    // Cobre o contador `pedidoLeitos` (o mesmo padrão de `pedidoEstoque`): a falha limpa
+    // falhaLeitos/mostra Skeleton, e a resposta que acaba na tela é a do pedido disparado pelo
+    // retry — nunca uma resposta de um pedido anterior que viesse a resolver fora de ordem.
+    vi.mocked(buscarLeitosPorUf)
+      .mockRejectedValueOnce(new Error("falhou"))
+      .mockResolvedValueOnce([
+        { uf: "MG", leitos_gerais: 999_999, leitos_sus: 1, leitos_uti: 1, leitos_uti_sus: 1, instituicoes: 1 },
+      ]);
+
+    renderMapa();
+    fireEvent.mouseDown(screen.getByRole("tab", { name: "Leitos por estado" }));
+
+    const retry = await screen.findByRole("button", { name: "Tentar de novo" });
+    expect(buscarLeitosPorUf).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(retry);
+
+    await waitFor(() => expect(buscarLeitosPorUf).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText("999.999")).toBeInTheDocument();
+  });
 });

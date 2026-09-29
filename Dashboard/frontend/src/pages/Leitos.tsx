@@ -46,7 +46,7 @@ import {
   data as dataBR,
   numeroCompacto,
   numeroExato,
-  SEM_DADO,
+  percentual,
 } from "@/ui/format";
 
 import {
@@ -112,16 +112,6 @@ function numeroOuNulo(valor: unknown): number | null {
   if (valor === null || valor === undefined || valor === "") return null;
   const convertido = Number(valor);
   return Number.isFinite(convertido) ? convertido : null;
-}
-
-
-/** Participação com uma casa ("12,3%"). O format.ts não tem percentual, por isso fica aqui. */
-function percentual(valor: number | null | undefined) {
-  if (valor === null || valor === undefined || Number.isNaN(valor)) return SEM_DADO;
-  return `${valor.toLocaleString("pt-BR", {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  })}%`;
 }
 
 
@@ -211,6 +201,9 @@ export function Leitos() {
   const [erroEvolucao, setErroEvolucao] = useState<string | null>(null);
   // Falha de requisição do painel: guarda o erro real para o ErrorState.
   const [falhaPainel, setFalhaPainel] = useState<unknown>(null);
+  // Falha da evolução isolada (aba "Evolução histórica"): estado próprio, para não acionar o
+  // ErrorState de página inteira quando só a evolução falhou (o resto do painel continua ok).
+  const [falhaEvolucao, setFalhaEvolucao] = useState<unknown>(null);
   const [avisos, setAvisos] = useState<string[]>([]);
   const [filtrosConfirmados, setFiltrosConfirmados] = useState<FiltrosConfirmados | null>(null);
   const [dados, setDados] = useState<DadosLeitos | null>(null);
@@ -218,6 +211,7 @@ export function Leitos() {
   const [metricaUf, setMetricaUf] = useState<MetricaUf>("gerais");
 
   const formFiltros = useRef<HTMLFormElement>(null);
+  const formEvolucao = useRef<HTMLFormElement>(null);
 
   // Descarta respostas de pedidos antigos (padrão de Compras.tsx): um pedido por fluxo,
   // porque o painel inteiro e a evolução isolada podem estar em voo ao mesmo tempo.
@@ -245,6 +239,7 @@ export function Leitos() {
     setCarregandoEvolucao(false);
 
     setFalhaPainel(null);
+    setFalhaEvolucao(null);
     setAvisos([]);
     setCarregando(true);
     setAba("uf");
@@ -351,6 +346,7 @@ export function Leitos() {
     event.preventDefault();
 
     setErroEvolucao(null);
+    setFalhaEvolucao(null);
 
     if (!dataInicioEvolucao || !dataFimEvolucao) {
       setErroEvolucao("Informe o início e o final da evolução histórica.");
@@ -388,7 +384,7 @@ export function Leitos() {
           : atual,
       );
     } catch (error) {
-      if (meu === pedidoEvolucao.current) setFalhaPainel(error);
+      if (meu === pedidoEvolucao.current) setFalhaEvolucao(error);
     } finally {
       if (meu === pedidoEvolucao.current) setCarregandoEvolucao(false);
     }
@@ -1018,6 +1014,7 @@ export function Leitos() {
                     </h2>
 
                     <form
+                      ref={formEvolucao}
                       onSubmit={aplicarEvolucao}
                       className="mt-4 flex flex-wrap items-end gap-4 rounded-[var(--radius-md)] border border-line bg-panel p-4"
                     >
@@ -1079,7 +1076,14 @@ export function Leitos() {
                       </div>
                     )}
 
-                    {evolucaoGrafico.length === 0 ? (
+                    {falhaEvolucao != null ? (
+                      <div className="mt-4">
+                        <ErrorState
+                          error={falhaEvolucao}
+                          onRetry={() => formEvolucao.current?.requestSubmit()}
+                        />
+                      </div>
+                    ) : evolucaoGrafico.length === 0 ? (
                       <div className="mt-4">
                         <EmptyState
                           title="Sem competências no período"

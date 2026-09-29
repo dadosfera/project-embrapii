@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { anotarOutliers, notaOutlier, LIMITE_OUTLIER } from "./comprasAnual";
+import { anotarOutliers, completarAnos, notaOutlier, LIMITE_OUTLIER } from "./comprasAnual";
 import type { CompraPorAno } from "../lib/api";
 
 function linha(sobrescreve: Partial<CompraPorAno> = {}): CompraPorAno {
@@ -67,5 +67,44 @@ describe("anotarOutliers", () => {
     ]);
 
     expect(ano.outlier).toBe(false);
+  });
+
+  it("acentua 'Nao informado' vindo sem acento do backend, igual ao caso null", () => {
+    const [comAcento, semAcento, ausente] = anotarOutliers([
+      linha({ ano: 2020, maior_registro_fornecedor: "Não informado" }),
+      linha({ ano: 2021, maior_registro_fornecedor: "Nao informado" }),
+      linha({ ano: 2022, maior_registro_fornecedor: null }),
+    ]);
+
+    expect(notaOutlier(comAcento)).toMatch(/\(Não informado\)/);
+    expect(notaOutlier(semAcento)).toMatch(/\(Não informado\)/);
+    expect(notaOutlier(ausente)).toMatch(/\(Não informado\)/);
+  });
+});
+
+describe("completarAnos", () => {
+  it("preenche com linhas zeradas os anos sem compras entre de..ate", () => {
+    const completo = completarAnos(
+      [linha({ ano: 2020 }), linha({ ano: 2023 })],
+      2020,
+      2023,
+    );
+
+    expect(completo.map((a) => a.ano)).toEqual([2020, 2021, 2022, 2023]);
+    expect(completo[1]).toMatchObject({
+      ano: 2021,
+      valor_total: 0,
+      numero_compras: 0,
+      quantidade_itens: 0,
+      maior_registro: null,
+      maior_registro_fornecedor: null,
+    });
+    // Anos com dado real não são mexidos.
+    expect(completo[0]).toMatchObject({ ano: 2020, valor_total: 1_000_000 });
+  });
+
+  it("com todos os anos presentes, devolve as mesmas linhas", () => {
+    const linhas = [linha({ ano: 2020 }), linha({ ano: 2021 })];
+    expect(completarAnos(linhas, 2020, 2021)).toEqual(linhas);
   });
 });

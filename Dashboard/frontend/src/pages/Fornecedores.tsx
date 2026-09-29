@@ -21,8 +21,8 @@ import {
   numeroCompacto,
   numeroExato,
   numeroUmaCasa,
+  percentual,
   quantidade,
-  SEM_DADO,
 } from "@/ui/format";
 import { PeriodoAnos } from "@/ui/PeriodoAnos";
 import { anosEntre, datasDoPeriodo } from "@/ui/periodo";
@@ -38,13 +38,6 @@ import {
 /** Compras vêm do DATASUS; origem e sócios do fornecedor, do CNPJ na Receita Federal. */
 const FONTE =
   "DATASUS (compras); origem do fornecedor: Receita Federal, dados abertos de CNPJ via BrasilAPI";
-
-
-/** Participação com uma casa ("12,3%"). O format.ts não tem percentual, por isso fica aqui. */
-function percentual(valor: number | null | undefined) {
-  if (valor === null || valor === undefined || Number.isNaN(valor)) return SEM_DADO;
-  return `${numeroUmaCasa(valor)}%`;
-}
 
 
 /** `null` quando não há compra no período (UF sem registro), em vez de 0%. */
@@ -141,9 +134,19 @@ export function Fornecedores() {
         if (resposta.ano_minimo != null && resposta.ano_maximo != null) {
           setAnoDe(resposta.ano_minimo);
           setAnoAte(resposta.ano_maximo);
+        } else {
+          // Sem anos disponíveis: os efeitos do mapa/ranking (guardados por `anoDe/anoAte`)
+          // nunca chegam a rodar — sem isto, os dois ficariam "carregando" para sempre.
+          setCarregandoMapa(false);
+          setCarregandoRanking(false);
         }
       } catch (error) {
-        if (ativo) setFalhaIntervalo(error);
+        if (!ativo) return;
+        setFalhaIntervalo(error);
+        // Idem para a falha: os efeitos do mapa/ranking dependem de anoDe/anoAte, que nunca
+        // chegam a ser setados — sem isto, o skeleton do mapa/ranking ficaria eterno.
+        setCarregandoMapa(false);
+        setCarregandoRanking(false);
       } finally {
         if (ativo) setCarregandoIntervalo(false);
       }
@@ -299,6 +302,10 @@ export function Fornecedores() {
 
   const semMapa = falhaMapa != null;
 
+  // O /intervalo respondeu (sem falhar), mas não trouxe nenhum ano: não há compras na base.
+  const semDadosBase =
+    !carregandoIntervalo && falhaIntervalo == null && (anoMinimo == null || anoMaximo == null);
+
   return (
     <main id="conteudo" tabIndex={-1} className="mx-auto min-h-[calc(100vh-4rem)] max-w-[1440px] space-y-6 px-4 py-7 sm:px-6 sm:py-9 lg:px-8 lg:py-10">
       <PageHeader
@@ -321,10 +328,11 @@ export function Fornecedores() {
               setAnoDe(de);
               setAnoAte(ate);
             }}
+            disabled={carregandoMapa || carregandoRanking}
           />
-        ) : (
+        ) : carregandoIntervalo ? (
           <Skeleton className="h-16 w-full max-w-sm" />
-        )}
+        ) : null}
       </section>
 
       {falhaIntervalo != null && (
@@ -334,116 +342,125 @@ export function Fornecedores() {
         />
       )}
 
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-        <KpiCard
-          label="Itens de fornecedores nacionais"
-          value={semMapa ? null : resumoGeral.totalNacional}
-          format={numeroCompacto}
-          loading={carregandoMapa}
-        />
-
-        <KpiCard
-          label="Itens de fornecedores estrangeiros"
-          value={semMapa ? null : resumoGeral.totalEstrangeiro}
-          format={numeroCompacto}
-          hint="Inclui subsidiárias de grupos estrangeiros."
-          loading={carregandoMapa}
-        />
-
-        <KpiCard
-          label="% estrangeiro (geral)"
-          value={semMapa ? null : resumoGeral.percentualEstrangeiro}
-          format={percentual}
-          exact={percentual}
-          loading={carregandoMapa}
-        />
-      </section>
-
-      {carregandoMapa ? (
-        <div aria-busy="true" className="rounded-[var(--radius-md)] border border-line bg-panel p-4 shadow-[var(--shadow-card)] sm:p-5">
-          <Skeleton className="h-6 w-72 max-w-full" />
-          <Skeleton className="mt-5 h-[420px]" />
-          <p className="sr-only">Carregando mapa...</p>
-        </div>
-      ) : falhaMapa != null ? (
-        <ErrorState
-          error={falhaMapa}
-          onRetry={() => setTentativaMapa((n) => n + 1)}
+      {semDadosBase ? (
+        <EmptyState
+          title="Sem compras na base"
+          cause="Não há compras registradas na base de dados."
         />
       ) : (
-        <MapaBrasilUf
-          dados={dadosMapaFormatados}
-          titulo="Origem dos fornecedores por estado"
-          descricao="Percentual de itens comprados de fornecedores estrangeiros, por UF da mantenedora compradora. Estados mais escuros têm maior participação de fornecedores estrangeiros. Clique numa UF para filtrar o ranking."
-          tituloValor="% de itens estrangeiros"
-          unidade="%"
-          formatar={numeroUmaCasa}
-          fonte={FONTE}
-          ufFixada={ufFiltro || null}
-          onFixarUf={(uf) => setUfFiltro(uf ?? "")}
-        />
-      )}
+        <>
+          <section className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+            <KpiCard
+              label="Itens de fornecedores nacionais"
+              value={semMapa ? null : resumoGeral.totalNacional}
+              format={numeroCompacto}
+              loading={carregandoMapa}
+            />
 
-      <section>
-        <h2 className="text-xl font-semibold tracking-tight text-[var(--text)]">
-          Ranking de fornecedores
-        </h2>
-        <p className="mt-1 text-sm leading-6 text-muted">
-          100 maiores fornecedores no período, ordenados por valor total comprado.
-        </p>
+            <KpiCard
+              label="Itens de fornecedores estrangeiros"
+              value={semMapa ? null : resumoGeral.totalEstrangeiro}
+              format={numeroCompacto}
+              hint="Inclui subsidiárias de grupos estrangeiros."
+              loading={carregandoMapa}
+            />
 
-        <div aria-live="polite" className="mt-3 flex flex-wrap items-center gap-2 text-sm text-muted">
-          {ufFiltro ? (
-            <>
-              <span>
-                Tabela filtrada por <strong className="text-[var(--text)]">{ufFiltro}</strong>
-              </span>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setUfFiltro("")}
-              >
-                Limpar UF
-              </Button>
-            </>
-          ) : (
-            <span>Tabela: todas as UFs. Clique numa UF do mapa para filtrar.</span>
-          )}
-        </div>
+            <KpiCard
+              label="% estrangeiro (geral)"
+              value={semMapa ? null : resumoGeral.percentualEstrangeiro}
+              format={percentual}
+              exact={percentual}
+              loading={carregandoMapa}
+            />
+          </section>
 
-        <div className="mt-3">
-          {carregandoRanking ? (
-            <div aria-busy="true" className="space-y-2">
-              <Skeleton className="h-10" />
-              {[1, 2, 3, 4, 5, 6].map((item) => (
-                <Skeleton key={item} className="h-9" />
-              ))}
+          {carregandoMapa ? (
+            <div aria-busy="true" className="rounded-[var(--radius-md)] border border-line bg-panel p-4 shadow-[var(--shadow-card)] sm:p-5">
+              <Skeleton className="h-6 w-72 max-w-full" />
+              <Skeleton className="mt-5 h-[420px]" />
+              <p className="sr-only">Carregando mapa...</p>
             </div>
-          ) : falhaRanking != null ? (
+          ) : falhaMapa != null ? (
             <ErrorState
-              error={falhaRanking}
-              onRetry={() => setTentativaRanking((n) => n + 1)}
-            />
-          ) : ranking.length === 0 ? (
-            <EmptyState
-              title="Sem fornecedores no período"
-              cause={
-                ufFiltro
-                  ? `Não há compras com fornecedor identificado em ${ufFiltro} entre as datas selecionadas.`
-                  : "Não há compras com fornecedor identificado entre as datas selecionadas."
-              }
+              error={falhaMapa}
+              onRetry={() => setTentativaMapa((n) => n + 1)}
             />
           ) : (
-            <>
-              <DataTable data={ranking} columns={colunas} pageSize={15} />
-              <p className="mt-3 text-xs text-muted">
-                Fonte: {FONTE}
-              </p>
-            </>
+            <MapaBrasilUf
+              dados={dadosMapaFormatados}
+              titulo="Origem dos fornecedores por estado"
+              descricao="Percentual de itens comprados de fornecedores estrangeiros, por UF da mantenedora compradora. Estados mais escuros têm maior participação de fornecedores estrangeiros. Clique numa UF para filtrar o ranking."
+              tituloValor="% de itens estrangeiros"
+              unidade="%"
+              formatar={numeroUmaCasa}
+              fonte={FONTE}
+              ufFixada={ufFiltro || null}
+              onFixarUf={(uf) => setUfFiltro(uf ?? "")}
+            />
           )}
-        </div>
-      </section>
+
+          <section>
+            <h2 className="text-xl font-semibold tracking-tight text-[var(--text)]">
+              Ranking de fornecedores
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-muted">
+              100 maiores fornecedores no período, ordenados por valor total comprado.
+            </p>
+
+            <div aria-live="polite" className="mt-3 flex flex-wrap items-center gap-2 text-sm text-muted">
+              {ufFiltro ? (
+                <>
+                  <span>
+                    Tabela filtrada por <strong className="text-[var(--text)]">{ufFiltro}</strong>
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setUfFiltro("")}
+                  >
+                    Limpar UF
+                  </Button>
+                </>
+              ) : (
+                <span>Tabela: todas as UFs. Clique numa UF do mapa para filtrar.</span>
+              )}
+            </div>
+
+            <div className="mt-3">
+              {carregandoRanking ? (
+                <div aria-busy="true" className="space-y-2">
+                  <Skeleton className="h-10" />
+                  {[1, 2, 3, 4, 5, 6].map((item) => (
+                    <Skeleton key={item} className="h-9" />
+                  ))}
+                </div>
+              ) : falhaRanking != null ? (
+                <ErrorState
+                  error={falhaRanking}
+                  onRetry={() => setTentativaRanking((n) => n + 1)}
+                />
+              ) : ranking.length === 0 ? (
+                <EmptyState
+                  title="Sem fornecedores no período"
+                  cause={
+                    ufFiltro
+                      ? `Não há compras com fornecedor identificado em ${ufFiltro} entre as datas selecionadas.`
+                      : "Não há compras com fornecedor identificado entre as datas selecionadas."
+                  }
+                />
+              ) : (
+                <>
+                  <DataTable data={ranking} columns={colunas} pageSize={15} />
+                  <p className="mt-3 text-xs text-muted">
+                    Fonte: {FONTE}
+                  </p>
+                </>
+              )}
+            </div>
+          </section>
+        </>
+      )}
     </main>
   );
 }

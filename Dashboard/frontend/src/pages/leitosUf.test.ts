@@ -48,6 +48,17 @@ describe("barrasEmpilhadasUf", () => {
     expect(barras[0].uf).toBe("SP");
   });
 
+  it("normaliza uf (trim/uppercase) antes de checar ehUf, como mapaDados", () => {
+    const porUf = [
+      item({ uf: " sp ", leitos_gerais: 10, leitos_sus: 5 }),
+    ];
+
+    const barras = barrasEmpilhadasUf(porUf, "gerais");
+
+    expect(barras).toHaveLength(1);
+    expect(barras[0].uf).toBe("SP");
+  });
+
   it("a métrica 'uti' usa as colunas de UTI, não as gerais", () => {
     const porUf = [
       item({

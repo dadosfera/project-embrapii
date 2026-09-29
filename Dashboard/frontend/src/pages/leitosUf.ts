@@ -24,6 +24,7 @@ function numero(valor: unknown) {
  */
 export function barrasEmpilhadasUf(porUf: LeitosPorUf[], metrica: MetricaUf): BarraUf[] {
   return porUf
+    .map((item) => ({ ...item, uf: item.uf.trim().toUpperCase() }))
     .filter((item) => ehUf(item.uf))
     .map((item) => {
       const total = numero(metrica === "gerais" ? item.leitos_gerais : item.leitos_uti);

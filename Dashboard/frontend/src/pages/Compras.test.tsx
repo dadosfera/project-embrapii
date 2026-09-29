@@ -71,6 +71,7 @@ function renderCompras() {
 
 describe("Compras", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
   });
 
@@ -99,5 +100,19 @@ describe("Compras", () => {
     await waitFor(() => expect(buscarComprasPorAno).toHaveBeenCalled());
 
     expect((await screen.findAllByText(/1 registro/)).length).toBeGreaterThan(0);
+  });
+
+  it("sem anos na base (/intervalo devolve null), mostra EmptyState em vez de skeleton eterno", async () => {
+    vi.mocked(buscarIntervaloCompras).mockResolvedValue({
+      data_minima: null,
+      data_maxima: null,
+      ano_minimo: null,
+      ano_maximo: null,
+    });
+
+    renderCompras();
+
+    expect(await screen.findByText("Sem compras na base")).toBeInTheDocument();
+    expect(buscarKpisCompras).not.toHaveBeenCalled();
   });
 });

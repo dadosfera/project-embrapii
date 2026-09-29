@@ -44,16 +44,16 @@ import { anosEntre, datasDoPeriodo, rotuloPeriodo } from "@/ui/periodo";
 import { categorica, eixo, grade, tooltip } from "@/ui/chartTheme";
 import { useEhTelaEstreita } from "@/ui/useEhTelaEstreita";
 import {
-  SEM_DADO,
   data as dataBR,
   moedaCompacta,
   moedaExata,
   numeroCompacto,
   numeroExato,
+  percentual,
   quantidade,
 } from "@/ui/format";
 
-import { anotarOutliers, notaOutlier, type AnoCompras } from "./comprasAnual";
+import { anotarOutliers, completarAnos, notaOutlier, type AnoCompras } from "./comprasAnual";
 
 import {
   buscarComprasPorAno,
@@ -132,18 +132,6 @@ function numeroOuNulo(valor: unknown): number | null {
   if (valor === null || valor === undefined || valor === "") return null;
   const convertido = Number(valor);
   return Number.isFinite(convertido) ? convertido : null;
-}
-
-
-/** Participação com uma casa ("12,3%"). O format.ts não tem percentual, por isso fica aqui. */
-function percentual(
-  valor: unknown,
-) {
-  if (valor === null || valor === undefined) return SEM_DADO;
-  return `${numero(valor).toLocaleString("pt-BR", {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  })}%`;
 }
 
 
@@ -580,6 +568,13 @@ export function Compras() {
     );
 
 
+  // O /intervalo respondeu (sem falhar), mas não trouxe nenhum ano: não há compras na base.
+  const semDadosBase =
+    !carregandoIntervalo
+    && falhaIntervalo == null
+    && (anoMinimo == null || anoMaximo == null);
+
+
   const totalComprado =
     numero(
       dados?.kpis
@@ -591,10 +586,15 @@ export function Compras() {
     useMemo(
       () =>
         anotarOutliers(
-          dados?.porAno
-          ?? [],
+          filtrosConfirmados
+            ? completarAnos(
+                dados?.porAno ?? [],
+                filtrosConfirmados.anoDe,
+                filtrosConfirmados.anoAte,
+              )
+            : dados?.porAno ?? [],
         ),
-      [dados],
+      [dados, filtrosConfirmados],
     );
 
 
@@ -1163,11 +1163,11 @@ export function Compras() {
                 disabled={carregando}
                 className="sm:col-span-2"
               />
-            ) : (
+            ) : carregandoIntervalo ? (
               <div className="sm:col-span-2">
                 <Skeleton className="h-16 w-full max-w-sm" />
               </div>
-            )}
+            ) : null}
 
             <CatmatPicker
               id="produto-compras"
@@ -1223,6 +1223,16 @@ export function Compras() {
           <ErrorState
             error={falhaIntervalo}
             onRetry={() => setTentativaIntervalo((n) => n + 1)}
+          />
+        </div>
+      )}
+
+
+      {semDadosBase && (
+        <div className="mt-5">
+          <EmptyState
+            title="Sem compras na base"
+            cause="Não há compras registradas na base de dados."
           />
         </div>
       )}
