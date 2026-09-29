@@ -1,7 +1,11 @@
 import {
   useEffect,
+  useId,
   useMemo,
+  useRef,
   useState,
+  type KeyboardEvent,
+  type MouseEvent,
 } from "react";
 
 import {
@@ -11,9 +15,12 @@ import {
 
 import { assetUrl } from "../lib/base";
 import { UiError } from "../lib/http";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChartFrame } from "@/ui/ChartFrame";
+import { ChoroplethLegend } from "@/ui/ChoroplethLegend";
 import { ErrorState } from "@/ui/ErrorState";
+import { escalaQuantis, type ClasseMapa } from "@/ui/escalaMapa";
 import { sequencial } from "@/ui/chartTheme";
 import { numeroExato } from "@/ui/format";
 
@@ -56,9 +63,10 @@ type FeatureCollectionUf = {
 };
 
 
+/** `null` ou UF ausente de `dados` = sem registro (distinto de 0). */
 export type DadoMapaUf = {
   uf: string;
-  valor: number;
+  valor: number | null;
 };
 
 
@@ -68,6 +76,12 @@ type MapaBrasilUfProps = {
   descricao?: string;
   tituloValor?: string;
   fonte?: string;
+  /** "unidades", "leitos", "%"... Some depois do valor formatado. */
+  unidade?: string;
+  formatar?: (v: number) => string;
+  /** Controlado (ex.: Fornecedores). Se `undefined`, o componente guarda estado interno. */
+  ufFixada?: string | null;
+  onFixarUf?: (uf: string | null) => void;
 };
 
 
@@ -84,17 +98,18 @@ let geojsonPromise:
   | null = null;
 
 
-function numero(
-  valor: unknown,
-) {
-  const convertido =
-    Number(valor);
+function valorSeguro(
+  valor: number | null | undefined,
+): number | null {
+  if (valor == null) {
+    return null;
+  }
 
-  return Number.isFinite(
-    convertido,
-  )
+  const convertido = Number(valor);
+
+  return Number.isFinite(convertido)
     ? convertido
-    : 0;
+    : null;
 }
 
 
@@ -156,13 +171,52 @@ Promise<FeatureCollectionUf> {
 }
 
 
+type EstadoCaminho = {
+  id: string;
+  sigla: string;
+  nome: string;
+  valor: number | null;
+  classe: ClasseMapa;
+  d: string;
+};
+
+
+function rotuloAria(
+  estado: EstadoCaminho,
+  unidade: string,
+  formatar: (v: number) => string,
+): string {
+  const base =
+    estado.sigla
+      ? `${estado.nome} (${estado.sigla})`
+      : estado.nome;
+
+  if (estado.classe.tipo === "sem-registro") {
+    return `${base}: sem registro`;
+  }
+
+  const valor = estado.classe.tipo === "zero" ? 0 : (estado.valor ?? 0);
+
+  return `${base}: ${formatar(valor)} ${unidade}`;
+}
+
+
 export function MapaBrasilUf({
   dados,
   titulo = "Mapa do Brasil",
   descricao = "Distribuição por Unidade Federativa.",
   tituloValor = "Valor",
   fonte = "DATASUS",
+  unidade = "valor",
+  formatar = numeroExato,
+  ufFixada,
+  onFixarUf,
 }: MapaBrasilUfProps) {
+  const idBase = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const idPatternSemRegistro = `${idBase}-sem-registro`;
+
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
   const [
     geojson,
     setGeojson,
@@ -193,20 +247,22 @@ export function MapaBrasilUf({
     setTentativa,
   ] = useState(0);
 
-  // Resolve a escala sequencial uma vez por montagem (lê as variáveis CSS do documento).
-  const escala =
-    useMemo(
-      () => sequencial(),
-      [],
-    );
+  const [estadoHover, setEstadoHover] = useState<string | null>(null);
+  const [fixadaInterna, setFixadaInterna] = useState<string | null>(null);
+  const [tooltip, setTooltip] = useState<{ sigla: string; x: number; y: number } | null>(null);
 
-  const [
-    estadoAtivo,
-    setEstadoAtivo,
-  ] =
-    useState<
-      string | null
-    >(null);
+  const fixada = ufFixada !== undefined ? ufFixada : fixadaInterna;
+
+  function fixar(nova: string | null) {
+    if (ufFixada === undefined) {
+      setFixadaInterna(nova);
+    }
+    onFixarUf?.(nova);
+  }
+
+  function alternarFixacao(sigla: string) {
+    fixar(fixada === sigla ? null : sigla);
+  }
 
 
   useEffect(
@@ -267,7 +323,7 @@ export function MapaBrasilUf({
         const mapa =
           new Map<
             string,
-            number
+            number | null
           >();
 
         dados.forEach(
@@ -276,7 +332,7 @@ export function MapaBrasilUf({
               item.uf
                 .trim()
                 .toUpperCase(),
-              numero(
+              valorSeguro(
                 item.valor,
               ),
             );
@@ -289,20 +345,30 @@ export function MapaBrasilUf({
     );
 
 
-  const maiorValor =
+  // Quantis calculados sobre todas as UFs do mapa (não só as presentes em `dados`): uma UF do
+  // GeoJSON ausente de `dados` entra como `null` (sem registro), igual a uma UF presente com
+  // `valor: null`.
+  const escala =
     useMemo(
-      () =>
-        Math.max(
-          0,
-          ...Array.from(
-            dadosPorUf.values(),
-          ),
-        ),
-      [dadosPorUf],
+      () => {
+        if (!geojson) {
+          return escalaQuantis([]);
+        }
+
+        const valores = geojson.features.map((feature) => {
+          const sigla = (feature.properties.sigla ?? "").trim().toUpperCase();
+          return dadosPorUf.get(sigla) ?? null;
+        });
+
+        return escalaQuantis(valores);
+      },
+      [geojson, dadosPorUf],
     );
 
+  const cores = useMemo(() => sequencial(), []);
 
-  const caminhos =
+
+  const caminhos: EstadoCaminho[] =
     useMemo(
       () => {
         if (!geojson) {
@@ -342,7 +408,7 @@ export function MapaBrasilUf({
               dadosPorUf.get(
                 sigla,
               )
-              ?? 0;
+              ?? null;
 
             return {
               id:
@@ -361,13 +427,7 @@ export function MapaBrasilUf({
 
               valor,
 
-              opacidade:
-                0.14
-                + 0.86
-                * (
-                  valor
-                  / (maiorValor || 1)
-                ),
+              classe: escala.classeDe(valor),
 
               d:
                 path(
@@ -381,25 +441,51 @@ export function MapaBrasilUf({
       [
         geojson,
         dadosPorUf,
-        maiorValor,
+        escala,
       ],
     );
 
+  const caminhoPorSigla = useMemo(
+    () => new Map(caminhos.map((estado) => [estado.sigla, estado])),
+    [caminhos],
+  );
 
-  const estadoSelecionado =
-    useMemo(
-      () =>
-        caminhos.find(
-          (estado) =>
-            estado.id
-            === estadoAtivo,
-        )
-        ?? null,
-      [
-        caminhos,
-        estadoAtivo,
-      ],
-    );
+  const cincoMaiores = useMemo(
+    () =>
+      [...caminhos]
+        .filter((estado) => estado.classe.tipo !== "sem-registro")
+        .sort((a, b) => (b.valor ?? 0) - (a.valor ?? 0))
+        .slice(0, 5),
+    [caminhos],
+  );
+
+  const siglaAtiva = estadoHover ?? fixada;
+  const estadoAtivo = siglaAtiva ? caminhoPorSigla.get(siglaAtiva) ?? null : null;
+  const estadoFixado = fixada ? caminhoPorSigla.get(fixada) ?? null : null;
+
+  function corDe(classe: ClasseMapa): string {
+    if (classe.tipo === "sem-registro") return `url(#${idPatternSemRegistro})`;
+    if (classe.tipo === "zero") return "var(--beast-basic-300)";
+    return cores[classe.indice] ?? cores.at(-1) ?? "var(--beast-basic-300)";
+  }
+
+  function onMouseMove(evento: MouseEvent<SVGPathElement>, sigla: string) {
+    const rect = containerRef.current?.getBoundingClientRect();
+    setTooltip({
+      sigla,
+      x: evento.clientX - (rect?.left ?? 0),
+      y: evento.clientY - (rect?.top ?? 0),
+    });
+  }
+
+  function onKeyDownPath(evento: KeyboardEvent<SVGPathElement>, sigla: string) {
+    if (evento.key === "Enter" || evento.key === " " || evento.key === "Spacebar") {
+      evento.preventDefault();
+      alternarFixacao(sigla);
+    } else if (evento.key === "Escape") {
+      fixar(null);
+    }
+  }
 
 
   if (carregando) {
@@ -430,50 +516,107 @@ export function MapaBrasilUf({
       source={fonte}
     >
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_220px]">
-        <div className="mx-auto w-full max-w-4xl">
+        <div ref={containerRef} className="relative mx-auto w-full max-w-4xl">
           <svg
             viewBox={`0 0 ${LARGURA} ${ALTURA}`}
-            role="img"
-            aria-label="Mapa do Brasil dividido por Unidades Federativas"
+            role="group"
+            aria-label={`Mapa do Brasil: ${titulo}`}
             className="h-auto w-full"
           >
+            <defs>
+              <pattern
+                id={idPatternSemRegistro}
+                width={8}
+                height={8}
+                patternUnits="userSpaceOnUse"
+                patternTransform="rotate(45)"
+              >
+                <rect width={8} height={8} fill="var(--beast-basic-200)" />
+                <rect width={4} height={8} fill="var(--beast-basic-600)" />
+              </pattern>
+            </defs>
+
             {caminhos.map((estado) => (
               <path
                 key={estado.id}
                 d={estado.d}
-                fill={escala.at(-1)}
-                fillOpacity={estado.opacidade}
-                stroke={estadoAtivo === estado.id ? "var(--text)" : "var(--panel)"}
-                strokeWidth={estadoAtivo === estado.id ? 2 : 1}
+                fill={corDe(estado.classe)}
                 vectorEffect="non-scaling-stroke"
                 className="cursor-pointer"
-                onMouseEnter={() => setEstadoAtivo(estado.id)}
-                onMouseLeave={() => setEstadoAtivo(null)}
-              >
-                <title>
-                  {estado.nome}
-                  {estado.sigla ? ` (${estado.sigla})` : ""}
-                  {` — ${tituloValor}: ${numeroExato(estado.valor)}`}
-                </title>
-              </path>
+                style={{ outline: "none" }}
+                tabIndex={0}
+                role="button"
+                aria-pressed={fixada === estado.sigla}
+                aria-label={rotuloAria(estado, unidade, formatar)}
+                onMouseEnter={() => setEstadoHover(estado.sigla)}
+                onMouseMove={(evento) => onMouseMove(evento, estado.sigla)}
+                onMouseLeave={() => {
+                  setEstadoHover(null);
+                  setTooltip(null);
+                }}
+                onFocus={() => setEstadoHover(estado.sigla)}
+                onBlur={() => setEstadoHover(null)}
+                onClick={() => alternarFixacao(estado.sigla)}
+                onKeyDown={(evento) => onKeyDownPath(evento, estado.sigla)}
+              />
             ))}
+
+            {estadoFixado ? (
+              <path
+                d={estadoFixado.d}
+                fill="none"
+                stroke="var(--focus-ring)"
+                strokeWidth={3}
+                pointerEvents="none"
+                aria-hidden="true"
+              />
+            ) : null}
+
+            {estadoHover && estadoHover !== fixada && caminhoPorSigla.get(estadoHover) ? (
+              <path
+                d={caminhoPorSigla.get(estadoHover)!.d}
+                fill="none"
+                stroke="var(--text)"
+                strokeWidth={3}
+                pointerEvents="none"
+                aria-hidden="true"
+              />
+            ) : null}
           </svg>
+
+          {tooltip && caminhoPorSigla.get(tooltip.sigla) ? (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-[var(--radius-md)] border border-line bg-panel px-2 py-1 text-xs whitespace-nowrap text-[var(--text)] shadow-[var(--shadow-card)]"
+              style={{ left: tooltip.x, top: tooltip.y - 8 }}
+            >
+              {(() => {
+                const estado = caminhoPorSigla.get(tooltip.sigla)!;
+                const base = estado.sigla ? `${estado.nome} (${estado.sigla})` : estado.nome;
+                const valorTexto =
+                  estado.classe.tipo === "sem-registro"
+                    ? "sem registro"
+                    : `${formatar(estado.classe.tipo === "zero" ? 0 : (estado.valor ?? 0))} ${unidade}`;
+                return `${base}: ${valorTexto}`;
+              })()}
+            </div>
+          ) : null}
         </div>
 
 
-        <aside className="self-start rounded-[var(--radius-md)] border border-line bg-surface p-4">
+        <aside aria-live="polite" className="self-start rounded-[var(--radius-md)] border border-line bg-surface p-4">
           <p className="text-xs font-semibold text-muted">
             Estado
           </p>
 
-          {estadoSelecionado ? (
+          {estadoAtivo ? (
             <>
               <p className="mt-2 text-lg font-semibold text-[var(--text)]">
-                {estadoSelecionado.nome}
+                {estadoAtivo.nome}
               </p>
 
               <p className="mt-1 text-sm text-muted">
-                {estadoSelecionado.sigla}
+                {estadoAtivo.sigla}
               </p>
 
               <div className="mt-5">
@@ -482,33 +625,57 @@ export function MapaBrasilUf({
                 </p>
 
                 <p className="mt-1 text-2xl font-bold tabular-nums tracking-tight text-primary">
-                  {numeroExato(estadoSelecionado.valor)}
+                  {estadoAtivo.classe.tipo === "sem-registro"
+                    ? "sem registro"
+                    : `${formatar(estadoAtivo.classe.tipo === "zero" ? 0 : (estadoAtivo.valor ?? 0))} ${unidade}`}
                 </p>
               </div>
+
+              {fixada === estadoAtivo.sigla ? (
+                <Button
+                  variant="ghost"
+                  className="mt-4"
+                  onClick={() => fixar(null)}
+                >
+                  Limpar seleção
+                </Button>
+              ) : null}
             </>
           ) : (
-            <p className="mt-2 text-sm leading-6 text-muted">
-              Passe o mouse sobre uma UF para ver o valor.
-            </p>
+            <>
+              <p className="mt-2 text-sm font-semibold text-[var(--text)]">
+                5 maiores
+              </p>
+
+              <ol className="mt-2 flex flex-col gap-1">
+                {cincoMaiores.map((estado) => (
+                  <li key={estado.id}>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-between px-2"
+                      onClick={() => alternarFixacao(estado.sigla)}
+                    >
+                      <span className="truncate">{estado.nome}</span>
+                      <span className="tabular-nums">
+                        {formatar(estado.classe.tipo === "zero" ? 0 : (estado.valor ?? 0))}
+                      </span>
+                    </Button>
+                  </li>
+                ))}
+              </ol>
+            </>
           )}
         </aside>
       </div>
 
 
       <div className="mt-5">
-        <div
-          aria-hidden="true"
-          className="h-2 w-full rounded-full"
-          style={{
-            background:
-              `linear-gradient(to right, ${escala[0]}, ${escala.at(-1)})`,
-          }}
+        <ChoroplethLegend
+          escala={escala}
+          cores={cores}
+          unidade={unidade}
+          formatar={formatar}
         />
-
-        <div className="mt-2 flex items-center justify-between gap-4 text-xs tabular-nums text-muted">
-          <span>0</span>
-          <span>{numeroExato(maiorValor)}</span>
-        </div>
       </div>
     </ChartFrame>
   );
