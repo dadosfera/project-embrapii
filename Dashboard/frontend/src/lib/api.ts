@@ -406,3 +406,15 @@ export function buscarLeitosPorUf(filtros: FiltrosLeitos): Promise<LeitosPorUf[]
     uf: filtros.uf,
   });
 }
+
+export function buscarEvolucaoLeitos(
+  uf: string,
+  dataInicio: string,
+  dataFim: string,
+): Promise<EvolucaoLeitos[]> {
+  return request<EvolucaoLeitos[]>("/api/leitos/evolucao", {
+    data_inicio: dataInicio,
+    data_fim: dataFim,
+    uf,
+  });
+}
