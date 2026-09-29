@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { data, hojeLocal, moedaCompacta, moedaExata, numeroCompacto, numeroExato, quantidade, SEM_DADO } from "./format";
+import { data, hojeLocal, moedaCompacta, moedaExata, numeroCompacto, numeroExato, numeroUmaCasa, quantidade, SEM_DADO } from "./format";
 
 const n = (s: string) => s.replace(/ /g, " ");
 
@@ -25,6 +25,13 @@ describe("format", () => {
     expect(quantidade(0)).toBe("0");
     expect(quantidade(null)).toBe(SEM_DADO);
     expect(quantidade(undefined)).toBe(SEM_DADO);
+  });
+  it("número puro com uma casa decimal, sem símbolo — quem chama compõe o '%'", () => {
+    expect(n(numeroUmaCasa(5.7))).toBe("5,7");
+    expect(n(numeroUmaCasa(20))).toBe("20,0");
+    expect(n(numeroUmaCasa(0))).toBe("0,0");
+    expect(numeroUmaCasa(null)).toBe(SEM_DADO);
+    expect(numeroUmaCasa(undefined)).toBe(SEM_DADO);
   });
   it("nulo vira 'sem dado', zero continua zero", () => {
     expect(moedaCompacta(null)).toBe(SEM_DADO);

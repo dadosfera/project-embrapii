@@ -20,6 +20,7 @@ import {
   moedaExata,
   numeroCompacto,
   numeroExato,
+  numeroUmaCasa,
   quantidade,
   SEM_DADO,
 } from "@/ui/format";
@@ -42,15 +43,7 @@ const FONTE =
 /** Participação com uma casa ("12,3%"). O format.ts não tem percentual, por isso fica aqui. */
 function percentual(valor: number | null | undefined) {
   if (valor === null || valor === undefined || Number.isNaN(valor)) return SEM_DADO;
-  return `${valor.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
-}
-
-/**
- * Mesma casa decimal de `percentual`, mas sem o "%": é o `formatar` do mapa, que já recebe
- * `unidade="%"` e monta "5,7 %" / "Legenda (%)" sozinho — com `percentual` viraria "5,7% %".
- */
-function numeroUmaCasa(valor: number) {
-  return valor.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  return `${numeroUmaCasa(valor)}%`;
 }
 
 
@@ -399,7 +392,7 @@ export function Fornecedores() {
           100 maiores fornecedores no período, ordenados por valor total comprado.
         </p>
 
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-muted">
+        <div aria-live="polite" className="mt-3 flex flex-wrap items-center gap-2 text-sm text-muted">
           {ufFiltro ? (
             <>
               <span>

@@ -29,7 +29,7 @@ import { EmptyState } from "@/ui/EmptyState";
 import { ErrorState } from "@/ui/ErrorState";
 import { Icon } from "@/ui/Icon";
 import { PageHeader } from "@/ui/PageHeader";
-import { numeroExato, quantidade } from "@/ui/format";
+import { numeroExato, numeroUmaCasa, quantidade } from "@/ui/format";
 
 import {
   MapaBrasilUf,
@@ -80,23 +80,11 @@ function quantidadeCel(v: number | null): string {
 
 /** Participação com uma casa ("12,3%"), igual a `Fornecedores.tsx`. */
 function percentualUmaCasa(v: number): string {
-  return `${v.toLocaleString("pt-BR", {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  })}%`;
+  return `${numeroUmaCasa(v)}%`;
 }
 
 function percentualCel(v: number | null): string {
   return v == null ? "sem registro" : percentualUmaCasa(v);
-}
-
-/**
- * Mesma casa decimal, mas sem o "%": é o `formatar` do mapa quando a métrica é
- * `percentual_sus`, que já recebe `unidade="%"` e monta o rótulo sozinho — com
- * `percentualUmaCasa` viraria "12,3% %".
- */
-function numeroUmaCasa(v: number): string {
-  return v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 }
 
 
