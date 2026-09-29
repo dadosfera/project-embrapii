@@ -21,7 +21,7 @@ As decisões da seção 3 foram tomadas pela opção recomendada. Os itens da se
 Em aberto fora do plano:
 - Confirmar com a UFMG o que significam os prefixos B/E/S/O do BNAFAR. Hoje a UI mostra só "BNAFAR B", sem nome.
 - Somar bases diferentes da mesma composição (seção 2.5).
-- O filtro de Compras continua com o botão "Pesquisar", que é do subprojeto C.
+- ~~O filtro de Compras continua com o botão "Pesquisar", que é do subprojeto C.~~ Resolvido no subprojeto C (30/09): Compras abre carregada em 2020–2025 e o filtro usa `BotaoAplicar` ("Aplicar"), igual a Leitos e Mapa.
 
 ## 1. Problema, com números do Snowflake (`EMBRAPII_DATASUS`)
 

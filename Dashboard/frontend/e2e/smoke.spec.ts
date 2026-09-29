@@ -91,7 +91,8 @@ for (const { rota, titulo } of ROTAS) {
 
     if (rota === "fornecedores") {
       // Fornecedores carrega o mapa por UF já no useEffect de montagem.
-      await expect(page.getByRole("img", { name: /Mapa do Brasil/ })).toBeVisible();
+      // O mapa é um <svg role="group">, não uma <img> (ver MapaBrasil.tsx).
+      await expect(page.getByRole("group", { name: /Mapa do Brasil/ })).toBeVisible();
     }
 
     expect(erros).toEqual([]);
@@ -172,29 +173,116 @@ test("Mapa: escolhe dipirona 500 no seletor e carrega a tabela por UF", async ({
   expect(erros).toEqual([]);
 });
 
-test("Compras: aplica filtros com dados conhecidos e carrega os KPIs", async ({ page, baseURL }) => {
+test("Leitos: abre carregado com o KPI e mostra 27 UFs e a evolução", async ({ page, baseURL }) => {
   const erros = coletarErros(page, baseURL!, []);
 
+  await page.goto("leitos");
+  await page.waitForLoadState("networkidle");
+
+  await expect(page.locator("body")).not.toContainText("Não foi possível");
+  const kpiLeitosGerais = page
+    .locator("article")
+    .filter({ has: page.getByText("Leitos gerais", { exact: true }) });
+  await expect(kpiLeitosGerais.locator("p").last()).not.toHaveText(/^(0|sem dado)$/);
+
+  // Aba "Distribuição por UF" já vem selecionada: 27 UFs no eixo Y.
+  await expect(page.locator(".recharts-yAxis .recharts-cartesian-axis-tick")).toHaveCount(27);
+
+  await page.getByRole("tab", { name: "Evolução histórica" }).dispatchEvent("mousedown");
+  await page.getByRole("tab", { name: "Evolução histórica" }).click();
+  await expect(page.locator("#inicio-evolucao")).toBeVisible();
+
+  expect(erros).toEqual([]);
+});
+
+test("Mapa: aba Leitos por estado carrega sem clique, foco e Enter fixam MG", async ({ page, baseURL }) => {
+  const erros = coletarErros(page, baseURL!, []);
+
+  await page.goto("mapa");
+  await page.waitForLoadState("networkidle");
+
+  await page.getByRole("tab", { name: "Leitos por estado" }).dispatchEvent("mousedown");
+  const leitosPorUf = page.waitForResponse((r) => r.url().includes("/api/leitos/por-uf"));
+  await page.getByRole("tab", { name: "Leitos por estado" }).click();
+  await leitosPorUf;
+  await page.waitForLoadState("networkidle");
+
+  await expect(page.locator("body")).not.toContainText("Não foi possível");
+
+  const mg = page.getByRole("button", { name: /\(MG\):/ });
+  await mg.focus();
+  await page.keyboard.press("Enter");
+
+  await expect(page.locator("aside")).toContainText("Minas Gerais");
+
+  // A legenda traz a unidade da métrica exibida (padrão: "Participação do SUS (%)").
+  await expect(page.getByText(/Legenda \(.*\)/)).toBeVisible();
+
+  expect(erros).toEqual([]);
+});
+
+test("Fornecedores: clicar em SP no mapa filtra o ranking", async ({ page, baseURL }) => {
+  const erros = coletarErros(page, baseURL!, []);
+
+  await page.goto("fornecedores");
+  await page.waitForLoadState("networkidle");
+
+  await expect(page.getByRole("group", { name: /Mapa do Brasil/ })).toBeVisible();
+
+  const ranking = page.waitForResponse(
+    (r) => r.url().includes("/api/fornecedores/ranking") && r.url().includes("uf=SP"),
+  );
+  const sp = page.getByRole("button", { name: /\(SP\):/ });
+  await sp.click();
+  await ranking;
+  await page.waitForLoadState("networkidle");
+
+  await expect(page.locator("body")).toContainText("Tabela filtrada por SP");
+
+  expect(erros).toEqual([]);
+});
+
+test("Compras abre carregada em 2020–2025", async ({ page, baseURL }) => {
+  const erros = coletarErros(page, baseURL!, []);
+
+  const kpis = page.waitForResponse(
+    (r) => r.url().includes("/api/compras/kpis") && r.url().includes("data_inicio=2020-01-01") && r.url().includes("data_fim=2025-12-31"),
+  );
   await page.goto("compras");
-
-  // O padrão da página (último ano até hoje) cai num vazio da base histórica;
-  // usa uma janela com compras conhecidas para exercitar o pipeline de verdade.
-  await page.getByLabel("Data inicial").fill("2015-01-01");
-  await page.getByLabel("Data final").fill("2024-12-31");
-  await escolherCatmat(page, "#produto-compras", "lamotrigina 100", "LAMOTRIGINA, DOSAGEM:100 MG");
-
-  const kpis = page.waitForResponse((r) => r.url().includes("/api/compras/kpis"));
-  await page.getByRole("button", { name: "Pesquisar" }).click();
   await kpis;
   await page.waitForLoadState("networkidle");
 
   await expect(page.locator("body")).not.toContainText("Não foi possível");
-  // Confirma que o KPI de valor total, alimentado pela resposta da API, renderizou.
-  // (o texto exato evita casar com o card do gráfico "Valor total comprado por mês".)
   const kpiValorTotal = page
     .locator("article")
     .filter({ has: page.getByText("Valor total comprado", { exact: true }) });
   await expect(kpiValorTotal.locator("p").last()).toContainText("R$");
+
+  // Nota do outlier de 2025 (um único registro responde por >20% do valor do ano).
+  await expect(page.locator("body")).toContainText("1 registro");
+
+  expect(erros).toEqual([]);
+});
+
+test("Compras aplica ano e medicamento", async ({ page, baseURL }) => {
+  const erros = coletarErros(page, baseURL!, []);
+
+  await page.goto("compras");
+  await page.waitForLoadState("networkidle");
+
+  await page.locator("#compras-periodo-de").click();
+  await page.getByRole("option", { name: "2021", exact: true }).click();
+
+  await escolherCatmat(page, "#produto-compras", "lamotrigina 100", "LAMOTRIGINA, DOSAGEM:100 MG");
+
+  const kpis = page.waitForResponse(
+    (r) => r.url().includes("/api/compras/kpis") && r.url().includes("data_inicio=2021-01-01"),
+  );
+  await page.getByRole("button", { name: "Aplicar", exact: true }).click();
+  await kpis;
+  await page.waitForLoadState("networkidle");
+
+  await expect(page.locator("body")).not.toContainText("Não foi possível");
 
   expect(erros).toEqual([]);
 });
