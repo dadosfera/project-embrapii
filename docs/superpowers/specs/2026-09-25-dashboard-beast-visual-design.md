@@ -10,7 +10,7 @@ O data app está no ar no Mod. de Inteligência demo2, lendo do Snowflake, com p
 |---|---|---|---|
 | **A. Visual Beast** (este spec) | Tokens, tipografia, shell, componentes base, estados, números, tema de gráficos, correções pontuais, acessibilidade e code-split | 1, 2, 3, 4, 5, 9, 15, 16 (só os bugs de data), 18, 19, 20 | Concluído e publicado no demo2 em 28/09 (branch `feat/dashboard-beast`); PR não aberto |
 | B. Busca | Autocomplete, busca sem acento e agrupamento de CATMAT (composição → item-base → variantes) | 7, 8 | Implementado e publicado no demo2 em 29/09 (branch `feat/dashboard-busca`, spec `2026-09-29-dashboard-busca-catmat-design.md`); falta o smoke no publicado; PR não aberto |
-| C. Páginas e visualizações | Carregar ao abrir, períodos padrão, barras anuais, outliers, mapas, destino da página Mapa, visualizações novas | 6, 10, 11, 12, 13, 14, 16 (períodos), 17 | Implementado em 30/09 (branch `feat/dashboard-busca`); paridade dos casos novos pendente (controlador) |
+| C. Páginas e visualizações | Carregar ao abrir, períodos padrão, barras anuais, outliers, mapas, destino da página Mapa, visualizações novas | 6, 10, 11, 12, 13, 14, 16 (períodos), 17 | Implementado e publicado em 30/09 (branch `feat/dashboard-busca`). Paridade com o Postgres descontinuada: Snowflake é a base operacional e o Postgres ficou legado (tag `dashboard-postgres-estavel-v1`) |
 
 O A não muda layout, filtros nem fluxo das páginas, e não mexe no backend.
 

@@ -1,11 +1,29 @@
 # Dashboard Dados em Saúde
 
-Dashboard web para análise de dados de saúde armazenados em PostgreSQL.
+Dashboard web para análise de dados de saúde do SUS (DATASUS): medicamentos, compras, leitos e fornecedores.
 
 - **Frontend:** React, TypeScript, Vite, Tailwind CSS, Recharts, TanStack Table e D3.
-- **Backend:** Python, FastAPI e psycopg.
-- **Produção:** Docker Compose, Nginx e imagens independentes para frontend e backend.
-- **Banco:** PostgreSQL externo, acessado diretamente ou por túnel SSH.
+- **Backend:** Python e FastAPI, com `DB_ENGINE=snowflake` (operacional) ou `DB_ENGINE=postgres` (legado).
+- **Produção:** data app no Módulo de Inteligência da Dadosfera (ver `deploy/README.md`); Docker Compose e Nginx para quem roda o app por conta própria.
+- **Banco:** Snowflake `EMBRAPII_DATASUS` (fonte da verdade). O PostgreSQL da UFMG fica como legado.
+
+## Fonte de dados: Snowflake é a base operacional
+
+> **Aviso.** A partir de 30/09/2026 o Snowflake (`DADOSFERA_PRD_DADOSFERADEMO.EMBRAPII_DATASUS`) é a fonte da verdade
+> do Dashboard. Toda alteração nova do app e do schema considera o Snowflake como base operacional e é testada só
+> contra ele.
+>
+> O PostgreSQL (`datalake_db2`, da UFMG) fica como **legado**, para quem quiser rodar o app a partir do código aberto
+> com o banco original. A versão estável de banco + app no Postgres é a tag **`dashboard-postgres-estavel-v1`**
+> (commit `0d1b32b`), a última com paridade Postgres × Snowflake verificada (47/47 endpoints, `tests/parity`).
+> Depois dela:
+>
+> - as queries continuam com a versão `pg` (`Q(pg=..., sf=...)`), mas as rotas novas ou alteradas não passam mais
+>   pela paridade e podem divergir;
+> - a busca agrupada de medicamentos não marca estoque no Postgres (a consulta de estoque varreria a tabela de 39 GB);
+> - `tests/parity` fica como referência histórica e não roda no CI.
+>
+> Para usar o Postgres, faça checkout da tag e siga as seções abaixo com `DB_ENGINE=postgres`.
 
 ## Execução com Docker — recomendada
 
@@ -87,7 +105,9 @@ docker compose down
 O healthcheck público do frontend está em `http://localhost:8080/health`.
 O healthcheck do backend é executado internamente pelo Compose.
 
-## PostgreSQL por túnel SSH
+## PostgreSQL por túnel SSH (legado)
+
+Vale para a execução com `DB_ENGINE=postgres` a partir da tag `dashboard-postgres-estavel-v1` (ver o aviso acima).
 
 O processo SSH continua sendo executado no host, fora dos contêineres. O túnel
 precisa aceitar conexões vindas da bridge do Docker, e `DB_HOST` deve ser

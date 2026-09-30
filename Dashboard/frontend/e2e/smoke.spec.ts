@@ -129,12 +129,12 @@ test("Medicamentos: seletor agrupado soma as variantes, troca de código e mant�
 
   const todos = page.getByRole("radio", { name: /^Todos \(\d+\)/ });
   await expect(todos).toHaveAttribute("aria-checked", "true");
-  await page.getByRole("radio", { name: /BNAFAR B/ }).click();
+  await page.getByRole("radio", { name: /Componente Básico/ }).click();
   await expect(page).toHaveURL(/variante=BRBBR0267203U0042/);
   await page.waitForLoadState("networkidle");
 
   await page.reload();
-  await expect(page.getByRole("radio", { name: /BNAFAR B/ })).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByRole("radio", { name: /Componente Básico/ })).toHaveAttribute("aria-checked", "true");
   await page.goBack();
   await expect(page.getByRole("radio", { name: /^Todos/ })).toHaveAttribute("aria-checked", "true");
 

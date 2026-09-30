@@ -22,7 +22,7 @@ def test_variantes_da_dipirona_500_viram_um_item(ix):
     ]
     assert g.nome == "DIPIRONA SÓDICA, DOSAGEM:500 MG"
     assert g.tem_compras and g.tem_estoque
-    assert g.variantes[2].rotulo == "Apresentação U0042 · BNAFAR B"
+    assert g.variantes[2].rotulo == "Apresentação U0042 · BNAFAR · Componente Básico"
 
 
 def test_grupo_por_id_de_qualquer_variante(ix):

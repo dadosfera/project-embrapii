@@ -9,7 +9,7 @@ As decisões da seção 3 foram tomadas pela opção recomendada. Os itens da se
 | Etapa | Status | Onde |
 |---|---|---|
 | 1. Backend: índice, `busca-agrupada`, `grupo/{chave}`, `?escopo=grupo` | Feito | `747fa0a`; `backend/catmat_index.py`, `backend/api/medicamentos.py` |
-| 1b. Casos de grupo no teste de paridade Postgres × Snowflake | **Pendente**. Exige o túnel para o Postgres da UFMG, que é compartilhado; nele a flag de estoque fica `NULL` para não varrer a tabela de 39 GB | `tests/parity/cases.yaml` |
+| 1b. Casos de grupo no teste de paridade Postgres × Snowflake | **Descontinuado** em 30/09: o Snowflake virou a base operacional e o Postgres ficou legado (ver `Dashboard/README.md`, tag `dashboard-postgres-estavel-v1`). No Postgres, a flag de estoque fica `NULL` | `tests/parity/cases.yaml` |
 | 2. Front: `CatmatPicker`, chips de variante, estado na URL e estados vazios em Medicamentos; Mapa e Compras | Feito | `01682ed`; `components/CatmatPicker.tsx` |
 | 3. `ui_context` do chat com item-base e códigos reunidos | Feito (`selection.item_base`, `selection.codigos_reunidos`, `filters.escopo`) | `pages/Medicamentos.tsx` |
 | 4a. Testes locais: pytest, vitest, e2e smoke com prefixo | Feito: 127 · 57 · 12/12 | `backend/tests/test_catmat_index.py`, `e2e/smoke.spec.ts` |
@@ -19,7 +19,7 @@ As decisões da seção 3 foram tomadas pela opção recomendada. Os itens da se
 | 4e. PR `feat/dashboard-busca` | **Pendente** (depende do PR da `feat/dashboard-beast`) | — |
 
 Em aberto fora do plano:
-- Confirmar com a UFMG o que significam os prefixos B/E/S/O do BNAFAR. Hoje a UI mostra só "BNAFAR B", sem nome.
+- ~~Confirmar o que significam os prefixos B/E/S/O do BNAFAR.~~ Resolvido em 30/09 pelo dicionário do BNAFAR em `analises/EDA_BNAFAR.ipynb`: B = Componente Básico, E = Componente Especializado, S = Componente Estratégico, O = recursos próprios do ente. A UI mostra o nome (ex.: "BNAFAR · Componente Básico").
 - Somar bases diferentes da mesma composição (seção 2.5).
 - ~~O filtro de Compras continua com o botão "Pesquisar", que é do subprojeto C.~~ Resolvido no subprojeto C (30/09): Compras abre carregada em 2020–2025 e o filtro usa `BotaoAplicar` ("Aplicar"), igual a Leitos e Mapa.
 
@@ -39,7 +39,7 @@ Anatomia do código `BROBR0267203U0042`:
 
 | Parte | Exemplo | Origem |
 |---|---|---|
-| Prefixo de componente | `BRO`, `BRB`, `BRE`, `BRS` | Só estoque, sistema BNAFAR (`WSBNDAF`); 617 mil posições. Hipótese a confirmar com a UFMG: B = Básico, E = Especializado, S = Estratégico, O = Outros |
+| Prefixo de componente | `BRO`, `BRB`, `BRE`, `BRS` | Só estoque, sistema BNAFAR (`WSBNDAF`); 617 mil posições. Tipo de produto do BNAFAR (`analises/EDA_BNAFAR.ipynb`): B = Componente Básico (Anexos I e IV da RENAME), E = Componente Especializado (Anexo III), S = Componente Estratégico (Anexos II e IV), O = financiado só com recursos próprios do ente |
 | Código-base | `BR0267203` ("DIPIRONA SÓDICA, DOSAGEM:500 MG") | Todas as 263.562 compras estão em códigos-base puros |
 | Unidade de fornecimento | `U0042` (comprimido) ou `-3` | Estoque HORUS (AF, ANTMICRO…) |
 

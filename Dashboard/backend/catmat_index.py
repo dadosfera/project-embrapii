@@ -28,7 +28,7 @@ _FIM_COMPOSICAO = re.compile(r"[,:;(]|\s\d")
 
 LIMITE_PADRAO = 30
 
-# PG: a flag de estoque fica NULL — um EXISTS na instituicao_estoca_produto da UFMG (39 GB, banco compartilhado)
+# Postgres é legado (ver Dashboard/README.md). PG: a flag de estoque fica NULL — um EXISTS na instituicao_estoca_produto da UFMG (39 GB, banco compartilhado)
 # varre a tabela inteira. No Snowflake a tabela é o recorte de 3,3 mi linhas e a consulta custa ~6 s.
 _SQL = Q(
     pg="""
@@ -82,12 +82,21 @@ def rotulo_composicao(descricao: str) -> str:
     return base or texto
 
 
+# Tipo de produto em estoque do BNAFAR (dicionário em analises/EDA_BNAFAR.ipynb)
+COMPONENTES = {
+    "B": "Componente Básico",  # Anexos I e IV da RENAME
+    "E": "Componente Especializado",  # Anexo III da RENAME
+    "S": "Componente Estratégico",  # Anexos II e IV da RENAME
+    "O": "Recursos próprios do ente",
+}
+
+
 @dataclass
 class Variante:
     catmat_id: int
     codigo: str
     descricao: str
-    componente: Optional[str]  # "B", "E", "S", "O" (prefixo BNAFAR) ou None
+    componente: Optional[str]  # "B", "E", "S", "O" (tipo de produto do BNAFAR, ver COMPONENTES) ou None
     apresentacao: Optional[str]  # "U0042", "-3" ou None
     tem_compras: bool
     tem_estoque: Optional[bool]
@@ -98,7 +107,7 @@ class Variante:
         if self.apresentacao:
             partes.append(f"Apresentação {self.apresentacao.lstrip('-')}")
         if self.componente:
-            partes.append(f"BNAFAR {self.componente}")
+            partes.append(f"BNAFAR · {COMPONENTES.get(self.componente, self.componente)}")
         return " · ".join(partes) or "Código-base"
 
     def to_dict(self) -> dict:
