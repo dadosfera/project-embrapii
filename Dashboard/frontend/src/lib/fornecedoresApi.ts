@@ -38,11 +38,13 @@ export function buscarRankingFornecedores(
   dataFim: string,
   uf?: string,
   limite?: number,
+  fornecedorId?: number,
 ): Promise<RankingFornecedor[]> {
   return request<RankingFornecedor[]>("/api/fornecedores/ranking", {
     data_inicio: dataInicio,
     data_fim: dataFim,
     uf,
     limite,
+    fornecedor_id: fornecedorId,
   });
 }

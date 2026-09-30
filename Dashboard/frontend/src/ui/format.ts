@@ -61,3 +61,11 @@ export function hojeLocal(d: Date = new Date()): string {
   const dia = String(d.getDate()).padStart(2, "0");
   return `${d.getFullYear()}-${mes}-${dia}`;
 }
+
+/** "12345678000199" (com ou sem máscara) → "12.345.678/0001-99"; sem 14 dígitos, devolve o valor original. */
+export function formatarCnpj(v: string | null | undefined): string {
+  if (!v) return SEM_DADO;
+  const digitos = v.replace(/\D/g, "");
+  if (digitos.length !== 14) return v;
+  return digitos.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
+}

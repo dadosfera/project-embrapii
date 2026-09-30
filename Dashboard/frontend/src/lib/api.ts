@@ -168,6 +168,23 @@ export interface FiltrosCompras {
   data_fim: string;
   catmat_id?: number | null;
   tipo_compra?: string;
+  /** Fornecedor (autocomplete, ver buscarFornecedoresAutocomplete). */
+  fornecedor_id?: number | null;
+  /** UF da mantenedora compradora. */
+  uf?: string;
+}
+
+/** Item do autocomplete de fornecedor (backend/fornecedor_index.py), distinto do ranking de Fornecedores. */
+export interface FornecedorAutocomplete {
+  fornecedor_id: number;
+  nome: string;
+  cnpj: string | null;
+  valor_total: number;
+  numero_compras: number;
+}
+
+export function buscarFornecedoresAutocomplete(q: string, limite = 20): Promise<FornecedorAutocomplete[]> {
+  return request<FornecedorAutocomplete[]>("/api/fornecedores/busca", { q, limite });
 }
 
 export interface KpisCompras {
@@ -243,6 +260,8 @@ function paramsCompras(f: FiltrosCompras) {
     data_fim: f.data_fim,
     catmat_id: f.catmat_id,
     tipo_compra: f.tipo_compra,
+    fornecedor_id: f.fornecedor_id,
+    uf: f.uf,
   };
 }
 

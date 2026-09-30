@@ -8,6 +8,7 @@ import {
 } from "react";
 
 import { DataTable } from "../components/DataTable";
+import { FornecedorPicker } from "../components/FornecedorPicker";
 import { MapaBrasilUf, type DadoMapaUf } from "../components/MapaBrasil";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { EmptyState } from "@/ui/EmptyState";
 import { ErrorState } from "@/ui/ErrorState";
 import { KpiCard } from "@/ui/KpiCard";
 import { PageHeader } from "@/ui/PageHeader";
+import { SeletorUf } from "@/ui/SeletorUf";
 import {
   moedaExata,
   numeroCompacto,
@@ -26,7 +28,7 @@ import {
 } from "@/ui/format";
 import { PeriodoAnos } from "@/ui/PeriodoAnos";
 import { anosEntre, datasDoPeriodo } from "@/ui/periodo";
-import { buscarIntervaloCompras } from "../lib/api";
+import { buscarIntervaloCompras, type FornecedorAutocomplete } from "../lib/api";
 import {
   buscarMapaFornecedoresPorUf,
   buscarRankingFornecedores,
@@ -95,6 +97,7 @@ export function Fornecedores() {
   const [tentativaIntervalo, setTentativaIntervalo] = useState(0);
 
   const [ufFiltro, setUfFiltro] = useState("");
+  const [fornecedorFiltro, setFornecedorFiltro] = useState<FornecedorAutocomplete | null>(null);
 
   const [dadosMapa, setDadosMapa] = useState<MapaFornecedorUf[]>([]);
   const [ranking, setRanking] = useState<RankingFornecedor[]>([]);
@@ -200,6 +203,7 @@ export function Fornecedores() {
           data_fim,
           ufFiltro || undefined,
           100,
+          fornecedorFiltro?.fornecedor_id,
         );
         if (ativo) setRanking(resposta);
       } catch (error) {
@@ -214,7 +218,7 @@ export function Fornecedores() {
     return () => {
       ativo = false;
     };
-  }, [anoDe, anoAte, ufFiltro, tentativaRanking]);
+  }, [anoDe, anoAte, ufFiltro, fornecedorFiltro, tentativaRanking]);
 
   const dadosMapaFormatados: DadoMapaUf[] = useMemo(
     () =>
@@ -333,6 +337,23 @@ export function Fornecedores() {
         ) : carregandoIntervalo ? (
           <Skeleton className="h-16 w-full max-w-sm" />
         ) : null}
+
+        <FornecedorPicker
+          id="fornecedores-busca"
+          label="Fornecedor"
+          value={fornecedorFiltro}
+          onSelect={setFornecedorFiltro}
+          className="min-w-0 sm:w-72"
+        />
+
+        <SeletorUf
+          id="fornecedores-uf"
+          label="Estado"
+          value={ufFiltro}
+          onChange={setUfFiltro}
+          disabled={carregandoMapa || carregandoRanking}
+          className="sm:w-40"
+        />
       </section>
 
       {falhaIntervalo != null && (
@@ -408,22 +429,41 @@ export function Fornecedores() {
             </p>
 
             <div aria-live="polite" className="mt-3 flex flex-wrap items-center gap-2 text-sm text-muted">
-              {ufFiltro ? (
+              {ufFiltro || fornecedorFiltro ? (
                 <>
                   <span>
-                    Tabela filtrada por <strong className="text-[var(--text)]">{ufFiltro}</strong>
+                    Tabela filtrada por{" "}
+                    {ufFiltro && (
+                      <strong className="text-[var(--text)]">{ufFiltro}</strong>
+                    )}
+                    {ufFiltro && fornecedorFiltro && " e "}
+                    {fornecedorFiltro && (
+                      <strong className="text-[var(--text)]">{fornecedorFiltro.nome}</strong>
+                    )}
                   </span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setUfFiltro("")}
-                  >
-                    Limpar UF
-                  </Button>
+                  {ufFiltro && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setUfFiltro("")}
+                    >
+                      Limpar UF
+                    </Button>
+                  )}
+                  {fornecedorFiltro && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setFornecedorFiltro(null)}
+                    >
+                      Limpar fornecedor
+                    </Button>
+                  )}
                 </>
               ) : (
-                <span>Tabela: todas as UFs. Clique numa UF do mapa para filtrar.</span>
+                <span>Tabela: todas as UFs e fornecedores. Clique numa UF do mapa para filtrar.</span>
               )}
             </div>
 
