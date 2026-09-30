@@ -19,7 +19,7 @@ describe("SeletorUf", () => {
     const onChange = vi.fn();
     render(<SeletorUf id="uf-teste" label="Estado" value="" onChange={onChange} />);
     fireEvent.click(screen.getByRole("combobox"));
-    fireEvent.click(screen.getByRole("option", { name: "MG" }));
+    fireEvent.click(screen.getByRole("option", { name: "MG · Minas Gerais" }));
     expect(onChange).toHaveBeenCalledWith("MG");
   });
 

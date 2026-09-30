@@ -1,5 +1,5 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UFS } from "../lib/ufs";
+import { UFS, nomeUf } from "../lib/ufs";
 
 const TODAS = "Todas";
 
@@ -13,7 +13,7 @@ type Props = {
   className?: string;
 };
 
-/** Select de UF reutilizável (Compras e Fornecedores): "Todas" + as 27 UFs de src/lib/ufs.ts. */
+/** Select de UF reutilizável (Compras e Fornecedores): "Todas" + as 27 UFs de src/lib/ufs.ts, como "SP · São Paulo". */
 export function SeletorUf({ id, label, value, onChange, disabled, className }: Props) {
   return (
     <div className={className}>
@@ -34,7 +34,7 @@ export function SeletorUf({ id, label, value, onChange, disabled, className }: P
           <SelectItem value={TODAS}>Todas</SelectItem>
           {UFS.map((uf) => (
             <SelectItem key={uf} value={uf}>
-              {uf}
+              {uf} · {nomeUf(uf)}
             </SelectItem>
           ))}
         </SelectContent>

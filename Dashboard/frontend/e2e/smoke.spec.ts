@@ -321,7 +321,7 @@ test("Compras: filtra por fornecedor e UF, KPIs carregam com fornecedor_id e uf"
   await opcao.click();
 
   await page.locator("#uf-compras").click();
-  await page.getByRole("option", { name: "MG", exact: true }).click();
+  await page.getByRole("option", { name: "MG · Minas Gerais", exact: true }).click();
 
   const kpis = page.waitForResponse(
     (r) => r.url().includes("/api/compras/kpis") && r.url().includes("uf=MG"),
