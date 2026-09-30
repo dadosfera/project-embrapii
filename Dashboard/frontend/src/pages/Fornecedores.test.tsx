@@ -230,7 +230,7 @@ describe("Fornecedores", () => {
     await screen.findByRole("button", { name: /Minas Gerais \(MG\)/ });
 
     fireEvent.click(screen.getByRole("combobox", { name: "Estado" }));
-    fireEvent.click(await screen.findByRole("option", { name: "MG" }));
+    fireEvent.click(await screen.findByRole("option", { name: "MG · Minas Gerais" }));
 
     await waitFor(() => {
       expect(buscarRankingFornecedores).toHaveBeenLastCalledWith(

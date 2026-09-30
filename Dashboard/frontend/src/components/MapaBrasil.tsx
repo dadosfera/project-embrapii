@@ -544,7 +544,7 @@ export function MapaBrasilUf({
       source={fonte}
     >
       <div
-        className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_220px]"
+        className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_280px]"
         onKeyDown={onKeyDownContainer}
       >
         <div ref={containerRef} className="relative mx-auto w-full max-w-4xl">
@@ -640,12 +640,13 @@ export function MapaBrasilUf({
 
           {estadoAtivo ? (
             <>
-              <p className="mt-2 text-lg font-semibold text-[var(--text)]">
+              <p className="mt-2 flex items-center gap-2 text-lg font-semibold text-[var(--text)]">
+                {estadoAtivo.sigla ? (
+                  <span className="rounded-[var(--radius-sm)] bg-primary-soft px-1.5 py-0.5 text-xs font-semibold text-primary">
+                    {estadoAtivo.sigla}
+                  </span>
+                ) : null}
                 {estadoAtivo.nome}
-              </p>
-
-              <p className="mt-1 text-sm text-muted">
-                {estadoAtivo.sigla}
               </p>
 
               <div className="mt-5">
@@ -677,17 +678,28 @@ export function MapaBrasilUf({
               </p>
 
               {cincoMaiores.length > 0 ? (
-                <ol className="mt-2 flex flex-col gap-1">
-                  {cincoMaiores.map((estado) => (
+                // botão próprio em duas linhas: o Button do shadcn tem altura fixa e nowrap e truncava o nome da UF
+                <ol className="mt-2 flex flex-col gap-1 text-sm">
+                  {cincoMaiores.map((estado, posicao) => (
                     <li key={estado.id}>
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-between px-2"
+                      <button
+                        type="button"
+                        data-slot="uf-ranking"
+                        aria-label={`${posicao + 1}º lugar: ${estado.nome}, ${formatar(estado.valor ?? 0)} ${unidade}. Fixar no mapa`}
                         onClick={() => alternarFixacao(estado.sigla)}
+                        className="grid w-full grid-cols-[1.25rem_2.5rem_minmax(0,1fr)] items-center gap-x-2 rounded-[var(--radius-sm)] px-2 py-1.5 text-left hover:bg-subtle"
                       >
-                        <span className="truncate">{estado.nome}</span>
-                        <span className="tabular-nums">{formatar(estado.valor ?? 0)} {unidade}</span>
-                      </Button>
+                        <span className="text-xs tabular-nums text-muted">{posicao + 1}</span>
+                        <span className="rounded-[var(--radius-sm)] bg-primary-soft px-1.5 py-0.5 text-center text-xs font-semibold text-primary">
+                          {estado.sigla}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-[var(--text)]">{estado.nome}</span>
+                          <span className="block text-xs tabular-nums text-muted">
+                            {formatar(estado.valor ?? 0)} {unidade}
+                          </span>
+                        </span>
+                      </button>
                     </li>
                   ))}
                 </ol>

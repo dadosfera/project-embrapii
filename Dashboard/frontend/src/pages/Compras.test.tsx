@@ -141,7 +141,7 @@ describe("Compras", () => {
     fireEvent.click(opcao);
 
     fireEvent.click(screen.getByRole("combobox", { name: "Estado da compra" }));
-    fireEvent.click(await screen.findByRole("option", { name: "MG" }));
+    fireEvent.click(await screen.findByRole("option", { name: "MG · Minas Gerais" }));
 
     fireEvent.click(screen.getByRole("button", { name: "Aplicar" }));
 
