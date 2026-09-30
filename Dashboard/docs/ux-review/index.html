@@ -143,6 +143,7 @@ footer { max-width: 1080px; margin: 0 auto; padding: 20px 16px 40px; font-size: 
 <main>
 <nav class="toc">
   <a href="#resumo">Resumo</a>
+  <a href="#antes-depois">Antes × depois</a>
   <a href="#global">Transversais</a>
   <a href="#home">Início</a>
   <a href="#medicamentos">Medicamentos</a>
@@ -176,6 +177,93 @@ footer { max-width: 1080px; margin: 0 auto; padding: 20px 16px 40px; font-size: 
   <li><strong>Shell e tipografia Beast.</strong> Header com logo Dadosfera e "Projeto EMBRAPII · DCC/UFMG", Quicksand, primário #1700a2, ícones Eva no lugar de emoji, números compactos (R$ 50,9 bi) e tabelas sem fonte mono nos nomes.</li>
   <li><strong>Um padrão só de filtro e carga.</strong> Hoje cada página faz de um jeito: Fornecedores carrega sozinha, Compras e Leitos esperam clique mesmo com filtros prontos, Medicamentos e Mapa pedem três passos. Propomos carregar com o padrão ao abrir e aplicar mudanças com um botão "Aplicar". O mesmo pacote inclui code-split por rota (o JS hoje é um arquivo único de 787 kB).</li>
 </ol>
+
+<!-- ============================================================ -->
+<h2 id="antes-depois">Antes × depois</h2>
+<p>O subprojeto A (visual Beast) foi implementado nas seis páginas. Os prints de "depois" são do mesmo script e dos mesmos dados de referência desta revisão (CATMAT 85 para dipirona com estoque, Compras em 2021), capturados em 28/09/2026 contra o mesmo app local em Snowflake. As legendas citam as decisões da seção 11 atendidas em cada página; o número da decisão está entre parênteses.</p>
+
+<h3>Início</h3>
+<p><strong>Estado padrão, 1440 px</strong></p>
+<div class="shots">
+  <figure><a class="img" href="shots/home.png"><img src="shots/home.png" alt="Início antes, 1440 px"></a><figcaption>Antes</figcaption></figure>
+  <figure><a class="img" href="shots/depois-home.png"><img src="shots/depois-home.png" alt="Início depois, 1440 px"></a><figcaption>Depois: shell Beast, com logo Dadosfera, Quicksand, ícones Eva nos cards de módulo e card de Fornecedores incluído (1, 2, 15).</figcaption></figure>
+</div>
+<p><strong>390 px (celular)</strong></p>
+<div class="shots">
+  <figure><a class="img" href="shots/home-390.png"><img src="shots/home-390.png" alt="Início antes, 390 px"></a><figcaption>Antes: o menu rola na horizontal e esconde Mapa e Fornecedores.</figcaption></figure>
+  <figure><a class="img" href="shots/depois-home-390.png"><img src="shots/depois-home-390.png" alt="Início depois, 390 px"></a><figcaption>Depois: o menu virou um botão único com ícone, sem rolagem horizontal (18).</figcaption></figure>
+</div>
+
+<h3>Medicamentos</h3>
+<p><strong>Estado padrão, antes da busca</strong></p>
+<div class="shots">
+  <figure><a class="img" href="shots/medicamentos.png"><img src="shots/medicamentos.png" alt="Medicamentos antes, estado padrão"></a><figcaption>Antes</figcaption></figure>
+  <figure><a class="img" href="shots/depois-medicamentos.png"><img src="shots/depois-medicamentos.png" alt="Medicamentos depois, estado padrão"></a><figcaption>Depois: cabeçalho de página com ícone Eva no lugar do emoji (1, 2).</figcaption></figure>
+</div>
+<p><strong>CATMAT 85 (dipirona sódica injetável, com estoque)</strong></p>
+<div class="shots">
+  <figure><a class="img" href="shots/medicamentos-85.png"><img src="shots/medicamentos-85.png" alt="Medicamentos antes, CATMAT 85"></a><figcaption>Antes: estoque em número inteiro ("124.109") e evolução de preço em curva suavizada, com um pico entre os anos que a base não tem.</figcaption></figure>
+  <figure><a class="img" href="shots/depois-medicamentos-85.png"><img src="shots/depois-medicamentos-85.png" alt="Medicamentos depois, CATMAT 85"></a><figcaption>Depois: estoque em número compacto ("124,1 mil") e evolução de preço em linha reta com marcador por ano (4, 5).</figcaption></figure>
+</div>
+<p><strong>CATMAT 5176 (primeiro resultado de "dipirona", sem estoque)</strong></p>
+<div class="shots">
+  <figure><a class="img" href="shots/medicamentos-5176-vazio.png"><img src="shots/medicamentos-5176-vazio.png" alt="Medicamentos antes, CATMAT 5176 sem estoque"></a><figcaption>Antes: "Estoque por UF" mostra só a frase "Sem dados de estoque para esse item.", sem explicar a causa.</figcaption></figure>
+  <figure><a class="img" href="shots/depois-medicamentos-5176-vazio.png"><img src="shots/depois-medicamentos-5176-vazio.png" alt="Medicamentos depois, CATMAT 5176 sem estoque"></a><figcaption>Depois: estado vazio com ícone, título "Sem estoque por UF" e a causa ("Nenhuma instituição registrou estoque deste medicamento") (9).</figcaption></figure>
+</div>
+
+<h3>Compras</h3>
+<p><strong>Estado padrão, antes de pesquisar</strong></p>
+<div class="shots">
+  <figure><a class="img" href="shots/compras.png"><img src="shots/compras.png" alt="Compras antes, estado padrão"></a><figcaption>Antes</figcaption></figure>
+  <figure><a class="img" href="shots/depois-compras.png"><img src="shots/depois-compras.png" alt="Compras depois, estado padrão"></a><figcaption>Depois: shell e filtros no padrão novo, com ícone Eva no cabeçalho (1, 2).</figcaption></figure>
+</div>
+<p><strong>Filtro padrão sem resultado (últimos 12 meses)</strong></p>
+<div class="shots">
+  <figure><a class="img" href="shots/compras-padrao-zerado.png"><img src="shots/compras-padrao-zerado.png" alt="Compras antes, filtro padrão sem resultado"></a><figcaption>Antes: aviso em caixa laranja, "Nenhuma compra foi encontrada para os filtros selecionados."</figcaption></figure>
+  <figure><a class="img" href="shots/depois-compras-padrao-zerado.png"><img src="shots/depois-compras-padrao-zerado.png" alt="Compras depois, filtro padrão sem resultado"></a><figcaption>Depois: estado vazio com ícone, título "Nenhuma compra encontrada" e a causa em texto secundário (9). O período padrão continua em "últimos 12 meses" e ainda zera; abrir já em 2020–2025 é do subprojeto C.</figcaption></figure>
+</div>
+<p><strong>2020–2025 (dados preenchidos)</strong></p>
+<div class="shots">
+  <figure><a class="img" href="shots/compras-2020-2025.png"><img src="shots/compras-2020-2025.png" alt="Compras antes, 2020-2025"></a><figcaption>Antes: KPI quebra em duas linhas ("R$ 50.941.327.779,40") e o gráfico mensal usa curva suavizada entre os pontos anuais.</figcaption></figure>
+  <figure><a class="img" href="shots/depois-compras-2020-2025.png"><img src="shots/depois-compras-2020-2025.png" alt="Compras depois, 2020-2025"></a><figcaption>Depois: KPI em número compacto ("R$ 50,9 bi") e gráfico mensal com linha reta e marcador por ano (4, 5). A troca dos dois gráficos de linha para barras anuais é do subprojeto C.</figcaption></figure>
+</div>
+
+<h3>Leitos</h3>
+<p><strong>Estado padrão, antes de aplicar filtros</strong></p>
+<div class="shots">
+  <figure><a class="img" href="shots/leitos.png"><img src="shots/leitos.png" alt="Leitos antes, estado padrão"></a><figcaption>Antes</figcaption></figure>
+  <figure><a class="img" href="shots/depois-leitos.png"><img src="shots/depois-leitos.png" alt="Leitos depois, estado padrão"></a><figcaption>Depois: cabeçalho e filtros no padrão Beast, com ícone Eva no lugar do emoji (1, 2).</figcaption></figure>
+</div>
+<p><strong>Filtros aplicados</strong></p>
+<div class="shots">
+  <figure><a class="img" href="shots/leitos-aplicado.png"><img src="shots/leitos-aplicado.png" alt="Leitos antes, filtros aplicados"></a><figcaption>Antes: KPIs em número inteiro ("521.602") e barras horizontais com rótulo em uma UF a cada quatro.</figcaption></figure>
+  <figure><a class="img" href="shots/depois-leitos-aplicado.png"><img src="shots/depois-leitos-aplicado.png" alt="Leitos depois, filtros aplicados"></a><figcaption>Depois: KPIs em número compacto ("521,6 mil") e as 27 UFs rotuladas, tanto no gráfico quanto na tabela (3, 4).</figcaption></figure>
+</div>
+
+<h3>Mapa</h3>
+<p><strong>Estado padrão, antes da busca</strong></p>
+<div class="shots">
+  <figure><a class="img" href="shots/mapa.png"><img src="shots/mapa.png" alt="Mapa antes, estado padrão"></a><figcaption>Antes</figcaption></figure>
+  <figure><a class="img" href="shots/depois-mapa.png"><img src="shots/depois-mapa.png" alt="Mapa depois, estado padrão"></a><figcaption>Depois: cabeçalho de página padrão com ícone Eva no lugar do rótulo em caixa alta (1, 2).</figcaption></figure>
+</div>
+<p><strong>CATMAT 5176 (sem estoque)</strong></p>
+<div class="shots">
+  <figure><a class="img" href="shots/mapa-5176-vazio.png"><img src="shots/mapa-5176-vazio.png" alt="Mapa antes, CATMAT 5176 sem estoque"></a><figcaption>Antes: aviso em caixa cinza, "Não há dados de estoque para o item selecionado."</figcaption></figure>
+  <figure><a class="img" href="shots/depois-mapa-5176-vazio.png"><img src="shots/depois-mapa-5176-vazio.png" alt="Mapa depois, CATMAT 5176 sem estoque"></a><figcaption>Depois: estado vazio com ícone, título "Sem estoque por UF" e a causa, no mesmo padrão de Medicamentos (9).</figcaption></figure>
+</div>
+<p><strong>CATMAT 85 (com estoque)</strong></p>
+<div class="shots">
+  <figure><a class="img" href="shots/mapa-85.png"><img src="shots/mapa-85.png" alt="Mapa antes, CATMAT 85"></a><figcaption>Antes</figcaption></figure>
+  <figure><a class="img" href="shots/depois-mapa-85.png"><img src="shots/depois-mapa-85.png" alt="Mapa depois, CATMAT 85"></a><figcaption>Depois: mesmo mapa, mesma escala linear e o painel lateral continua vazio até o hover ("Passe o mouse sobre uma UF"). A escala por quantis e o painel acessível (MP2, MP3) são do subprojeto C.</figcaption></figure>
+</div>
+
+<h3>Fornecedores</h3>
+<div class="shots">
+  <figure><a class="img" href="shots/fornecedores.png"><img src="shots/fornecedores.png" alt="Fornecedores antes"></a><figcaption>Antes</figcaption></figure>
+  <figure><a class="img" href="shots/depois-fornecedores.png"><img src="shots/depois-fornecedores.png" alt="Fornecedores depois"></a><figcaption>Depois: mesmo cabeçalho e barra de filtros das demais páginas, tabela de ranking alinhada à direita e itens em número compacto ("24,6 bi") (1, 2, 3, 4). A data final usa fuso local em vez de UTC e o período padrão passou a refletir 2015–2026 com a data corrente correta (16).</figcaption></figure>
+</div>
+
+<p class="note">Ficam fora deste corte, por dependerem de outros subprojetos: em Medicamentos, Mapa e Compras, o autocomplete único e a busca sem acento com ordem pt-BR são do subprojeto B (busca/agrupamento); o período padrão de Compras em 2020–2025 com filtro por ano, a paginação de UF, a escala por quantis dos mapas e a decisão sobre manter ou embutir a página Mapa são do subprojeto C (páginas/visualizações).</p>
 
 <!-- ============================================================ -->
 <h2 id="global">2. Achados transversais</h2>

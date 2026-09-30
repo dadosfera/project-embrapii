@@ -86,3 +86,16 @@ def test_path_traversal_percent_encoded_nao_escapa_do_dist(tmp_path, monkeypatch
     assert r.status_code in (200, 404)
     assert "def install" not in r.text
     assert "psycopg" not in r.text
+
+
+def test_asset_inexistente_retorna_404_em_vez_de_spa(tmp_path, monkeypatch):
+    c = make_client(tmp_path, monkeypatch, base="/pbp-x_8000")
+    r = c.get("/pbp-x_8000/assets/nao-existe.js")
+    assert r.status_code == 404
+
+
+def test_rota_sem_extensao_continua_caindo_no_spa(tmp_path, monkeypatch):
+    c = make_client(tmp_path, monkeypatch, base="/pbp-x_8000")
+    r = c.get("/pbp-x_8000/leitos")
+    assert r.status_code == 200
+    assert '<base href="/pbp-x_8000/">' in r.text

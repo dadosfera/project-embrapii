@@ -1,62 +1,75 @@
-@import "@fontsource/inter/latin-400.css";
-@import "@fontsource/inter/latin-ext-400.css";
-@import "@fontsource/inter/latin-500.css";
-@import "@fontsource/inter/latin-ext-500.css";
-@import "@fontsource/inter/latin-600.css";
-@import "@fontsource/inter/latin-ext-600.css";
-@import "@fontsource/space-grotesk/latin-600.css";
-@import "@fontsource/space-grotesk/latin-ext-600.css";
-@import "@fontsource/jetbrains-mono/latin-400.css";
-@import "@fontsource/jetbrains-mono/latin-ext-400.css";
-@import "@fontsource/jetbrains-mono/latin-500.css";
-@import "@fontsource/jetbrains-mono/latin-ext-500.css";
+@import "@fontsource/quicksand/400.css";
+@import "@fontsource/quicksand/500.css";
+@import "@fontsource/quicksand/600.css";
+@import "@fontsource/quicksand/700.css";
 @import "tailwindcss";
+@import "tw-animate-css";
 
+/* beast:tokens:start */
+/* Fonte: beast/src/framework/theme/styles/themes/_default.scss (commit 25709803). Única camada com hex. */
 :root {
-  color-scheme: light dark;
+  --beast-primary-100: #d1ccec; --beast-primary-200: #a299da; --beast-primary-300: #7466c7;
+  --beast-primary-400: #4533b5; --beast-primary-500: #1700a2; --beast-primary-600: #14008a;
+  --beast-primary-700: #14008a; --beast-primary-800: #0c0051; --beast-primary-900: #0d003b;
+  --beast-success-100: #dbefdc; --beast-success-200: #b8dfb9; --beast-success-300: #94d095;
+  --beast-success-400: #70c072; --beast-success-500: #4db04f; --beast-success-600: #419643;
+  --beast-success-700: #367b37; --beast-success-800: #275828; --beast-success-900: #173518;
+  --beast-info-100: #d8f2fc; --beast-info-200: #b1e5f9; --beast-info-300: #89d9f6;
+  --beast-info-400: #3bccf3; --beast-info-500: #3bbff0; --beast-info-600: #32a2cc;
+  --beast-info-700: #2986a8; --beast-info-800: #1e6078; --beast-info-900: #123948;
+  --beast-warning-100: #ffebcc; --beast-warning-200: #ffd699; --beast-warning-300: #ffc266;
+  --beast-warning-400: #ffad33; --beast-warning-500: #ff9800; --beast-warning-600: #d98100;
+  --beast-warning-700: #b36a00; --beast-warning-800: #804c00; --beast-warning-900: #4d2e00;
+  --beast-danger-100: #fee2e2; --beast-danger-200: #fecaca; --beast-danger-300: #fca5a5;
+  --beast-danger-400: #f87171; --beast-danger-500: #ef4444; --beast-danger-600: #dc2626;
+  --beast-danger-700: #b91c1c; --beast-danger-800: #991b1b; --beast-danger-900: #7f1d1d;
+  --beast-basic-100: #ffffff; --beast-basic-200: #f9f9f9; --beast-basic-300: #f2f2f2;
+  --beast-basic-400: #eeeeee; --beast-basic-500: #dfdfdf; --beast-basic-600: #c8c8c8;
+  --beast-basic-700: #939393; --beast-basic-800: #5c5c5c; --beast-basic-900: #333333;
+  --beast-basic-1000: #222222; --beast-basic-1100: #101426;
+}
+/* beast:tokens:end */
 
-  --font-display: "Space Grotesk", system-ui, sans-serif;
-  --font-body: "Inter", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+/* Semânticos: o único vocabulário do código. */
+:root {
+  color-scheme: light;
+  --font-body: "Quicksand", "Open Sans", sans-serif;
 
-  --color-brand-indigo: #1a00a9;
-  --color-brand-blue: #28638f;
-  --color-brand-cyan: #087f8c;
-  --color-cta: light-dark(#0f766e, #0f8f83);
-  --color-cta-hover: light-dark(#0b655f, #12a193);
+  --bg: var(--beast-basic-200);
+  --panel: var(--beast-basic-100);
+  --subtle: var(--beast-basic-300);
+  --border: var(--beast-basic-500);
+  --border-strong: var(--beast-basic-600);
+  --text: var(--beast-basic-1100);
+  --text-muted: var(--beast-basic-800);
+  --primary: var(--beast-primary-500);
+  --primary-hover: var(--beast-primary-600);
+  --primary-soft: var(--beast-primary-100);
+  --focus-ring: var(--beast-primary-300);
+  --success: var(--beast-success-600);  --success-soft: var(--beast-success-100);
+  --warning: var(--beast-warning-700);  --warning-soft: var(--beast-warning-100);
+  --danger: var(--beast-danger-600);    --danger-soft: var(--beast-danger-100);
+  --info: var(--beast-info-700);        --info-soft: var(--beast-info-100);
 
-  --bg: light-dark(#f4f4f2, #171817);
-  --panel: light-dark(#ffffff, #202120);
-  --text: light-dark(#0b0e27, #f1f2ef);
-  --text-muted: light-dark(#62656f, #a8aaa5);
-  --border: light-dark(#dedfdd, #393b38);
-  --subtle: light-dark(#ececea, #2a2c29);
-  --editor: light-dark(#f7f7f5, #1b1c1b);
-  --focus-ring: #28638f;
+  /* Texto sobre fundo claro (alertas, badges): mais escuro que --warning/--danger,
+     que ficam reservados para gráficos e ícones. Só --warning-text/--danger-text são
+     usados como texto hoje (grep confirma que nenhuma classe de bridge aponta
+     texto para --success/--info; se isso mudar, criar --success-text/--info-text do mesmo jeito). */
+  --warning-text: var(--beast-warning-800);
+  --danger-text: var(--beast-danger-700);
+  --warning-border: var(--beast-warning-300);
+  --danger-border: var(--beast-danger-200);
 
-  --success: light-dark(#047857, #34d399);
-  --success-soft: light-dark(#ecfdf5, #13271f);
-  --danger: light-dark(#b91c1c, #f87171);
-  --danger-soft: light-dark(#fef2f2, #2b1a1a);
-  --warning: light-dark(#b45309, #fbbf24);
-  --warning-soft: light-dark(#fffbeb, #2a2114);
+  /* Tinta larga (fundos de seção grandes): 6% de --primary sobre --panel, bem mais suave
+     que --primary-soft (que continua reservado para chips e estados ativos). */
+  --primary-tint: color-mix(in srgb, var(--primary) 6%, var(--panel));
 
-  --step-1: light-dark(#1a00a9, #8b7bff);
-  --step-2: light-dark(#5a3fc7, #a08cff);
-  --step-3: light-dark(#28638f, #5eb0ea);
-  --step-4: light-dark(#0a6ea3, #38bdf8);
-  --step-5: light-dark(#067782, #2dd4bf);
-
-  --radius-xs: 7px;
-  --radius-sm: 8px;
-  --radius-md: 10px;
-  --radius-lg: 12px;
-  --radius-xl: 14px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --shadow-card: 0 1px 2px color-mix(in srgb, var(--text) 6%, transparent);
   --duration-fast: 120ms;
   --duration-base: 160ms;
-  --duration-slow: 260ms;
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
-  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 
   font-family: var(--font-body);
   color: var(--text);
@@ -65,24 +78,43 @@
   text-rendering: optimizeLegibility;
 }
 
-:root[data-theme="light"] {
-  color-scheme: light;
+/* Variáveis do shadcn/ui: só apontam para os semânticos (sem valores próprios, sem tema escuro).
+   --primary e --border já existem acima com o mesmo nome. */
+:root {
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--panel);
+  --card-foreground: var(--text);
+  --popover: var(--panel);
+  --popover-foreground: var(--text);
+  --primary-foreground: var(--beast-basic-100);
+  --secondary: var(--subtle);
+  --secondary-foreground: var(--text);
+  --muted: var(--subtle);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--primary-soft);
+  --accent-foreground: var(--primary);
+  --destructive: var(--danger);
+  --input: var(--border);
+  --ring: var(--focus-ring);
+  --radius: var(--radius-md);
 }
 
-:root[data-theme="dark"] {
-  color-scheme: dark;
-}
-
-/* Mantém as classes existentes conectadas à camada semântica do design system. */
+/* Ponte: as classes que as páginas já usam passam a apontar para os semânticos. */
 @theme inline {
   --font-sans: var(--font-body);
-  --radius-2xl: var(--radius-xl);
+  --radius-2xl: var(--radius-md);
+  --radius-xl: var(--radius-md);
+  --radius-lg: var(--radius-md);
 
   --color-white: var(--panel);
-  --color-slate-50: var(--editor);
+  --color-slate-50: var(--bg);
   --color-slate-100: var(--subtle);
   --color-slate-200: var(--border);
-  --color-slate-300: var(--border);
+  --color-slate-300: var(--border-strong);
+  /* slate-400 fica em --text-muted (6,7:1 sobre --panel) porque também é usado como texto
+     comum (legendas, placeholder), não só em disabled:. Trocar para --border-strong aqui
+     quebraria esse texto (1,7:1). O estado disabled: é tratado à parte, mais abaixo. */
   --color-slate-400: var(--text-muted);
   --color-slate-500: var(--text-muted);
   --color-slate-600: var(--text-muted);
@@ -90,25 +122,76 @@
   --color-slate-800: var(--text);
   --color-slate-900: var(--text);
 
-  --color-teal-50: var(--subtle);
+  --color-teal-50: var(--primary-tint);
   --color-teal-100: var(--border);
   --color-teal-200: var(--border);
-  --color-teal-600: var(--color-brand-blue);
-  --color-teal-700: var(--color-brand-blue);
-  --color-teal-800: var(--color-brand-blue);
+  --color-teal-600: var(--primary);
+  --color-teal-700: var(--primary);
+  --color-teal-800: var(--primary-hover);
   --color-teal-900: var(--text);
   --color-cyan-50: var(--subtle);
 
   --color-amber-50: var(--warning-soft);
-  --color-amber-200: var(--warning);
-  --color-amber-700: var(--warning);
-  --color-amber-900: var(--warning);
+  --color-amber-200: var(--warning-border);
+  --color-amber-700: var(--warning-text);
+  --color-amber-900: var(--warning-text);
   --color-red-50: var(--danger-soft);
-  --color-red-200: var(--danger);
-  --color-red-800: var(--danger);
+  --color-red-200: var(--danger-border);
+  --color-red-800: var(--danger-text);
   --color-blue-50: var(--subtle);
   --color-blue-200: var(--border);
-  --color-blue-800: var(--color-brand-blue);
+  --color-blue-800: var(--primary);
+
+  /* Fornecedores usa orange-* só para GRUPO_ESTRANGEIRO; reaproveita a escala de warning. */
+  --color-orange-50: var(--warning-soft);
+  --color-orange-200: var(--warning-border);
+  --color-orange-700: var(--warning-text);
+
+  /* Vocabulário novo, para o código novo. */
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-tint: var(--primary-tint);
+  --color-muted: var(--text-muted);
+  --color-panel: var(--panel);
+  --color-surface: var(--bg);
+  --color-subtle: var(--subtle);
+  --color-line: var(--border);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-warning-text: var(--warning-text);
+  --color-warning-border: var(--warning-border);
+  --color-danger: var(--danger);
+  --color-danger-text: var(--danger-text);
+  --color-danger-border: var(--danger-border);
+  --color-info: var(--info);
+
+  /* shadcn/ui. --color-primary e --color-muted ficam com a definição acima
+     (bg-muted do shadcn foi trocado por bg-subtle nas primitivas). */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+/* Primitivas shadcn usam `border` sem cor; aqui ele vira --border. Fica em @layer base
+   para perder das utilidades (border-input etc.) e só vale para [data-slot]. */
+@layer base {
+  [data-slot] {
+    border-color: var(--border);
+  }
 }
 
 html {
@@ -128,7 +211,7 @@ body {
 h1,
 h2,
 h3 {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-weight: 600;
   letter-spacing: -0.01em;
 }
@@ -161,10 +244,10 @@ textarea {
   min-width: 0;
   border-radius: var(--radius-sm) !important;
   color: var(--text);
-  background-color: var(--editor);
+  background-color: var(--panel);
 }
 
-button {
+button:not([data-slot]) {
   border-radius: var(--radius-md) !important;
 }
 
@@ -192,116 +275,33 @@ textarea:focus {
 
 ::selection {
   color: var(--text);
-  background: color-mix(in srgb, var(--color-brand-blue) 22%, transparent);
-}
-
-.app-shell {
-  min-height: 100vh;
-  color: var(--text);
-  background: var(--bg);
-}
-
-.app-header {
-  background: color-mix(in srgb, var(--panel) 85%, transparent);
-  border-color: var(--border);
-  box-shadow: 0 1px 10px rgb(0 0 0 / 0.04);
-}
-
-.brand-mark {
-  display: inline-flex;
-  width: fit-content;
-  align-items: center;
-}
-
-.brand-logo {
-  display: block;
-  width: 112px;
-  height: auto;
-}
-
-.brand-logo-dark {
-  display: none;
-}
-
-:root[data-theme="dark"] .brand-logo-light {
-  display: none;
-}
-
-:root[data-theme="dark"] .brand-logo-dark {
-  display: block;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) .brand-logo-light {
-    display: none;
-  }
-
-  :root:not([data-theme]) .brand-logo-dark {
-    display: block;
-  }
-}
-
-.nav-link {
-  border-radius: var(--radius-md);
-  color: var(--text-muted);
-  transition:
-    color var(--duration-fast) var(--ease-standard),
-    background-color var(--duration-fast) var(--ease-standard);
-}
-
-.nav-link:hover {
-  color: var(--text);
-  background: var(--subtle);
-}
-
-.nav-link-active {
-  color: #fff;
-  background: var(--color-brand-blue);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.16);
+  background: color-mix(in srgb, var(--primary) 22%, transparent);
 }
 
 .bg-teal-700.text-white {
-  color: #fff;
-}
-
-.theme-toggle {
-  display: inline-flex;
-  min-width: 40px;
-  min-height: 40px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  color: var(--text-muted);
-  background: var(--panel);
-  transition: color var(--duration-fast), background var(--duration-fast);
-}
-
-.theme-toggle:hover {
-  color: var(--text);
-  background: var(--subtle);
+  color: var(--primary-foreground);
 }
 
 .button-cta {
-  color: #fff !important;
-  background: var(--color-cta) !important;
+  color: var(--primary-foreground) !important;
+  background: var(--primary) !important;
   border-radius: var(--radius-md) !important;
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.16);
 }
 
 .button-cta:hover {
-  background: var(--color-cta-hover) !important;
+  background: var(--primary-hover) !important;
 }
 
 .landing-hero {
   background:
-    radial-gradient(circle at 12% 15%, color-mix(in srgb, var(--step-1) 8%, transparent), transparent 34rem),
-    linear-gradient(135deg, var(--panel), color-mix(in srgb, var(--step-5) 7%, var(--bg)));
+    radial-gradient(circle at 12% 15%, color-mix(in srgb, var(--primary) 8%, transparent), transparent 34rem),
+    linear-gradient(135deg, var(--panel), color-mix(in srgb, var(--info) 7%, var(--bg)));
 }
 
 .font-data,
 tbody td {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-variant-numeric: tabular-nums;
 }
 
@@ -322,6 +322,7 @@ tbody td {
 
 .table-scroll::-webkit-scrollbar {
   height: 8px;
+  width: 8px;
 }
 
 .table-scroll::-webkit-scrollbar-track {
@@ -352,8 +353,18 @@ tbody td {
   }
 }
 
-@media (min-width: 640px) {
-  .brand-logo {
-    width: 124px;
-  }
+/* Estado disabled: só aqui slate-400 vira --border-strong (mais claro, sinaliza "inativo").
+   WCAG 1.4.3 não exige contraste de texto para componentes inativos, então isso não é uma
+   regressão de acessibilidade — é o oposto do texto comum em slate-400 (ver comentário acima). */
+[class*="disabled:text-slate-400"]:disabled {
+  color: var(--border-strong);
+}
+
+[class*="disabled:bg-slate-400"]:disabled {
+  background-color: var(--border-strong);
+}
+
+/* Alvo do link "Pular para o conteúdo": recebe foco programático, sem anel em volta da página inteira. */
+main[tabindex="-1"]:focus {
+  outline: none;
 }

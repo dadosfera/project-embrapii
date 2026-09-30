@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import {
   type ColumnDef,
@@ -10,12 +10,30 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { EmptyState } from "@/ui/EmptyState";
+
 type DataTableProps<TData> = {
   data: TData[];
   columns: ColumnDef<TData, unknown>[];
   emptyMessage?: string;
   pageSize?: number;
 };
+
+function alinhamento(meta?: { align?: string; priority?: string }) {
+  return [
+    meta?.align === "right" ? "text-right tabular-nums" : "text-left",
+    meta?.priority === "low" ? "hidden lg:table-cell" : "",
+  ].join(" ");
+}
 
 export function DataTable<TData>({
   data,
@@ -25,13 +43,8 @@ export function DataTable<TData>({
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
 
-  const stableData = useMemo(
-    () => data,
-    [data],
-  );
-
   const table = useReactTable({
-    data: stableData,
+    data,
     columns,
     state: {
       sorting,
@@ -48,11 +61,7 @@ export function DataTable<TData>({
   });
 
   if (data.length === 0) {
-    return (
-      <div className="rounded-xl border border-dashed border-teal-100 bg-teal-50/50 px-4 py-8 text-center text-sm text-slate-500">
-        {emptyMessage}
-      </div>
-    );
+    return <EmptyState title="Sem registros" cause={emptyMessage} />;
   }
 
   const pageCount = table.getPageCount();
@@ -61,11 +70,11 @@ export function DataTable<TData>({
 
   return (
     <div className="space-y-3">
-      <div className="table-scroll rounded-xl border border-teal-100 bg-white">
-        <table className="min-w-full border-collapse text-left text-sm">
-          <thead className="bg-teal-50/60">
+      <div className="rounded-[var(--radius-md)] border border-line bg-panel">
+        <Table containerClassName="table-scroll max-h-[70vh] overflow-auto">
+          <TableHeader className="sticky top-0 z-10 bg-panel">
             {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id}>
+              <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   const sortable =
                     header.column.getCanSort();
@@ -73,26 +82,25 @@ export function DataTable<TData>({
                   const sorted =
                     header.column.getIsSorted();
 
+                  const ariaSort = sortable
+                    ? sorted === "asc"
+                      ? "ascending"
+                      : sorted === "desc"
+                        ? "descending"
+                        : "none"
+                    : undefined;
+
                   return (
-                    <th
+                    <TableHead
                       key={header.id}
-                      className="whitespace-nowrap border-b border-slate-200 px-4 py-3 font-semibold text-slate-700"
+                      className={alinhamento(header.column.columnDef.meta)}
+                      aria-sort={ariaSort}
                     >
-                      {header.isPlaceholder ? null : (
+                      {header.isPlaceholder ? null : sortable ? (
                         <button
                           type="button"
-                          disabled={!sortable}
-                          onClick={
-                            sortable
-                              ? header.column.getToggleSortingHandler()
-                              : undefined
-                          }
-                          className={[
-                            "inline-flex items-center gap-1",
-                            sortable
-                              ? "cursor-pointer hover:text-teal-800"
-                              : "cursor-default",
-                          ].join(" ")}
+                          onClick={header.column.getToggleSortingHandler()}
+                          className="inline-flex cursor-pointer items-center gap-1 hover:text-primary"
                         >
                           {flexRender(
                             header.column.columnDef.header,
@@ -107,61 +115,69 @@ export function DataTable<TData>({
                             <span aria-hidden="true">↓</span>
                           )}
                         </button>
+                      ) : (
+                        <span className="inline-flex items-center gap-1">
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+                        </span>
                       )}
-                    </th>
+                    </TableHead>
                   );
                 })}
-              </tr>
+              </TableRow>
             ))}
-          </thead>
+          </TableHeader>
 
-          <tbody>
+          <TableBody>
             {table.getRowModel().rows.map((row) => (
-              <tr
-                key={row.id}
-                className="border-b border-slate-100 last:border-0 hover:bg-teal-50/60/80"
-              >
+              <TableRow key={row.id}>
                 {row.getVisibleCells().map((cell) => (
-                  <td
+                  <TableCell
                     key={cell.id}
-                    className="whitespace-nowrap px-4 py-3 text-slate-700"
+                    className={alinhamento(cell.column.columnDef.meta)}
                   >
                     {flexRender(
                       cell.column.columnDef.cell,
                       cell.getContext(),
                     )}
-                  </td>
+                  </TableCell>
                 ))}
-              </tr>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
       {pageCount > 1 && (
-        <div className="flex flex-col gap-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
           <span>
             Página {currentPage} de {pageCount}
           </span>
 
           <div className="flex gap-2">
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
-              className="min-h-10 flex-1 rounded-lg border border-teal-200 bg-white px-3 font-medium transition hover:bg-teal-50/60 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
+              className="flex-1 sm:flex-none"
             >
               Anterior
-            </button>
+            </Button>
 
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
-              className="min-h-10 flex-1 rounded-lg border border-teal-200 bg-white px-3 font-medium transition hover:bg-teal-50/60 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
+              className="flex-1 sm:flex-none"
             >
               Próxima
-            </button>
+            </Button>
           </div>
         </div>
       )}

@@ -19,6 +19,26 @@ import {
 } from "recharts";
 
 import { DataTable } from "../components/DataTable";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ChartFrame } from "@/ui/ChartFrame";
+import { EmptyState } from "@/ui/EmptyState";
+import { ErrorState } from "@/ui/ErrorState";
+import { Icon } from "@/ui/Icon";
+import { KpiCard } from "@/ui/KpiCard";
+import { PageHeader } from "@/ui/PageHeader";
+import { categorica, dotPara, eixo, grade, linha, tooltip } from "@/ui/chartTheme";
+import { useEhTelaEstreita } from "@/ui/useEhTelaEstreita";
+import {
+  data as dataBR,
+  moedaCompacta,
+  moedaExata,
+  numeroCompacto,
+  numeroExato,
+  quantidade,
+} from "@/ui/format";
 
 import {
   buscarEvolucaoPreco,
@@ -81,6 +101,7 @@ function rotuloMedicamento(
 }
 
 
+/** Coerção numérica (a API pode mandar decimal como string). Usada nos gráficos e no contexto do chat. */
 function numero(valor: unknown) {
   const convertido =
     Number(valor);
@@ -93,88 +114,11 @@ function numero(valor: unknown) {
 }
 
 
-const numeroInteiro =
-  new Intl.NumberFormat(
-    "pt-BR",
-    {
-      maximumFractionDigits: 0,
-    },
-  );
-
-
-const moeda =
-  new Intl.NumberFormat(
-    "pt-BR",
-    {
-      style: "currency",
-      currency: "BRL",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    },
-  );
-
-
-function formatarNumero(
-  valor: unknown,
-) {
-  return numeroInteiro.format(
-    numero(valor),
-  );
-}
-
-
-function formatarMoeda(
-  valor: unknown,
-) {
-  if (
-    valor === null
-    || valor === undefined
-    || valor === ""
-  ) {
-    return "—";
-  }
-
-  return moeda.format(
-    numero(valor),
-  );
-}
-
-
-function formatarData(
-  valor: string | null,
-) {
-  if (!valor) {
-    return "—";
-  }
-
-  const data =
-    valor.slice(0, 10);
-
-  const [
-    ano,
-    mes,
-    dia,
-  ] = data
-    .split("-")
-    .map(Number);
-
-  if (
-    !ano
-    || !mes
-    || !dia
-  ) {
-    return valor;
-  }
-
-  return new Intl.DateTimeFormat(
-    "pt-BR",
-  ).format(
-    new Date(
-      ano,
-      mes - 1,
-      dia,
-    ),
-  );
+/** Para KPI: nulo continua nulo (vira "sem dado"), nunca 0. */
+function numeroOuNulo(valor: unknown): number | null {
+  if (valor === null || valor === undefined || valor === "") return null;
+  const convertido = Number(valor);
+  return Number.isFinite(convertido) ? convertido : null;
 }
 
 
@@ -201,44 +145,12 @@ function truncar(
 }
 
 
-function Kpi({
-  titulo,
-  valor,
-}: {
-  titulo: string;
-  valor: string;
-}) {
-  return (
-    <article className="rounded-2xl border border-teal-100 bg-white p-4 shadow-sm sm:p-5">
-      <p className="text-sm leading-5 text-slate-500">
-        {titulo}
-      </p>
-
-      <p className="mt-3 break-words text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-        {valor}
-      </p>
-    </article>
-  );
-}
-
-
-function MensagemVazia({
-  children,
-}: {
-  children: string;
-}) {
-  return (
-    <div className="rounded-xl border border-dashed border-slate-200 bg-teal-50/40 px-4 py-9 text-center text-sm leading-6 text-slate-500">
-      {children}
-    </div>
-  );
-}
-
-
 function GraficoBarrasHorizontal({
   data,
   nomeKey,
   valorKey,
+  cor,
+  vazio,
 }: {
   data: Record<
     string,
@@ -246,12 +158,12 @@ function GraficoBarrasHorizontal({
   >[];
   nomeKey: string;
   valorKey: string;
+  cor: string;
+  vazio: string;
 }) {
   if (data.length === 0) {
     return (
-      <MensagemVazia>
-        Não há dados para exibir.
-      </MensagemVazia>
+      <EmptyState title="Sem compras para comparar" cause={vazio} />
     );
   }
 
@@ -260,6 +172,11 @@ function GraficoBarrasHorizontal({
       280,
       data.length * 40,
     );
+
+  // Mesma correção do B5 em Compras.tsx: nomes de fabricante/fornecedor em CAIXA ALTA são
+  // largos demais para os ~20 caracteres calibrados para desktop dentro do eixo Y de 115px
+  // numa tela estreita — o rótulo cortava pela esquerda.
+  const estreita = useEhTelaEstreita();
 
   return (
     <div
@@ -281,60 +198,39 @@ function GraficoBarrasHorizontal({
           }}
         >
           <CartesianGrid
-            strokeDasharray="3 3"
+            {...grade}
             horizontal={false}
+            vertical
           />
 
           <XAxis
+            {...eixo}
             type="number"
-            tickFormatter={(
-              value,
-            ) =>
-              formatarMoeda(
-                value,
-              )
-            }
-            fontSize={10}
+            tickFormatter={(value) => moedaCompacta(value)}
           />
 
           <YAxis
+            {...eixo}
             type="category"
             dataKey={nomeKey}
-            width={115}
-            tickFormatter={(
-              value,
-            ) =>
-              truncar(
-                value,
-                20,
-              )
-            }
-            tickLine={false}
-            fontSize={10}
+            width={estreita ? 100 : 115}
+            tickFormatter={(value) => truncar(value, estreita ? 12 : 20)}
           />
 
           <Tooltip
-            formatter={(
-              value,
-            ) =>
-              formatarMoeda(
-                value,
-              )
-            }
-            labelFormatter={(
-              value,
-            ) =>
-              String(value)
-            }
+            {...tooltip}
+            formatter={(value) => moedaExata(numero(value))}
+            labelFormatter={(value) => String(value)}
           />
 
           <Bar
             dataKey={valorKey}
-            fill="var(--color-brand-blue)"
+            name="Gasto total"
+            fill={cor}
             radius={[
               0,
-              5,
-              5,
+              4,
+              4,
               0,
             ]}
           />
@@ -486,6 +382,13 @@ export function Medicamentos() {
       string | null
     >(null);
 
+  // Falha de requisição: guarda o erro real para o ErrorState (erroDados fica para mensagens da página).
+  const [
+    falhaDados,
+    setFalhaDados,
+  ] =
+    useState<unknown>(null);
+
   const [
     buscaConfirmada,
     setBuscaConfirmada,
@@ -543,6 +446,7 @@ export function Medicamentos() {
       );
       setDados(null);
       setErroDados(null);
+      setFalhaDados(null);
     }
   }
 
@@ -566,6 +470,7 @@ export function Medicamentos() {
     setBuscando(true);
     setErroBusca(null);
     setErroDados(null);
+    setFalhaDados(null);
     setResultados([]);
     setSelecionado("");
     setBuscaConfirmada(null);
@@ -620,6 +525,7 @@ export function Medicamentos() {
 
     setCarregando(true);
     setErroDados(null);
+    setFalhaDados(null);
     setDados(null);
     setAbaCompras(
       "preco",
@@ -671,9 +577,13 @@ export function Medicamentos() {
       if (
         produtos.length === 0
       ) {
-        throw new Error(
+        setMedicamentoCarregado(
+          null,
+        );
+        setErroDados(
           "Esse item do CATMAT não tem produto vinculado na base.",
         );
+        return;
       }
 
       setBuscaConfirmada(
@@ -700,12 +610,7 @@ export function Medicamentos() {
         null,
       );
 
-      setErroDados(
-        error
-          instanceof Error
-          ? error.message
-          : "Não foi possível carregar os dados do medicamento.",
-      );
+      setFalhaDados(error);
     } finally {
       setCarregando(false);
     }
@@ -748,7 +653,7 @@ export function Medicamentos() {
         ).map(
           (item) => ({
             data:
-              formatarData(
+              dataBR(
                 item.data_de_compra,
               ),
             preco:
@@ -837,6 +742,7 @@ export function Medicamentos() {
             row.original
               .numero_do_lote
             ?? "—",
+          meta: { priority: "low" },
         },
         {
           header:
@@ -846,10 +752,11 @@ export function Medicamentos() {
           cell: ({
             row,
           }) =>
-            formatarNumero(
+            quantidade(
               row.original
                 .quantidade_do_item_em_estoque,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -859,7 +766,7 @@ export function Medicamentos() {
           cell: ({
             row,
           }) =>
-            formatarData(
+            dataBR(
               row.original
                 .data_de_validade,
             ),
@@ -894,10 +801,11 @@ export function Medicamentos() {
           cell: ({
             row,
           }) =>
-            formatarNumero(
+            quantidade(
               row.original
                 .estoque_total,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -907,10 +815,11 @@ export function Medicamentos() {
           cell: ({
             row,
           }) =>
-            formatarNumero(
+            quantidade(
               row.original
                 .num_instituicoes,
             ),
+          meta: { align: "right" },
         },
       ],
       [],
@@ -932,7 +841,7 @@ export function Medicamentos() {
           cell: ({
             row,
           }) =>
-            formatarData(
+            dataBR(
               row.original
                 .data_de_compra,
             ),
@@ -968,10 +877,11 @@ export function Medicamentos() {
           cell: ({
             row,
           }) =>
-            formatarNumero(
+            quantidade(
               row.original
                 .quantidade_de_itens,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -981,10 +891,11 @@ export function Medicamentos() {
           cell: ({
             row,
           }) =>
-            formatarMoeda(
+            moedaExata(
               row.original
                 .preco_unitario,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -994,10 +905,11 @@ export function Medicamentos() {
           cell: ({
             row,
           }) =>
-            formatarMoeda(
+            moedaExata(
               row.original
                 .preco_total,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -1054,63 +966,50 @@ export function Medicamentos() {
     [dados, medicamentoCarregado, abaCompras, buscaConfirmada, carregando, busca, resultados.length],
   );
 
+  // Resolve a paleta uma vez por montagem (lê as variáveis CSS do documento).
+  const paleta = useMemo(() => categorica(), []);
+
 
   return (
-    <main className="mx-auto min-h-[calc(100vh-4rem)] max-w-[1440px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8 lg:py-10">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-          💊 Medicamentos
-        </h1>
-
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600 sm:text-base sm:leading-7">
-          Consulte estoque atual, lotes próximos do vencimento,
-          distribuição geográfica e histórico de compras por
-          medicamento CATMAT.
-        </p>
-      </header>
+    <main id="conteudo" tabIndex={-1} className="mx-auto min-h-[calc(100vh-4rem)] max-w-[1440px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8 lg:py-10">
+      <PageHeader
+        icon="droplet"
+        title="Medicamentos"
+        description="Consulte estoque atual, lotes próximos do vencimento, distribuição geográfica e histórico de compras por medicamento CATMAT."
+      />
 
 
       <section className="mt-7">
         <form
-          onSubmit={
-            handleBuscar
-          }
-          className="space-y-3"
+          onSubmit={handleBuscar}
+          className="space-y-2"
         >
           <label
             htmlFor="busca-medicamento"
-            className="block text-sm font-semibold text-slate-800"
+            className="block text-sm font-semibold text-[var(--text)]"
           >
             Buscar medicamento (CATMAT)
           </label>
 
           <div className="flex flex-col gap-3 sm:flex-row">
-            <input
+            <Input
               id="busca-medicamento"
               value={busca}
-              onChange={(
-                event,
-              ) =>
-                alterarBusca(
-                  event.target
-                    .value,
-                )
-              }
+              onChange={(event) => alterarBusca(event.target.value)}
               placeholder="ex: dipirona, insulina, seringa..."
-              className="h-12 min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus:ring-4 focus:ring-teal-50"
+              className="h-10 bg-panel sm:flex-1"
             />
 
-            <button
+            <Button
               type="submit"
-              disabled={
-                buscando
-              }
-              className="h-12 w-full rounded-xl bg-teal-700 px-6 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto"
+              disabled={buscando}
+              className="h-10 w-full px-6 sm:w-auto"
             >
+              <Icon name="search" size={16} />
               {buscando
                 ? "Buscando..."
                 : "Buscar"}
-            </button>
+            </Button>
           </div>
         </form>
 
@@ -1118,14 +1017,19 @@ export function Medicamentos() {
         {!busca.trim()
           && !erroBusca
           && (
-            <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm leading-6 text-blue-800">
+            <p className="mt-3 flex items-center gap-2 text-sm leading-6 text-muted">
+              <Icon name="info" size={16} />
               Digite algo acima para buscar um medicamento no catálogo CATMAT.
-            </div>
+            </p>
           )}
 
 
         {erroBusca && (
-          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
+          <div
+            role="status"
+            className="mt-4 flex items-start gap-2 rounded-[var(--radius-md)] border border-warning-border bg-[var(--warning-soft)] px-4 py-3 text-sm leading-6 text-warning-text"
+          >
+            <Icon name="alert" size={18} className="mt-0.5" />
             {erroBusca}
           </div>
         )}
@@ -1134,99 +1038,82 @@ export function Medicamentos() {
         {resultados.length
           > 0
           && (
-            <div className="mt-5 rounded-2xl border border-teal-100 bg-white p-4 shadow-sm sm:p-5">
+            <div className="mt-5 rounded-[var(--radius-md)] border border-line bg-panel p-4 shadow-[var(--shadow-card)] sm:p-5">
               <label
                 htmlFor="catmat"
-                className="block text-sm font-semibold text-slate-800"
+                className="block text-sm font-semibold text-[var(--text)]"
               >
                 Selecione o item
               </label>
 
+              {/* Continua <select> nativo: o smoke e o e2e do chat usam selectOption() em #catmat. */}
               <select
                 id="catmat"
-                value={
-                  selecionado
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setSelecionado(
-                    event.target
-                      .value,
-                  )
-                }
-                className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-teal-600 focus:ring-4 focus:ring-teal-50 sm:px-4"
+                value={selecionado}
+                onChange={(event) => setSelecionado(event.target.value)}
+                className="mt-2 h-10 w-full rounded-[var(--radius-md)] border border-line bg-panel px-3 text-sm text-[var(--text)] shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
               >
                 <option value="">
                   — Selecione um medicamento —
                 </option>
 
-                {resultados.map(
-                  (item) => (
-                    <option
-                      key={
-                        item.catmat_id
-                      }
-                      value={
-                        item.catmat_id
-                      }
-                    >
-                      {rotuloMedicamento(
-                        item,
-                      )}
-                    </option>
-                  ),
-                )}
+                {resultados.map((item) => (
+                  <option
+                    key={item.catmat_id}
+                    value={item.catmat_id}
+                  >
+                    {rotuloMedicamento(item)}
+                  </option>
+                ))}
               </select>
 
-              <button
+              <Button
                 type="button"
-                onClick={
-                  carregarDados
-                }
-                disabled={
-                  !itemSelecionado
-                  || carregando
-                }
-                className="mx-auto mt-4 block min-h-12 w-full rounded-xl bg-teal-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 focus:outline-none focus:ring-4 focus:ring-teal-100 disabled:cursor-not-allowed disabled:bg-slate-300 sm:w-1/2 lg:w-1/4"
+                onClick={carregarDados}
+                disabled={!itemSelecionado || carregando}
+                className="mx-auto mt-4 flex h-10 w-full sm:w-1/2 lg:w-1/4"
               >
                 {carregando
                   ? "Carregando dados..."
                   : "Pesquisar"}
-              </button>
+              </Button>
             </div>
           )}
       </section>
 
 
       {erroDados && (
-        <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-800">
+        <div
+          role="status"
+          className="mt-5 flex items-start gap-2 rounded-[var(--radius-md)] border border-warning-border bg-[var(--warning-soft)] px-4 py-3 text-sm leading-6 text-warning-text"
+        >
+          <Icon name="alert" size={18} className="mt-0.5" />
           {erroDados}
         </div>
       )}
 
 
+      {falhaDados != null && (
+        <div className="mt-5">
+          <ErrorState
+            error={falhaDados}
+            onRetry={itemSelecionado ? carregarDados : undefined}
+          />
+        </div>
+      )}
+
+
       {carregando && (
-        <section className="mt-7 space-y-4">
-          <div className="h-8 w-72 max-w-full animate-pulse rounded bg-slate-200" />
+        <section className="mt-7 space-y-4" aria-busy="true">
+          <Skeleton className="h-8 w-72 max-w-full" />
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {[
-              1,
-              2,
-              3,
-              4,
-            ].map(
-              (item) => (
-                <div
-                  key={item}
-                  className="h-28 animate-pulse rounded-2xl bg-slate-200"
-                />
-              ),
-            )}
+            {[1, 2, 3, 4].map((item) => (
+              <Skeleton key={item} className="h-28" />
+            ))}
           </div>
 
-          <div className="h-72 animate-pulse rounded-2xl bg-slate-200" />
+          <Skeleton className="h-72" />
         </section>
       )}
 
@@ -1237,22 +1124,20 @@ export function Medicamentos() {
         && (
           <section className="mt-7 space-y-8">
             <div data-chat-context="medicamento selecionado">
-              <p className="text-sm leading-6 text-slate-500">
+              <p className="text-sm leading-6 text-muted">
                 Código CATMAT selecionado —{" "}
-                <strong className="font-semibold text-slate-700">
+                <strong className="font-semibold text-[var(--text)]">
                   {dados.produtos.length} produto(s)
                 </strong>{" "}
                 vinculado(s) a este item
               </p>
 
-              <p className="mt-1 text-sm font-medium text-slate-800">
-                {rotuloMedicamento(
-                  medicamentoCarregado,
-                )}
+              <p className="mt-1 text-sm font-medium text-[var(--text)]">
+                {rotuloMedicamento(medicamentoCarregado)}
               </p>
 
               {buscaConfirmada && (
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-muted">
                   Busca confirmada: “{buscaConfirmada}”
                 </p>
               )}
@@ -1263,88 +1148,67 @@ export function Medicamentos() {
               data-chat-context="KPIs"
               className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4"
             >
-              <Kpi
-                titulo="Estoque total (última posição)"
-                valor={
-                  formatarNumero(
-                    dados.resumo
-                      .estoque_total,
-                  )
-                }
+              <KpiCard
+                label="Estoque total (última posição)"
+                value={numeroOuNulo(dados.resumo.estoque_total)}
+                format={numeroCompacto}
               />
 
-              <Kpi
-                titulo="Instituições com registro"
-                valor={
-                  formatarNumero(
-                    dados.resumo
-                      .instituicoes_com_registro,
-                  )
-                }
+              <KpiCard
+                label="Instituições com registro"
+                value={numeroOuNulo(dados.resumo.instituicoes_com_registro)}
+                format={numeroCompacto}
               />
 
-              <Kpi
-                titulo="Instituições com estoque zerado"
-                valor={
-                  formatarNumero(
-                    dados.resumo
-                      .instituicoes_estoque_zerado,
-                  )
-                }
+              <KpiCard
+                label="Instituições com estoque zerado"
+                value={numeroOuNulo(dados.resumo.instituicoes_estoque_zerado)}
+                format={numeroCompacto}
               />
 
-              <Kpi
-                titulo="Preço médio de compra"
-                valor={
-                  formatarMoeda(
-                    dados.resumo
-                      .preco_medio_compra,
-                  )
-                }
+              {/* Preço unitário: o compacto (1 casa) apagaria os centavos, então mostra o valor exato. */}
+              <KpiCard
+                label="Preço médio de compra"
+                value={numeroOuNulo(dados.resumo.preco_medio_compra)}
+                format={moedaExata}
+                exact={moedaExata}
               />
             </section>
 
 
-            <hr className="border-slate-200" />
+            <hr className="border-line" />
 
 
             <section data-chat-context="alerta de lotes">
               {dados.lotes
                 .quantidade_lotes
                 > 0 ? (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50">
-                  <div className="px-4 py-4 text-sm font-medium leading-6 text-amber-900 sm:px-5">
-                    ⚠️{" "}
-                    {
-                      dados.lotes
-                        .quantidade_lotes
-                    }{" "}
-                    lote(s) com validade nos próximos 90 dias e estoque &gt; 0
+                <div className="rounded-[var(--radius-md)] border border-warning-border bg-[var(--warning-soft)]">
+                  <div className="flex items-start gap-2 px-4 py-4 text-sm font-medium leading-6 text-warning-text sm:px-5">
+                    <Icon name="alert" size={18} className="mt-0.5" />
+                    <span>
+                      {dados.lotes.quantidade_lotes}{" "}
+                      lote(s) com validade nos próximos 90 dias e estoque &gt; 0
+                    </span>
                   </div>
 
-                  <details className="border-t border-amber-200">
-                    <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-amber-900 sm:px-5">
+                  <details className="border-t border-warning-border">
+                    <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-warning-text sm:px-5">
                       Ver lotes vencendo
                     </summary>
 
-                    <div className="bg-white p-3 sm:p-5">
+                    <div className="bg-panel p-3 sm:p-5">
                       <DataTable
-                        data={
-                          dados.lotes
-                            .items
-                        }
-                        columns={
-                          colunasLotes
-                        }
-                        pageSize={
-                          10
-                        }
+                        data={dados.lotes.items}
+                        columns={colunasLotes}
+                        pageSize={10}
                       />
                     </div>
                   </details>
                 </div>
               ) : (
-                <div className="rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm leading-6 text-teal-800">
+                <div className="flex items-start gap-2 rounded-[var(--radius-md)] border border-line bg-primary-tint px-4 py-3 text-sm leading-6 text-[var(--text)]">
+                  <Icon name="info" size={18} className="mt-0.5 text-primary" />
                   Nenhum lote com estoque positivo vence nos próximos 90 dias.
                 </div>
               )}
@@ -1352,354 +1216,233 @@ export function Medicamentos() {
 
 
             <section>
-              <h2 className="text-xl font-semibold tracking-tight text-slate-900">
+              <h2 className="text-xl font-semibold tracking-tight text-[var(--text)]">
                 Estoque por UF
               </h2>
 
               {dados.estoqueUf.length
                 > 0 ? (
                 <div className="mt-4 grid grid-cols-1 gap-5 lg:grid-cols-[2fr_1fr]">
-                  <article className="min-w-0 rounded-2xl border border-teal-100 bg-white p-4 shadow-sm sm:p-5">
-                    <div className="h-80 w-full sm:h-96">
-                      <ResponsiveContainer
-                        width="100%"
-                        height="100%"
-                      >
-                        <BarChart
-                          data={
-                            estoqueUfGrafico
-                          }
-                          margin={{
-                            top: 12,
-                            right: 8,
-                            bottom: 8,
-                            left: 0,
-                          }}
+                  <div className="min-w-0">
+                    <ChartFrame as="h3"
+                      title="Estoque total por UF"
+                      subtitle="Soma da última posição de estoque das instituições de cada UF"
+                      source="DATASUS"
+                    >
+                      <div className="h-80 w-full sm:h-96">
+                        <ResponsiveContainer
+                          width="100%"
+                          height="100%"
                         >
-                          <CartesianGrid
-                            strokeDasharray="3 3"
-                            vertical={
-                              false
-                            }
-                          />
+                          <BarChart
+                            data={estoqueUfGrafico}
+                            margin={{
+                              top: 12,
+                              right: 8,
+                              bottom: 8,
+                              left: 0,
+                            }}
+                          >
+                            <CartesianGrid {...grade} />
 
-                          <XAxis
-                            dataKey="uf"
-                            fontSize={
-                              11
-                            }
-                          />
+                            <XAxis
+                              {...eixo}
+                              dataKey="uf"
+                              tick={{ ...eixo.tick, fontSize: 11 }}
+                            />
 
-                          <YAxis
-                            width={
-                              56
-                            }
-                            tickFormatter={(
-                              value,
-                            ) =>
-                              formatarNumero(
-                                value,
-                              )
-                            }
-                            fontSize={
-                              10
-                            }
-                          />
+                            <YAxis
+                              {...eixo}
+                              width={56}
+                              tickFormatter={(value) => numeroCompacto(value)}
+                            />
 
-                          <Tooltip
-                            formatter={(
-                              value,
-                            ) =>
-                              formatarNumero(
-                                value,
-                              )
-                            }
-                          />
+                            <Tooltip
+                              {...tooltip}
+                              formatter={(value) => numeroExato(numero(value))}
+                            />
 
-                          <Bar
-                            dataKey="estoque_total"
-                            fill="var(--color-brand-blue)"
-                            radius={[
-                              5,
-                              5,
-                              0,
-                              0,
-                            ]}
-                          />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </article>
+                            <Bar
+                              dataKey="estoque_total"
+                              name="Estoque total"
+                              fill={paleta[0]}
+                              radius={[
+                                4,
+                                4,
+                                0,
+                                0,
+                              ]}
+                            />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </ChartFrame>
+                  </div>
 
-                  <article className="min-w-0">
+                  <div className="min-w-0">
                     <DataTable
-                      data={
-                        dados.estoqueUf
-                      }
-                      columns={
-                        colunasUf
-                      }
-                      pageSize={
-                        10
-                      }
+                      data={dados.estoqueUf}
+                      columns={colunasUf}
+                      pageSize={10}
                     />
-                  </article>
+                  </div>
                 </div>
               ) : (
                 <div className="mt-4">
-                  <MensagemVazia>
-                    Sem dados de estoque para esse item.
-                  </MensagemVazia>
+                  <EmptyState
+                    title="Sem estoque por UF"
+                    cause="Nenhuma instituição registrou estoque deste medicamento."
+                  />
                 </div>
               )}
             </section>
 
 
-            <hr className="border-slate-200" />
+            <hr className="border-line" />
 
 
             <section>
-              <h2 className="text-xl font-semibold tracking-tight text-slate-900">
+              <h2 className="text-xl font-semibold tracking-tight text-[var(--text)]">
                 Histórico de compras
               </h2>
 
               {dados.compras.length
                 === 0 ? (
                 <div className="mt-4">
-                  <MensagemVazia>
-                    Nenhuma compra registrada para esse item.
-                  </MensagemVazia>
+                  <EmptyState
+                    title="Sem compras registradas"
+                    cause="Nenhuma compra pública deste item aparece na base."
+                  />
                 </div>
               ) : (
-                <>
-                  <div className="mt-4 overflow-x-auto">
-                    <div
-                      className="inline-flex min-w-max rounded-xl border border-teal-100 bg-white p-1"
-                      role="tablist"
-                      aria-label="Histórico de compras"
+                <Tabs
+                  value={abaCompras}
+                  onValueChange={(valor) => setAbaCompras(valor as AbaCompras)}
+                  className="mt-4"
+                >
+                  <TabsList
+                    aria-label="Histórico de compras"
+                    className="w-full flex-wrap justify-start group-data-[orientation=horizontal]/tabs:h-auto sm:w-fit sm:flex-nowrap sm:group-data-[orientation=horizontal]/tabs:h-9"
+                  >
+                    <TabsTrigger value="preco" className="min-h-8 px-4 sm:flex-none">
+                      Evolução de preço
+                    </TabsTrigger>
+
+                    <TabsTrigger value="fornecedores" className="min-h-8 px-4 sm:flex-none">
+                      Fornecedores
+                    </TabsTrigger>
+
+                    <TabsTrigger value="dados" className="min-h-8 px-4 sm:flex-none">
+                      Dados brutos
+                    </TabsTrigger>
+                  </TabsList>
+
+
+                  <TabsContent value="preco" className="mt-3">
+                    <ChartFrame as="h3"
+                      title="Evolução do preço médio"
+                      subtitle="Preço unitário médio por data de compra"
+                      source="DATASUS"
                     >
-                      <button
-                        type="button"
-                        role="tab"
-                        aria-selected={
-                          abaCompras
-                          === "preco"
-                        }
-                        onClick={() =>
-                          setAbaCompras(
-                            "preco",
-                          )
-                        }
-                        className={[
-                          "rounded-lg px-4 py-2 text-sm font-medium transition",
-                          abaCompras
-                            === "preco"
-                            ? "bg-teal-700 text-white"
-                            : "text-slate-600 hover:bg-teal-50 hover:text-slate-900",
-                        ].join(
-                          " ",
-                        )}
-                      >
-                        Evolução de preço
-                      </button>
-
-                      <button
-                        type="button"
-                        role="tab"
-                        aria-selected={
-                          abaCompras
-                          === "fornecedores"
-                        }
-                        onClick={() =>
-                          setAbaCompras(
-                            "fornecedores",
-                          )
-                        }
-                        className={[
-                          "rounded-lg px-4 py-2 text-sm font-medium transition",
-                          abaCompras
-                            === "fornecedores"
-                            ? "bg-teal-700 text-white"
-                            : "text-slate-600 hover:bg-teal-50 hover:text-slate-900",
-                        ].join(
-                          " ",
-                        )}
-                      >
-                        Fornecedores
-                      </button>
-
-                      <button
-                        type="button"
-                        role="tab"
-                        aria-selected={
-                          abaCompras
-                          === "dados"
-                        }
-                        onClick={() =>
-                          setAbaCompras(
-                            "dados",
-                          )
-                        }
-                        className={[
-                          "rounded-lg px-4 py-2 text-sm font-medium transition",
-                          abaCompras
-                            === "dados"
-                            ? "bg-teal-700 text-white"
-                            : "text-slate-600 hover:bg-teal-50 hover:text-slate-900",
-                        ].join(
-                          " ",
-                        )}
-                      >
-                        Dados brutos
-                      </button>
-                    </div>
-                  </div>
-
-
-                  {abaCompras
-                    === "preco"
-                    && (
-                      <article className="mt-5 rounded-2xl border border-teal-100 bg-white p-4 shadow-sm sm:p-5">
-                        {evolucaoPrecoGrafico.length
-                          > 0 ? (
-                          <div className="h-72 w-full sm:h-96">
-                            <ResponsiveContainer
-                              width="100%"
-                              height="100%"
+                      {evolucaoPrecoGrafico.length
+                        > 0 ? (
+                        <div className="h-72 w-full sm:h-96">
+                          <ResponsiveContainer
+                            width="100%"
+                            height="100%"
+                          >
+                            <LineChart
+                              data={evolucaoPrecoGrafico}
+                              margin={{
+                                top: 12,
+                                right: 12,
+                                bottom: 8,
+                                left: 0,
+                              }}
                             >
-                              <LineChart
-                                data={
-                                  evolucaoPrecoGrafico
-                                }
-                                margin={{
-                                  top: 12,
-                                  right: 12,
-                                  bottom: 8,
-                                  left: 0,
-                                }}
-                              >
-                                <CartesianGrid
-                                  strokeDasharray="3 3"
-                                  vertical={
-                                    false
-                                  }
-                                />
+                              <CartesianGrid {...grade} />
 
-                                <XAxis
-                                  dataKey="data"
-                                  minTickGap={
-                                    32
-                                  }
-                                  fontSize={
-                                    10
-                                  }
-                                />
+                              <XAxis
+                                {...eixo}
+                                dataKey="data"
+                                minTickGap={32}
+                              />
 
-                                <YAxis
-                                  width={
-                                    72
-                                  }
-                                  tickFormatter={(
-                                    value,
-                                  ) =>
-                                    formatarMoeda(
-                                      value,
-                                    )
-                                  }
-                                  fontSize={
-                                    10
-                                  }
-                                />
+                              <YAxis
+                                {...eixo}
+                                width={72}
+                                tickFormatter={(value) => moedaCompacta(value)}
+                              />
 
-                                <Tooltip
-                                  formatter={(
-                                    value,
-                                  ) =>
-                                    formatarMoeda(
-                                      value,
-                                    )
-                                  }
-                                />
+                              <Tooltip
+                                {...tooltip}
+                                cursor={{ stroke: "var(--beast-basic-600)" }}
+                                formatter={(value) => moedaExata(numero(value))}
+                              />
 
-                                <Line
-                                  type="monotone"
-                                  dataKey="preco"
-                                  stroke="var(--color-brand-blue)"
-                                  strokeWidth={
-                                    2
-                                  }
-                                  dot={
-                                    false
-                                  }
-                                  activeDot={{
-                                    r: 4,
-                                  }}
-                                />
-                              </LineChart>
-                            </ResponsiveContainer>
-                          </div>
-                        ) : (
-                          <MensagemVazia>
-                            Não há preços válidos para construir a evolução.
-                          </MensagemVazia>
-                        )}
-                      </article>
-                    )}
-
-
-                  {abaCompras
-                    === "fornecedores"
-                    && (
-                      <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-2">
-                        <article className="min-w-0 rounded-2xl border border-teal-100 bg-white p-4 shadow-sm sm:p-5">
-                          <p className="mb-4 text-sm font-semibold text-slate-700">
-                            Gasto total por fornecedor
-                          </p>
-
-                          <GraficoBarrasHorizontal
-                            data={
-                              fornecedoresGrafico
-                            }
-                            nomeKey="nome"
-                            valorKey="valor"
-                          />
-                        </article>
-
-                        <article className="min-w-0 rounded-2xl border border-teal-100 bg-white p-4 shadow-sm sm:p-5">
-                          <p className="mb-4 text-sm font-semibold text-slate-700">
-                            Gasto total por fabricante
-                          </p>
-
-                          <GraficoBarrasHorizontal
-                            data={
-                              fabricantesGrafico
-                            }
-                            nomeKey="nome"
-                            valorKey="valor"
-                          />
-                        </article>
-                      </div>
-                    )}
-
-
-                  {abaCompras
-                    === "dados"
-                    && (
-                      <div className="mt-5">
-                        <DataTable
-                          data={
-                            dados.compras
-                          }
-                          columns={
-                            colunasCompras
-                          }
-                          pageSize={
-                            15
-                          }
+                              <Line
+                                {...linha}
+                                dataKey="preco"
+                                name="Preço médio"
+                                stroke={paleta[0]}
+                                dot={dotPara(evolucaoPrecoGrafico.length)}
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                      ) : (
+                        <EmptyState
+                          title="Sem preços válidos"
+                          cause="As compras deste item não têm preço unitário para construir a evolução."
                         />
+                      )}
+                    </ChartFrame>
+                  </TabsContent>
+
+
+                  <TabsContent value="fornecedores" className="mt-3">
+                    <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+                      <div className="min-w-0">
+                        <ChartFrame as="h3"
+                          title="Gasto total por fornecedor"
+                          source="DATASUS"
+                        >
+                          <GraficoBarrasHorizontal
+                            data={fornecedoresGrafico}
+                            nomeKey="nome"
+                            valorKey="valor"
+                            cor={paleta[0]}
+                            vazio="Nenhuma compra deste item tem fornecedor identificado."
+                          />
+                        </ChartFrame>
                       </div>
-                    )}
-                </>
+
+                      <div className="min-w-0">
+                        <ChartFrame as="h3"
+                          title="Gasto total por fabricante"
+                          source="DATASUS"
+                        >
+                          <GraficoBarrasHorizontal
+                            data={fabricantesGrafico}
+                            nomeKey="nome"
+                            valorKey="valor"
+                            cor={paleta[0]}
+                            vazio="Nenhuma compra deste item tem fabricante identificado."
+                          />
+                        </ChartFrame>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+
+                  <TabsContent value="dados" className="mt-3">
+                    <DataTable
+                      data={dados.compras}
+                      columns={colunasCompras}
+                      pageSize={15}
+                    />
+                  </TabsContent>
+                </Tabs>
               )}
             </section>
           </section>

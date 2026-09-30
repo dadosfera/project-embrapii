@@ -77,7 +77,7 @@ As escalas entram completas (100 a 900); a tabela mostra só uma amostra. `--bea
 
 | Componente | Responsabilidade | Interface |
 |---|---|---|
-| `AppShell` | Header com `DF-LogoHRZ.svg` oficial (copiado de `ai-cto-assistants/docs/assets/logos/`), selo "Projeto EMBRAPII · DCC/UFMG" e navegação com ícone Eva e estado ativo em `--primary`. Abaixo de 768 px vira botão + `Sheet` | `children` |
+| `AppShell` | Header com `DF-LogoHRZ.svg` oficial (copiado de `ai-cto-assistants/docs/assets/logos/`), selo "Projeto EMBRAPII · DCC/UFMG" e navegação com ícone Eva e estado ativo em `--primary`. Abaixo de 1024 px (breakpoint lg) vira botão + `Sheet` | `children` |
 | `Icon` | Renderiza um SVG outline do `eva-icons` com `aria-hidden` por padrão | `name`, `size`, `label?` |
 | `PageHeader` | Ícone, título (`<h1>`), descrição e espaço para ações | `icon`, `title`, `description?`, `actions?` |
 | `KpiCard` | Rótulo, valor compacto e valor exato em tooltip. Estado `loading` usa Skeleton; `null` ou `undefined` mostram "sem dado" | `label`, `value`, `format`, `loading?` |

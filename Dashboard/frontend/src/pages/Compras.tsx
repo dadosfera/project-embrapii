@@ -1,6 +1,7 @@
 import {
   type FormEvent,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -19,6 +20,34 @@ import {
 } from "recharts";
 
 import { DataTable } from "../components/DataTable";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ChartFrame } from "@/ui/ChartFrame";
+import { EmptyState } from "@/ui/EmptyState";
+import { ErrorState } from "@/ui/ErrorState";
+import { Icon } from "@/ui/Icon";
+import { KpiCard } from "@/ui/KpiCard";
+import { PageHeader } from "@/ui/PageHeader";
+import { categorica, dotPara, eixo, grade, linha, tooltip } from "@/ui/chartTheme";
+import { useEhTelaEstreita } from "@/ui/useEhTelaEstreita";
+import {
+  SEM_DADO,
+  data as dataBR,
+  moedaCompacta,
+  moedaExata,
+  numeroCompacto,
+  numeroExato,
+  quantidade,
+} from "@/ui/format";
 
 import {
   buscarComprasPorMes,
@@ -66,6 +95,11 @@ type FiltrosConfirmados = FiltrosCompras & {
 };
 
 
+/** O Radix Select não aceita item com value "": "Todos os produtos" usa esta sentinela na UI. */
+const TODOS_PRODUTOS = "__todos__";
+
+
+/** Coerção numérica (a API pode mandar decimal como string). */
 function numero(
   valor: unknown,
 ) {
@@ -80,103 +114,34 @@ function numero(
 }
 
 
-const formatadorNumero =
-  new Intl.NumberFormat(
-    "pt-BR",
-    {
-      maximumFractionDigits: 0,
-    },
-  );
+/** Para KPI: nulo continua nulo (vira "sem dado"), nunca 0. */
+function numeroOuNulo(valor: unknown): number | null {
+  if (valor === null || valor === undefined || valor === "") return null;
+  const convertido = Number(valor);
+  return Number.isFinite(convertido) ? convertido : null;
+}
 
 
-const formatadorMoeda =
-  new Intl.NumberFormat(
-    "pt-BR",
-    {
-      style: "currency",
-      currency: "BRL",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    },
-  );
-
-
-const formatadorPercentual =
-  new Intl.NumberFormat(
-    "pt-BR",
-    {
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 1,
-    },
-  );
-
-
-function formatarNumero(
+/** Participação com uma casa ("12,3%"). O format.ts não tem percentual, por isso fica aqui. */
+function percentual(
   valor: unknown,
 ) {
-  return formatadorNumero.format(
-    numero(valor),
-  );
+  if (valor === null || valor === undefined) return SEM_DADO;
+  return `${numero(valor).toLocaleString("pt-BR", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })}%`;
 }
 
 
-function formatarMoeda(
-  valor: unknown,
-) {
-  return formatadorMoeda.format(
-    numero(valor),
-  );
-}
+const MESES_CURTOS = [
+  "jan", "fev", "mar", "abr", "mai", "jun",
+  "jul", "ago", "set", "out", "nov", "dez",
+];
 
 
-function formatarPercentual(
-  valor: unknown,
-) {
-  return `${formatadorPercentual.format(
-    numero(valor),
-  )}%`;
-}
-
-
-function formatarData(
-  valor: string | null,
-) {
-  if (!valor) {
-    return "—";
-  }
-
-  const data =
-    valor.slice(0, 10);
-
-  const [
-    ano,
-    mes,
-    dia,
-  ] = data
-    .split("-")
-    .map(Number);
-
-  if (
-    !ano
-    || !mes
-    || !dia
-  ) {
-    return valor;
-  }
-
-  return new Intl.DateTimeFormat(
-    "pt-BR",
-  ).format(
-    new Date(
-      ano,
-      mes - 1,
-      dia,
-    ),
-  );
-}
-
-
-function formatarMes(
+/** "AAAA-MM-DD" → "jan/24", rótulo do eixo mensal. O format.ts não tem mês, por isso fica aqui. */
+function rotuloMes(
   valor: string,
 ) {
   const [
@@ -194,19 +159,7 @@ function formatarMes(
     return valor;
   }
 
-  return new Intl.DateTimeFormat(
-    "pt-BR",
-    {
-      month: "short",
-      year: "2-digit",
-    },
-  ).format(
-    new Date(
-      ano,
-      mes - 1,
-      1,
-    ),
-  );
+  return `${MESES_CURTOS[mes - 1]}/${String(ano).slice(-2)}`;
 }
 
 
@@ -281,40 +234,6 @@ function rotuloCatmat(
 }
 
 
-function Kpi({
-  titulo,
-  valor,
-}: {
-  titulo: string;
-  valor: string;
-}) {
-  return (
-    <article className="rounded-2xl border border-teal-100 bg-white p-4 shadow-sm sm:p-5">
-      <p className="text-sm leading-5 text-slate-500">
-        {titulo}
-      </p>
-
-      <p className="mt-3 break-words text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-        {valor}
-      </p>
-    </article>
-  );
-}
-
-
-function Vazio({
-  children,
-}: {
-  children: string;
-}) {
-  return (
-    <div className="rounded-xl border border-dashed border-slate-200 bg-teal-50/40 px-4 py-9 text-center text-sm leading-6 text-slate-500">
-      {children}
-    </div>
-  );
-}
-
-
 function truncar(
   valor: unknown,
   limite = 25,
@@ -342,20 +261,23 @@ function truncar(
 function GraficoRanking({
   dados,
   nomeKey,
+  cor,
 }: {
   dados: Record<
     string,
     string | number
   >[];
   nomeKey: string;
+  cor: string;
 }) {
   if (
     dados.length === 0
   ) {
     return (
-      <Vazio>
-        Não há dados para exibir.
-      </Vazio>
+      <EmptyState
+        title="Sem dados para o ranking"
+        cause="Não há compras no período selecionado com esses filtros."
+      />
     );
   }
 
@@ -364,6 +286,11 @@ function GraficoRanking({
       300,
       dados.length * 38,
     );
+
+  // Nomes de fornecedor/fabricante vêm em CAIXA ALTA (mais largos por caractere): numa tela
+  // estreita, o eixo Y fixo de 120px não cabe os mesmos ~20 caracteres que cabem no desktop
+  // (o rótulo sobra pela esquerda e o overflow-hidden do contêiner corta o começo do nome).
+  const estreita = useEhTelaEstreita();
 
   return (
     <div
@@ -387,55 +314,38 @@ function GraficoRanking({
           }}
         >
           <CartesianGrid
-            strokeDasharray="3 3"
+            {...grade}
             horizontal={false}
+            vertical
           />
 
           <XAxis
+            {...eixo}
             type="number"
-            tickFormatter={(
-              valor,
-            ) =>
-              formatadorMoeda.format(
-                numero(valor),
-              )
-            }
-            fontSize={10}
+            tickFormatter={(valor) => moedaCompacta(numero(valor))}
           />
 
           <YAxis
+            {...eixo}
             type="category"
             dataKey={nomeKey}
-            width={120}
-            tickFormatter={(
-              valor,
-            ) =>
-              truncar(
-                valor,
-                20,
-              )
-            }
-            tickLine={false}
-            fontSize={10}
+            width={estreita ? 100 : 120}
+            tickFormatter={(valor) => truncar(valor, estreita ? 12 : 20)}
           />
 
           <Tooltip
-            formatter={(
-              valor,
-            ) =>
-              formatarMoeda(
-                valor,
-              )
-            }
+            {...tooltip}
+            formatter={(valor) => moedaExata(numero(valor))}
           />
 
           <Bar
             dataKey="valor_total"
-            fill="var(--color-brand-blue)"
+            name="Valor total"
+            fill={cor}
             radius={[
               0,
-              5,
-              5,
+              4,
+              4,
               0,
             ]}
           />
@@ -512,6 +422,16 @@ export function Compras() {
     useState<
       string | null
     >(null);
+
+  // Falha de requisição: guarda o erro real para o ErrorState (erro fica para validação e avisos).
+  const [
+    falhaCarga,
+    setFalhaCarga,
+  ] =
+    useState<unknown>(null);
+
+  const formFiltros =
+    useRef<HTMLFormElement>(null);
 
   const [
     filtrosConfirmados,
@@ -607,6 +527,7 @@ export function Compras() {
     event.preventDefault();
 
     setErro(null);
+    setFalhaCarga(null);
 
     if (
       !dataInicio
@@ -675,9 +596,10 @@ export function Compras() {
         if (
           produtos.length === 0
         ) {
-          throw new Error(
+          setErro(
             "O CATMAT selecionado não possui produtos vinculados.",
           );
+          return;
         }
       }
 
@@ -750,12 +672,7 @@ export function Compras() {
         recentes,
       });
     } catch (error) {
-      setErro(
-        error
-          instanceof Error
-          ? error.message
-          : "Não foi possível carregar as análises de compras.",
-      );
+      setFalhaCarga(error);
     } finally {
       setCarregando(false);
     }
@@ -778,7 +695,7 @@ export function Compras() {
         ).map(
           (item) => ({
             mes:
-              formatarMes(
+              rotuloMes(
                 item.mes,
               ),
             valor_total:
@@ -881,10 +798,11 @@ export function Compras() {
           cell: ({
             row,
           }) =>
-            formatarMoeda(
+            moedaExata(
               row.original
                 .valor_total,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -894,10 +812,11 @@ export function Compras() {
           cell: ({
             row,
           }) =>
-            formatarNumero(
+            numeroExato(
               row.original
                 .numero_compras,
             ),
+          meta: { align: "right" },
         },
         {
           header: "Itens",
@@ -906,10 +825,11 @@ export function Compras() {
           cell: ({
             row,
           }) =>
-            formatarNumero(
+            quantidade(
               row.original
                 .quantidade_itens,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -919,10 +839,11 @@ export function Compras() {
           cell: ({
             row,
           }) =>
-            formatarPercentual(
+            percentual(
               row.original
                 .participacao_percentual,
             ),
+          meta: { align: "right" },
         },
       ],
       [],
@@ -955,10 +876,11 @@ export function Compras() {
           cell: ({
             row,
           }) =>
-            formatarMoeda(
+            moedaExata(
               row.original
                 .valor_total,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -968,10 +890,11 @@ export function Compras() {
           cell: ({
             row,
           }) =>
-            formatarNumero(
+            numeroExato(
               row.original
                 .numero_compras,
             ),
+          meta: { align: "right" },
         },
         {
           header: "Itens",
@@ -980,10 +903,11 @@ export function Compras() {
           cell: ({
             row,
           }) =>
-            formatarNumero(
+            quantidade(
               row.original
                 .quantidade_itens,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -993,10 +917,11 @@ export function Compras() {
           cell: ({
             row,
           }) =>
-            formatarPercentual(
+            percentual(
               row.original
                 .participacao_percentual,
             ),
+          meta: { align: "right" },
         },
       ],
       [],
@@ -1025,10 +950,11 @@ export function Compras() {
           cell: ({
             row,
           }) =>
-            formatarMoeda(
+            moedaExata(
               row.original
                 .valor_total,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -1038,10 +964,11 @@ export function Compras() {
           cell: ({
             row,
           }) =>
-            formatarNumero(
+            numeroExato(
               row.original
                 .numero_compras,
             ),
+          meta: { align: "right" },
         },
         {
           header: "Itens",
@@ -1050,10 +977,11 @@ export function Compras() {
           cell: ({
             row,
           }) =>
-            formatarNumero(
+            quantidade(
               row.original
                 .quantidade_itens,
             ),
+          meta: { align: "right" },
         },
       ],
       [],
@@ -1082,10 +1010,11 @@ export function Compras() {
           cell: ({
             row,
           }) =>
-            formatarMoeda(
+            moedaExata(
               row.original
                 .valor_total,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -1095,10 +1024,11 @@ export function Compras() {
           cell: ({
             row,
           }) =>
-            formatarNumero(
+            numeroExato(
               row.original
                 .numero_compras,
             ),
+          meta: { align: "right" },
         },
         {
           header: "Itens",
@@ -1107,10 +1037,11 @@ export function Compras() {
           cell: ({
             row,
           }) =>
-            formatarNumero(
+            quantidade(
               row.original
                 .quantidade_itens,
             ),
+          meta: { align: "right" },
         },
       ],
       [],
@@ -1132,7 +1063,7 @@ export function Compras() {
           cell: ({
             row,
           }) =>
-            formatarData(
+            dataBR(
               row.original
                 .data_de_compra,
             ),
@@ -1148,6 +1079,7 @@ export function Compras() {
             row.original
               .codigo_catmat
             ?? "—",
+          meta: { priority: "low" },
         },
         {
           header: "Produto",
@@ -1191,10 +1123,11 @@ export function Compras() {
           cell: ({
             row,
           }) =>
-            formatarNumero(
+            quantidade(
               row.original
                 .quantidade_de_itens,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -1204,10 +1137,11 @@ export function Compras() {
           cell: ({
             row,
           }) =>
-            formatarMoeda(
+            moedaExata(
               row.original
                 .preco_unitario,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -1217,10 +1151,11 @@ export function Compras() {
           cell: ({
             row,
           }) =>
-            formatarMoeda(
+            moedaExata(
               row.original
                 .preco_total,
             ),
+          meta: { align: "right" },
         },
         {
           header:
@@ -1263,245 +1198,209 @@ export function Compras() {
     );
 
 
+  // Resolve a paleta uma vez por montagem (lê as variáveis CSS do documento).
+  const paleta = useMemo(() => categorica(), []);
+
+
   return (
-    <main className="mx-auto min-h-[calc(100vh-4rem)] max-w-[1440px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8 lg:py-10">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-          🛒 Compras
-        </h1>
-
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600 sm:text-base sm:leading-7">
-          Analise valores, fornecedores, fabricantes, modalidades
-          e evolução das compras registradas.
-        </p>
-      </header>
+    <main id="conteudo" tabIndex={-1} className="mx-auto min-h-[calc(100vh-4rem)] max-w-[1440px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8 lg:py-10">
+      <PageHeader
+        icon="cart"
+        title="Compras"
+        description="Analise valores, fornecedores, fabricantes, modalidades e evolução das compras registradas."
+      />
 
 
-      <section className="mt-7 rounded-2xl border border-teal-100 bg-white p-4 shadow-sm sm:p-6">
-        <h2 className="text-lg font-semibold text-slate-900">
+      <section className="mt-7 rounded-[var(--radius-md)] border border-line bg-panel p-4 shadow-[var(--shadow-card)] sm:p-6">
+        <h2 className="flex items-center gap-2 text-lg font-semibold text-[var(--text)]">
+          <Icon name="funnel" size={18} className="text-muted" />
           Filtros
         </h2>
 
         <form
-          onSubmit={
-            buscarProduto
-          }
+          onSubmit={buscarProduto}
           className="mt-5"
         >
           <label
             htmlFor="busca-produto-compras"
-            className="block text-sm font-semibold text-slate-800"
+            className="block text-sm font-semibold text-[var(--text)]"
           >
             Filtrar por medicamento ou produto CATMAT (opcional)
           </label>
 
           <div className="mt-2 flex flex-col gap-3 sm:flex-row">
-            <input
+            <Input
               id="busca-produto-compras"
-              value={
-                buscaProduto
-              }
-              onChange={(
-                event,
-              ) =>
-                setBuscaProduto(
-                  event.target
-                    .value,
-                )
-              }
+              value={buscaProduto}
+              onChange={(event) => setBuscaProduto(event.target.value)}
               placeholder="Ex.: dipirona, insulina, seringa..."
-              className="h-12 min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus:ring-4 focus:ring-teal-50"
+              className="h-10 bg-panel sm:flex-1"
             />
 
-            <button
+            <Button
               type="submit"
-              disabled={
-                buscandoProduto
-              }
-              className="h-12 w-full rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-teal-50/40 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+              variant="outline"
+              disabled={buscandoProduto}
+              className="h-10 w-full px-5 sm:w-auto"
             >
+              <Icon name="search" size={16} />
               {buscandoProduto
                 ? "Buscando..."
                 : "Buscar CATMAT"}
-            </button>
+            </Button>
           </div>
         </form>
 
 
         {avisoBusca && (
-          <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
+          <div
+            role="status"
+            className="mt-3 flex items-start gap-2 rounded-[var(--radius-md)] border border-warning-border bg-[var(--warning-soft)] px-4 py-3 text-sm leading-6 text-warning-text"
+          >
+            <Icon name="alert" size={18} className="mt-0.5" />
             {avisoBusca}
           </div>
         )}
 
 
         <form
-          onSubmit={
-            aplicarFiltros
-          }
-          className="mt-6 border-t border-slate-200 pt-6"
+          ref={formFiltros}
+          onSubmit={aplicarFiltros}
+          className="mt-6 border-t border-line pt-6"
         >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label
                 htmlFor="data-inicio"
-                className="block text-sm font-semibold text-slate-800"
+                className="block text-sm font-semibold text-[var(--text)]"
               >
                 Data inicial
               </label>
 
-              <input
+              <Input
                 id="data-inicio"
                 type="date"
-                value={
-                  dataInicio
-                }
-                max={
-                  hojeIso()
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setDataInicio(
-                    event.target
-                      .value,
-                  )
-                }
-                className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-teal-600 focus:ring-4 focus:ring-teal-50"
+                value={dataInicio}
+                max={hojeIso()}
+                onChange={(event) => setDataInicio(event.target.value)}
+                className="mt-2 h-10 bg-panel"
               />
             </div>
 
             <div>
               <label
                 htmlFor="data-fim"
-                className="block text-sm font-semibold text-slate-800"
+                className="block text-sm font-semibold text-[var(--text)]"
               >
                 Data final
               </label>
 
-              <input
+              <Input
                 id="data-fim"
                 type="date"
-                value={
-                  dataFim
-                }
-                max={
-                  hojeIso()
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setDataFim(
-                    event.target
-                      .value,
-                  )
-                }
-                className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-teal-600 focus:ring-4 focus:ring-teal-50"
+                value={dataFim}
+                max={hojeIso()}
+                onChange={(event) => setDataFim(event.target.value)}
+                className="mt-2 h-10 bg-panel"
               />
             </div>
 
-            <div>
+            <div className="min-w-0">
               <label
                 htmlFor="produto-compras"
-                className="block text-sm font-semibold text-slate-800"
+                className="block text-sm font-semibold text-[var(--text)]"
               >
                 Produto
               </label>
 
-              <select
-                id="produto-compras"
-                value={
-                  catmatSelecionado
+              <Select
+                value={catmatSelecionado || TODOS_PRODUTOS}
+                onValueChange={(valor) =>
+                  setCatmatSelecionado(valor === TODOS_PRODUTOS ? "" : valor)
                 }
-                onChange={(
-                  event,
-                ) =>
-                  setCatmatSelecionado(
-                    event.target
-                      .value,
-                  )
-                }
-                className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-teal-600 focus:ring-4 focus:ring-teal-50"
               >
-                <option value="">
-                  Todos os produtos
-                </option>
+                <SelectTrigger
+                  id="produto-compras"
+                  className="mt-2 h-10 w-full min-w-0 bg-panel data-[size=default]:h-10"
+                >
+                  <SelectValue />
+                </SelectTrigger>
 
-                {opcoesCatmat.map(
-                  (item) => (
-                    <option
-                      key={
-                        item.catmat_id
-                      }
-                      value={
-                        item.catmat_id
-                      }
+                <SelectContent position="popper" className="max-w-[min(90vw,48rem)]">
+                  <SelectItem value={TODOS_PRODUTOS}>
+                    Todos os produtos
+                  </SelectItem>
+
+                  {opcoesCatmat.map((item) => (
+                    <SelectItem
+                      key={item.catmat_id}
+                      value={String(item.catmat_id)}
                     >
-                      {rotuloCatmat(
-                        item,
-                      )}
-                    </option>
-                  ),
-                )}
-              </select>
+                      {rotuloCatmat(item)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
               <label
                 htmlFor="tipo-compra"
-                className="block text-sm font-semibold text-slate-800"
+                className="block text-sm font-semibold text-[var(--text)]"
               >
                 Tipo da compra
               </label>
 
-              <select
-                id="tipo-compra"
-                value={
-                  tipoCompra
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setTipoCompra(
-                    event.target
-                      .value,
-                  )
-                }
-                className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-teal-600 focus:ring-4 focus:ring-teal-50"
+              <Select
+                value={tipoCompra}
+                onValueChange={setTipoCompra}
               >
-                <option>
-                  Todos
-                </option>
+                <SelectTrigger
+                  id="tipo-compra"
+                  className="mt-2 h-10 w-full bg-panel data-[size=default]:h-10"
+                >
+                  <SelectValue />
+                </SelectTrigger>
 
-                <option>
-                  ADMINISTRATIVA
-                </option>
-
-                <option>
-                  JUDICIAL
-                </option>
-              </select>
+                <SelectContent position="popper">
+                  <SelectItem value="Todos">Todos</SelectItem>
+                  <SelectItem value="ADMINISTRATIVA">ADMINISTRATIVA</SelectItem>
+                  <SelectItem value="JUDICIAL">JUDICIAL</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          <button
+          <Button
             type="submit"
-            disabled={
-              carregando
-            }
-            className="mx-auto mt-6 block min-h-12 w-full rounded-xl bg-teal-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-300 sm:w-1/2 lg:w-1/4"
+            disabled={carregando}
+            className="mx-auto mt-6 flex h-10 w-full sm:w-1/2 lg:w-1/4"
           >
             {carregando
               ? "Carregando análises..."
               : "Pesquisar"}
-          </button>
+          </Button>
         </form>
       </section>
 
 
       {erro && (
-        <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-800">
+        <div
+          role="status"
+          className="mt-5 flex items-start gap-2 rounded-[var(--radius-md)] border border-warning-border bg-[var(--warning-soft)] px-4 py-3 text-sm leading-6 text-warning-text"
+        >
+          <Icon name="alert" size={18} className="mt-0.5" />
           {erro}
+        </div>
+      )}
+
+
+      {falhaCarga != null && (
+        <div className="mt-5">
+          <ErrorState
+            error={falhaCarga}
+            onRetry={() => formFiltros.current?.requestSubmit()}
+          />
         </div>
       )}
 
@@ -1509,28 +1408,26 @@ export function Compras() {
       {!filtrosConfirmados
         && !carregando
         && (
-          <div className="mt-5 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm leading-6 text-blue-800">
-            Escolha o período e clique em <strong>Aplicar filtros</strong> para carregar as análises.
-          </div>
+          <p className="mt-5 flex items-center gap-2 text-sm leading-6 text-muted">
+            <Icon name="info" size={16} />
+            <span>
+              Escolha o período e clique em <strong className="font-semibold text-[var(--text)]">Pesquisar</strong> para carregar as análises.
+            </span>
+          </p>
         )}
 
 
       {carregando && (
-        <section className="mt-6 space-y-4">
-          <div className="h-8 w-full max-w-2xl animate-pulse rounded bg-slate-200" />
+        <section className="mt-6 space-y-4" aria-busy="true">
+          <Skeleton className="h-8 w-full max-w-2xl" />
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {[1, 2, 3, 4].map(
-              (item) => (
-                <div
-                  key={item}
-                  className="h-28 animate-pulse rounded-2xl bg-slate-200"
-                />
-              ),
-            )}
+            {[1, 2, 3, 4].map((item) => (
+              <Skeleton key={item} className="h-28" />
+            ))}
           </div>
 
-          <div className="h-80 animate-pulse rounded-2xl bg-slate-200" />
+          <Skeleton className="h-80" />
         </section>
       )}
 
@@ -1540,34 +1437,22 @@ export function Compras() {
         && !carregando
         && (
           <section className="mt-6 space-y-8">
-            <p className="text-sm leading-6 text-slate-500">
+            <p className="text-sm leading-6 text-muted">
               Filtros aplicados:{" "}
-              <strong className="font-semibold text-slate-700">
-                {formatarData(
-                  filtrosConfirmados
-                    .data_inicio,
-                )}
+              <strong className="font-semibold text-[var(--text)]">
+                {dataBR(filtrosConfirmados.data_inicio)}
               </strong>{" "}
               até{" "}
-              <strong className="font-semibold text-slate-700">
-                {formatarData(
-                  filtrosConfirmados
-                    .data_fim,
-                )}
+              <strong className="font-semibold text-[var(--text)]">
+                {dataBR(filtrosConfirmados.data_fim)}
               </strong>
               {" | "}Produto:{" "}
-              <strong className="font-semibold text-slate-700">
-                {
-                  filtrosConfirmados
-                    .produto_descricao
-                }
+              <strong className="font-semibold text-[var(--text)]">
+                {filtrosConfirmados.produto_descricao}
               </strong>
               {" | "}Tipo:{" "}
-              <strong className="font-semibold text-slate-700">
-                {
-                  filtrosConfirmados
-                    .tipo_descricao
-                }
+              <strong className="font-semibold text-[var(--text)]">
+                {filtrosConfirmados.tipo_descricao}
               </strong>
             </p>
 
@@ -1576,551 +1461,354 @@ export function Compras() {
               dados.kpis
                 .numero_compras,
             ) === 0 ? (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm leading-6 text-amber-900">
-                Nenhuma compra foi encontrada para os filtros selecionados.
-              </div>
+              <EmptyState
+                title="Nenhuma compra encontrada"
+                cause="Não há compras no período selecionado com esses filtros."
+              />
             ) : (
               <>
                 <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
-                  <Kpi
-                    titulo="Valor total comprado"
-                    valor={
-                      formatarMoeda(
-                        dados.kpis
-                          .valor_total,
-                      )
-                    }
+                  <KpiCard
+                    label="Valor total comprado"
+                    value={numeroOuNulo(dados.kpis.valor_total)}
+                    format={moedaCompacta}
+                    exact={moedaExata}
                   />
 
-                  <Kpi
-                    titulo="Registros de compra"
-                    valor={
-                      formatarNumero(
-                        dados.kpis
-                          .numero_compras,
-                      )
-                    }
+                  <KpiCard
+                    label="Registros de compra"
+                    value={numeroOuNulo(dados.kpis.numero_compras)}
+                    format={numeroCompacto}
                   />
 
-                  <Kpi
-                    titulo="Quantidade de itens"
-                    valor={
-                      formatarNumero(
-                        dados.kpis
-                          .quantidade_itens,
-                      )
-                    }
+                  <KpiCard
+                    label="Quantidade de itens"
+                    value={numeroOuNulo(dados.kpis.quantidade_itens)}
+                    format={numeroCompacto}
                   />
 
-                  <Kpi
-                    titulo="Fornecedores"
-                    valor={
-                      formatarNumero(
-                        dados.kpis
-                          .numero_fornecedores,
-                      )
-                    }
+                  <KpiCard
+                    label="Fornecedores"
+                    value={numeroOuNulo(dados.kpis.numero_fornecedores)}
+                    format={numeroCompacto}
                   />
                 </section>
 
 
-                <hr className="border-slate-200" />
+                <hr className="border-line" />
 
 
                 <section>
-                  <h2 className="text-xl font-semibold tracking-tight text-slate-900">
+                  <h2 className="text-xl font-semibold tracking-tight text-[var(--text)]">
                     Evolução mensal das compras
                   </h2>
 
                   {mensalGrafico.length
                     === 0 ? (
                     <div className="mt-4">
-                      <Vazio>
-                        Não há dados mensais para os filtros aplicados.
-                      </Vazio>
+                      <EmptyState
+                        title="Sem série mensal"
+                        cause="Não há compras no período selecionado com esses filtros."
+                      />
                     </div>
                   ) : (
                     <div className="mt-4 grid grid-cols-1 gap-5 lg:grid-cols-2">
-                      <article className="min-w-0 rounded-2xl border border-teal-100 bg-white p-4 shadow-sm sm:p-5">
-                        <p className="text-sm font-semibold text-slate-700">
-                          Valor total comprado por mês
-                        </p>
-
-                        <div className="mt-4 h-72 w-full sm:h-80">
-                          <ResponsiveContainer
-                            width="100%"
-                            height="100%"
-                          >
-                            <LineChart
-                              data={
-                                mensalGrafico
-                              }
-                              margin={{
-                                top: 8,
-                                right: 8,
-                                bottom: 8,
-                                left: 0,
-                              }}
+                      <div className="min-w-0">
+                        <ChartFrame as="h3"
+                          title="Valor total comprado por mês"
+                          source="DATASUS"
+                        >
+                          <div className="h-72 w-full sm:h-80">
+                            <ResponsiveContainer
+                              width="100%"
+                              height="100%"
                             >
-                              <CartesianGrid
-                                strokeDasharray="3 3"
-                                vertical={
-                                  false
-                                }
-                              />
-
-                              <XAxis
-                                dataKey="mes"
-                                minTickGap={
-                                  30
-                                }
-                                fontSize={
-                                  10
-                                }
-                              />
-
-                              <YAxis
-                                width={
-                                  75
-                                }
-                                tickFormatter={(
-                                  valor,
-                                ) =>
-                                  formatadorMoeda.format(
-                                    numero(
-                                      valor,
-                                    ),
-                                  )
-                                }
-                                fontSize={
-                                  10
-                                }
-                              />
-
-                              <Tooltip
-                                formatter={(
-                                  valor,
-                                ) =>
-                                  formatarMoeda(
-                                    valor,
-                                  )
-                                }
-                              />
-
-                              <Line
-                                type="monotone"
-                                dataKey="valor_total"
-                                stroke="var(--color-brand-blue)"
-                                strokeWidth={
-                                  2
-                                }
-                                dot={
-                                  false
-                                }
-                                activeDot={{
-                                  r: 4,
+                              <LineChart
+                                data={mensalGrafico}
+                                margin={{
+                                  top: 8,
+                                  right: 8,
+                                  bottom: 8,
+                                  left: 0,
                                 }}
-                              />
-                            </LineChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </article>
+                              >
+                                <CartesianGrid {...grade} />
+
+                                <XAxis
+                                  {...eixo}
+                                  dataKey="mes"
+                                  minTickGap={30}
+                                />
+
+                                <YAxis
+                                  {...eixo}
+                                  width={75}
+                                  tickFormatter={(valor) => moedaCompacta(numero(valor))}
+                                />
+
+                                <Tooltip
+                                  {...tooltip}
+                                  cursor={{ stroke: "var(--beast-basic-600)" }}
+                                  formatter={(valor) => moedaExata(numero(valor))}
+                                />
+
+                                <Line
+                                  {...linha}
+                                  dataKey="valor_total"
+                                  name="Valor total"
+                                  stroke={paleta[0]}
+                                  dot={dotPara(mensalGrafico.length)}
+                                />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </ChartFrame>
+                      </div>
 
 
-                      <article className="min-w-0 rounded-2xl border border-teal-100 bg-white p-4 shadow-sm sm:p-5">
-                        <p className="text-sm font-semibold text-slate-700">
-                          Número de compras por mês
-                        </p>
-
-                        <div className="mt-4 h-72 w-full sm:h-80">
-                          <ResponsiveContainer
-                            width="100%"
-                            height="100%"
-                          >
-                            <LineChart
-                              data={
-                                mensalGrafico
-                              }
-                              margin={{
-                                top: 8,
-                                right: 8,
-                                bottom: 8,
-                                left: 0,
-                              }}
+                      <div className="min-w-0">
+                        <ChartFrame as="h3"
+                          title="Número de compras por mês"
+                          source="DATASUS"
+                        >
+                          <div className="h-72 w-full sm:h-80">
+                            <ResponsiveContainer
+                              width="100%"
+                              height="100%"
                             >
-                              <CartesianGrid
-                                strokeDasharray="3 3"
-                                vertical={
-                                  false
-                                }
-                              />
-
-                              <XAxis
-                                dataKey="mes"
-                                minTickGap={
-                                  30
-                                }
-                                fontSize={
-                                  10
-                                }
-                              />
-
-                              <YAxis
-                                width={
-                                  48
-                                }
-                                tickFormatter={(
-                                  valor,
-                                ) =>
-                                  formatarNumero(
-                                    valor,
-                                  )
-                                }
-                                fontSize={
-                                  10
-                                }
-                              />
-
-                              <Tooltip
-                                formatter={(
-                                  valor,
-                                ) =>
-                                  formatarNumero(
-                                    valor,
-                                  )
-                                }
-                              />
-
-                              <Line
-                                type="monotone"
-                                dataKey="numero_compras"
-                                stroke="var(--color-brand-blue)"
-                                strokeWidth={
-                                  2
-                                }
-                                dot={
-                                  false
-                                }
-                                activeDot={{
-                                  r: 4,
+                              <LineChart
+                                data={mensalGrafico}
+                                margin={{
+                                  top: 8,
+                                  right: 8,
+                                  bottom: 8,
+                                  left: 0,
                                 }}
-                              />
-                            </LineChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </article>
+                              >
+                                <CartesianGrid {...grade} />
+
+                                <XAxis
+                                  {...eixo}
+                                  dataKey="mes"
+                                  minTickGap={30}
+                                />
+
+                                <YAxis
+                                  {...eixo}
+                                  width={48}
+                                  tickFormatter={(valor) => numeroCompacto(numero(valor))}
+                                />
+
+                                <Tooltip
+                                  {...tooltip}
+                                  cursor={{ stroke: "var(--beast-basic-600)" }}
+                                  formatter={(valor) => numeroExato(numero(valor))}
+                                />
+
+                                <Line
+                                  {...linha}
+                                  dataKey="numero_compras"
+                                  name="Compras"
+                                  stroke={paleta[0]}
+                                  dot={dotPara(mensalGrafico.length)}
+                                />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </ChartFrame>
+                      </div>
                     </div>
                   )}
                 </section>
 
 
-                <hr className="border-slate-200" />
+                <hr className="border-line" />
 
 
-                <section>
-                  <div className="overflow-x-auto">
-                    <div
-                      className="inline-flex min-w-max rounded-xl border border-teal-100 bg-white p-1"
-                      role="tablist"
-                      aria-label="Análises de compras"
-                    >
-                      {[
-                        {
-                          id:
-                            "fornecedores",
-                          label:
-                            "Fornecedores",
-                        },
-                        {
-                          id:
-                            "fabricantes",
-                          label:
-                            "Fabricantes",
-                        },
-                        {
-                          id:
-                            "modalidade",
-                          label:
-                            "Modalidade e tipo",
-                        },
-                        {
-                          id:
-                            "recentes",
-                          label:
-                            "Compras recentes",
-                        },
-                      ].map(
-                        (item) => (
-                          <button
-                            key={
-                              item.id
-                            }
-                            type="button"
-                            role="tab"
-                            aria-selected={
-                              aba
-                              === item.id
-                            }
-                            onClick={() =>
-                              setAba(
-                                item.id as AbaCompras,
-                              )
-                            }
-                            className={[
-                              "rounded-lg px-4 py-2 text-sm font-medium transition",
-                              aba
-                                === item.id
-                                ? "bg-teal-700 text-white"
-                                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-                            ].join(
-                              " ",
-                            )}
-                          >
-                            {item.label}
-                          </button>
-                        ),
-                      )}
+                <Tabs
+                  value={aba}
+                  onValueChange={(valor) => setAba(valor as AbaCompras)}
+                >
+                  <TabsList
+                    aria-label="Análises de compras"
+                    className="w-full flex-wrap justify-start group-data-[orientation=horizontal]/tabs:h-auto sm:w-fit sm:flex-nowrap sm:group-data-[orientation=horizontal]/tabs:h-9"
+                  >
+                    {[
+                      { id: "fornecedores", label: "Fornecedores" },
+                      { id: "fabricantes", label: "Fabricantes" },
+                      { id: "modalidade", label: "Modalidade e tipo" },
+                      { id: "recentes", label: "Compras recentes" },
+                    ].map((item) => (
+                      <TabsTrigger
+                        key={item.id}
+                        value={item.id}
+                        className="min-h-8 px-4 sm:flex-none"
+                      >
+                        {item.label}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+
+
+                  <TabsContent value="fornecedores" className="mt-3">
+                    {fornecedoresTabela.length
+                      === 0 ? (
+                      <EmptyState
+                        title="Sem fornecedores"
+                        cause="Não há compras com fornecedor identificado no período selecionado."
+                      />
+                    ) : (
+                      <div className="space-y-5">
+                        <ChartFrame
+                          title="Principais fornecedores"
+                          subtitle="Valor total comprado, 15 maiores"
+                          source="DATASUS"
+                        >
+                          <GraficoRanking
+                            dados={fornecedoresTabela.map((item) => ({
+                              fornecedor: item.fornecedor,
+                              valor_total: numero(item.valor_total),
+                            }))}
+                            nomeKey="fornecedor"
+                            cor={paleta[0]}
+                          />
+                        </ChartFrame>
+
+                        <div className="min-w-0 w-full">
+                          <DataTable
+                            data={fornecedoresTabela}
+                            columns={colunasFornecedores}
+                            pageSize={8}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </TabsContent>
+
+
+                  <TabsContent value="fabricantes" className="mt-3">
+                    {fabricantesTabela.length
+                      === 0 ? (
+                      <EmptyState
+                        title="Sem fabricantes"
+                        cause="Não há compras com fabricante identificado no período selecionado."
+                      />
+                    ) : (
+                      <div className="space-y-5">
+                        <ChartFrame
+                          title="Principais fabricantes"
+                          subtitle="Valor total comprado, 15 maiores"
+                          source="DATASUS"
+                        >
+                          <GraficoRanking
+                            dados={fabricantesTabela.map((item) => ({
+                              fabricante: item.fabricante,
+                              valor_total: numero(item.valor_total),
+                            }))}
+                            nomeKey="fabricante"
+                            cor={paleta[0]}
+                          />
+                        </ChartFrame>
+
+                        <div className="min-w-0 w-full">
+                          <DataTable
+                            data={fabricantesTabela}
+                            columns={colunasFabricantes}
+                            pageSize={8}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </TabsContent>
+
+
+                  <TabsContent value="modalidade" className="mt-3">
+                    <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                      <div className="min-w-0 space-y-4">
+                        {dados.modalidades.length
+                          === 0 ? (
+                          <EmptyState
+                            title="Sem modalidades"
+                            cause="Não há compras no período selecionado com esses filtros."
+                          />
+                        ) : (
+                          <>
+                            <ChartFrame
+                              title="Compras por modalidade"
+                              source="DATASUS"
+                            >
+                              <GraficoRanking
+                                dados={dados.modalidades.map((item) => ({
+                                  modalidade: item.modalidade,
+                                  valor_total: numero(item.valor_total),
+                                }))}
+                                nomeKey="modalidade"
+                                cor={paleta[0]}
+                              />
+                            </ChartFrame>
+
+                            <DataTable
+                              data={dados.modalidades}
+                              columns={colunasModalidades}
+                              pageSize={8}
+                            />
+                          </>
+                        )}
+                      </div>
+
+
+                      <div className="min-w-0 space-y-4">
+                        {dados.tipos.length
+                          === 0 ? (
+                          <EmptyState
+                            title="Sem tipos de compra"
+                            cause="Não há compras no período selecionado com esses filtros."
+                          />
+                        ) : (
+                          <>
+                            <ChartFrame
+                              title="Compras por tipo"
+                              source="DATASUS"
+                            >
+                              <GraficoRanking
+                                dados={dados.tipos.map((item) => ({
+                                  tipo_compra: item.tipo_compra,
+                                  valor_total: numero(item.valor_total),
+                                }))}
+                                nomeKey="tipo_compra"
+                                cor={paleta[0]}
+                              />
+                            </ChartFrame>
+
+                            <DataTable
+                              data={dados.tipos}
+                              columns={colunasTipos}
+                              pageSize={8}
+                            />
+                          </>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  </TabsContent>
 
 
-                  {aba
-                    === "fornecedores"
-                    && (
-                      <div className="mt-5">
-                        <h2 className="mb-4 text-xl font-semibold tracking-tight text-slate-900">
-                          Principais fornecedores
-                        </h2>
+                  <TabsContent value="recentes" className="mt-3">
+                    <h2 className="text-xl font-semibold tracking-tight text-[var(--text)]">
+                      Compras mais recentes
+                    </h2>
 
-                        {fornecedoresTabela.length
-                          === 0 ? (
-                          <Vazio>
-                            Não há fornecedores para exibir.
-                          </Vazio>
-                        ) : (
-                          <div className="space-y-5">
-                            <article className="min-w-0 rounded-2xl border border-teal-100 bg-white p-4 shadow-sm sm:p-5">
-                              <GraficoRanking
-                                dados={
-                                  fornecedoresTabela.map(
-                                    (
-                                      item,
-                                    ) => ({
-                                      fornecedor:
-                                        item.fornecedor,
-                                      valor_total:
-                                        numero(
-                                          item.valor_total,
-                                        ),
-                                    }),
-                                  )
-                                }
-                                nomeKey="fornecedor"
-                              />
-                            </article>
+                    <p className="mt-1 mb-4 text-sm leading-6 text-muted">
+                      São exibidos no máximo 500 registros, ordenados da compra mais recente para a mais antiga.
+                    </p>
 
-                            <article className="min-w-0 w-full">
-                              <DataTable
-                                data={
-                                  fornecedoresTabela
-                                }
-                                columns={
-                                  colunasFornecedores
-                                }
-                                pageSize={
-                                  8
-                                }
-                              />
-                            </article>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-
-                  {aba
-                    === "fabricantes"
-                    && (
-                      <div className="mt-5">
-                        <h2 className="mb-4 text-xl font-semibold tracking-tight text-slate-900">
-                          Principais fabricantes
-                        </h2>
-
-                        {fabricantesTabela.length
-                          === 0 ? (
-                          <Vazio>
-                            Não há fabricantes para exibir.
-                          </Vazio>
-                        ) : (
-                          <div className="space-y-5">
-                            <article className="min-w-0 rounded-2xl border border-teal-100 bg-white p-4 shadow-sm sm:p-5">
-                              <GraficoRanking
-                                dados={
-                                  fabricantesTabela.map(
-                                    (
-                                      item,
-                                    ) => ({
-                                      fabricante:
-                                        item.fabricante,
-                                      valor_total:
-                                        numero(
-                                          item.valor_total,
-                                        ),
-                                    }),
-                                  )
-                                }
-                                nomeKey="fabricante"
-                              />
-                            </article>
-
-                            <article className="min-w-0 w-full">
-                              <DataTable
-                                data={
-                                  fabricantesTabela
-                                }
-                                columns={
-                                  colunasFabricantes
-                                }
-                                pageSize={
-                                  8
-                                }
-                              />
-                            </article>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-
-                  {aba
-                    === "modalidade"
-                    && (
-                      <div className="mt-5 grid grid-cols-1 gap-6 xl:grid-cols-2">
-                        <article className="min-w-0 space-y-4">
-                          <h2 className="text-xl font-semibold tracking-tight text-slate-900">
-                            Compras por modalidade
-                          </h2>
-
-                          {dados.modalidades.length
-                            === 0 ? (
-                            <Vazio>
-                              Não há modalidades para exibir.
-                            </Vazio>
-                          ) : (
-                            <>
-                              <div className="rounded-2xl border border-teal-100 bg-white p-4 shadow-sm sm:p-5">
-                                <GraficoRanking
-                                  dados={
-                                    dados.modalidades.map(
-                                      (
-                                        item,
-                                      ) => ({
-                                        modalidade:
-                                          item.modalidade,
-                                        valor_total:
-                                          numero(
-                                            item.valor_total,
-                                          ),
-                                      }),
-                                    )
-                                  }
-                                  nomeKey="modalidade"
-                                />
-                              </div>
-
-                              <DataTable
-                                data={
-                                  dados.modalidades
-                                }
-                                columns={
-                                  colunasModalidades
-                                }
-                                pageSize={
-                                  8
-                                }
-                              />
-                            </>
-                          )}
-                        </article>
-
-
-                        <article className="min-w-0 space-y-4">
-                          <h2 className="text-xl font-semibold tracking-tight text-slate-900">
-                            Compras por tipo
-                          </h2>
-
-                          {dados.tipos.length
-                            === 0 ? (
-                            <Vazio>
-                              Não há tipos para exibir.
-                            </Vazio>
-                          ) : (
-                            <>
-                              <div className="rounded-2xl border border-teal-100 bg-white p-4 shadow-sm sm:p-5">
-                                <GraficoRanking
-                                  dados={
-                                    dados.tipos.map(
-                                      (
-                                        item,
-                                      ) => ({
-                                        tipo_compra:
-                                          item.tipo_compra,
-                                        valor_total:
-                                          numero(
-                                            item.valor_total,
-                                          ),
-                                      }),
-                                    )
-                                  }
-                                  nomeKey="tipo_compra"
-                                />
-                              </div>
-
-                              <DataTable
-                                data={
-                                  dados.tipos
-                                }
-                                columns={
-                                  colunasTipos
-                                }
-                                pageSize={
-                                  8
-                                }
-                              />
-                            </>
-                          )}
-                        </article>
-                      </div>
-                    )}
-
-
-                  {aba
-                    === "recentes"
-                    && (
-                      <div className="mt-5">
-                        <h2 className="text-xl font-semibold tracking-tight text-slate-900">
-                          Compras mais recentes
-                        </h2>
-
-                        <p className="mt-1 mb-4 text-sm leading-6 text-slate-500">
-                          São exibidos no máximo 500 registros, ordenados da compra mais recente para a mais antiga.
-                        </p>
-
-                        <DataTable
-                          data={
-                            dados.recentes
-                          }
-                          columns={
-                            colunasRecentes
-                          }
-                          pageSize={
-                            15
-                          }
-                          emptyMessage="Não há compras recentes para exibir."
-                        />
-                      </div>
-                    )}
-                </section>
+                    <DataTable
+                      data={dados.recentes}
+                      columns={colunasRecentes}
+                      pageSize={15}
+                      emptyMessage="Não há compras recentes para exibir."
+                    />
+                  </TabsContent>
+                </Tabs>
               </>
             )}
           </section>

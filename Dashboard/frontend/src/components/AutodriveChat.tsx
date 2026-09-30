@@ -83,8 +83,8 @@ function montar(cfg: ChatConfig) {
     placeholder: "Pergunte sobre o que está na tela, compras, estoque ou leitos…",
     theme: {
       position: "bottom-right",
-      primaryColor: "#28638f",
-      accentColor: "#087f8c",
+      primaryColor: "var(--primary)",
+      accentColor: "var(--info)",
       launcherLabel: "Analista DATASUS",
     },
     uiContextProvider: () => getUiContext(APP_BASE),

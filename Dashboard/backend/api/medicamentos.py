@@ -206,7 +206,7 @@ def resumo_medicamento(catmat_id: int):
             SELECT
                 COALESCE(SUM(quantidade_do_item_em_estoque), 0) AS estoque_total,
                 COUNT(DISTINCT instituicao_id) AS instituicoes_com_registro,
-                COUNT_IF(quantidade_do_item_em_estoque = 0) AS instituicoes_estoque_zerado
+                COALESCE(COUNT_IF(quantidade_do_item_em_estoque = 0), 0) AS instituicoes_estoque_zerado
             FROM estoque_atual
         ),
         resumo_compras AS (
