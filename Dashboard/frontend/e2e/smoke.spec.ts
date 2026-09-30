@@ -242,6 +242,28 @@ test("Fornecedores: clicar em SP no mapa filtra o ranking", async ({ page, baseU
   expect(erros).toEqual([]);
 });
 
+test("Fornecedores: busca por 'unique' filtra a tabela para uma única linha", async ({ page, baseURL }) => {
+  const erros = coletarErros(page, baseURL!, []);
+
+  await page.goto("fornecedores");
+  await page.waitForLoadState("networkidle");
+
+  await page.locator("#fornecedores-busca").fill("unique");
+  const opcao = page.getByRole("option").first();
+  await opcao.waitFor({ state: "visible", timeout: 60_000 });
+
+  const ranking = page.waitForResponse(
+    (r) => r.url().includes("/api/fornecedores/ranking") && r.url().includes("fornecedor_id="),
+  );
+  await opcao.click();
+  await ranking;
+  await page.waitForLoadState("networkidle");
+
+  await expect(page.locator("tbody tr")).toHaveCount(1);
+
+  expect(erros).toEqual([]);
+});
+
 test("Compras abre carregada em 2020–2025", async ({ page, baseURL }) => {
   const erros = coletarErros(page, baseURL!, []);
 
@@ -283,6 +305,37 @@ test("Compras aplica ano e medicamento", async ({ page, baseURL }) => {
   await page.waitForLoadState("networkidle");
 
   await expect(page.locator("body")).not.toContainText("Não foi possível");
+
+  expect(erros).toEqual([]);
+});
+
+test("Compras: filtra por fornecedor e UF, KPIs carregam com fornecedor_id e uf", async ({ page, baseURL }) => {
+  const erros = coletarErros(page, baseURL!, []);
+
+  await page.goto("compras");
+  await page.waitForLoadState("networkidle");
+
+  await page.locator("#fornecedor-compras").fill("dimeva");
+  const opcao = page.getByRole("option").filter({ hasText: "DIMEVA DISTRIBUIDORA" }).first();
+  await opcao.waitFor({ state: "visible", timeout: 60_000 });
+  await opcao.click();
+
+  await page.locator("#uf-compras").click();
+  await page.getByRole("option", { name: "MG", exact: true }).click();
+
+  const kpis = page.waitForResponse(
+    (r) => r.url().includes("/api/compras/kpis") && r.url().includes("uf=MG"),
+  );
+  await page.getByRole("button", { name: "Aplicar", exact: true }).click();
+  const resposta = await kpis;
+  await page.waitForLoadState("networkidle");
+
+  expect(resposta.url()).toMatch(/fornecedor_id=\d+/);
+  expect(resposta.url()).toContain("uf=MG");
+
+  await expect(page.locator("body")).not.toContainText("Não foi possível");
+  await expect(page.getByText(/Fornecedor:.*DIMEVA DISTRIBUIDORA/)).toBeVisible();
+  await expect(page.getByText(/Estado:.*MG/)).toBeVisible();
 
   expect(erros).toEqual([]);
 });
