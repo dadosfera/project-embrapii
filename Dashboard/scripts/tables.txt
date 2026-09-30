@@ -1,0 +1,17 @@
+catmat
+cnpj_enriquecido
+endereco
+fabricante
+fornecedor
+instituicao
+instituicao_estoca_produto
+leitos
+mantenedora
+mantenedora_compra_produto
+municipio
+produto
+regiao_de_saude
+macrorregiao_de_saude
+unidade_federativa
+regiao_do_brasil
+v_endereco_completo

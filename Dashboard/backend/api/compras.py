@@ -1,9 +1,9 @@
 from datetime import date, timedelta
+from typing import Any, Dict, List, Optional, Tuple
 
-import psycopg
 from fastapi import APIRouter, HTTPException, Query
 
-from backend.database import fetch_all, fetch_one
+from backend.database import DatabaseError, Q, fetch_all, fetch_one
 
 
 router = APIRouter(
@@ -21,16 +21,16 @@ TIPOS_COMPRA = {
 def _database_error(exc: Exception) -> HTTPException:
     return HTTPException(
         status_code=503,
-        detail=f"Erro ao consultar o PostgreSQL: {exc}",
+        detail=f"Erro ao consultar o banco: {exc}",
     )
 
 
 def _montar_filtros(
     data_inicio: date,
     data_fim: date,
-    catmat_id: int | None,
+    catmat_id: Optional[int],
     tipo_compra: str,
-) -> tuple[str, dict]:
+) -> Tuple[str, Dict]:
     """
     Reproduz os filtros usados pela página Streamlit de compras.
 
@@ -84,7 +84,7 @@ def _montar_filtros(
 def _params_comuns(
     data_inicio: date,
     data_fim: date,
-    catmat_id: int | None,
+    catmat_id: Optional[int],
     tipo_compra: str,
 ):
     return _montar_filtros(
@@ -99,7 +99,7 @@ def _params_comuns(
 def get_kpis_compras(
     data_inicio: date,
     data_fim: date,
-    catmat_id: int | None = Query(default=None, ge=1),
+    catmat_id: Optional[int] = Query(default=None, ge=1),
     tipo_compra: str = Query(default=""),
 ):
     where_sql, parametros = _params_comuns(
@@ -109,7 +109,9 @@ def get_kpis_compras(
         tipo_compra,
     )
 
-    query = f"""
+    # Q(pg, sf): altere as duas versões juntas
+    query = Q(
+        pg=f"""
         SELECT
             COALESCE(
                 SUM(c.preco_total),
@@ -138,7 +140,19 @@ def get_kpis_compras(
         FROM mantenedora_compra_produto c
 
         WHERE {where_sql};
-    """
+    """,
+        sf=f"""
+        SELECT
+            COALESCE(SUM(c.preco_total), 0) AS valor_total,
+            COUNT(*) AS numero_compras,
+            COALESCE(SUM(c.quantidade_de_itens), 0) AS quantidade_itens,
+            COUNT(DISTINCT c.fornecedor_id) AS numero_fornecedores,
+            COUNT(DISTINCT c.fabricante_id) AS numero_fabricantes,
+            COUNT(DISTINCT c.mantenedora_id) AS numero_mantenedoras
+        FROM mantenedora_compra_produto c
+        WHERE {where_sql}
+        """,
+    )
 
     try:
         return fetch_one(query, parametros) or {
@@ -149,7 +163,7 @@ def get_kpis_compras(
             "numero_fabricantes": 0,
             "numero_mantenedoras": 0,
         }
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -157,7 +171,7 @@ def get_kpis_compras(
 def get_compras_por_mes(
     data_inicio: date,
     data_fim: date,
-    catmat_id: int | None = Query(default=None, ge=1),
+    catmat_id: Optional[int] = Query(default=None, ge=1),
     tipo_compra: str = Query(default=""),
 ):
     where_sql, parametros = _params_comuns(
@@ -167,7 +181,8 @@ def get_compras_por_mes(
         tipo_compra,
     )
 
-    query = f"""
+    query = Q(
+        pg=f"""
         SELECT
             DATE_TRUNC(
                 'month',
@@ -197,11 +212,23 @@ def get_compras_por_mes(
             )
 
         ORDER BY mes;
-    """
+    """,
+        sf=f"""
+        SELECT
+            DATE_TRUNC('month', c.data_de_compra)::date AS mes,
+            COALESCE(SUM(c.preco_total), 0) AS valor_total,
+            COUNT(*) AS numero_compras,
+            COALESCE(SUM(c.quantidade_de_itens), 0) AS quantidade_itens
+        FROM mantenedora_compra_produto c
+        WHERE {where_sql}
+        GROUP BY DATE_TRUNC('month', c.data_de_compra)
+        ORDER BY mes
+        """,
+    )
 
     try:
         return fetch_all(query, parametros)
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -209,7 +236,7 @@ def get_compras_por_mes(
 def get_top_fornecedores_compras(
     data_inicio: date,
     data_fim: date,
-    catmat_id: int | None = Query(default=None, ge=1),
+    catmat_id: Optional[int] = Query(default=None, ge=1),
     tipo_compra: str = Query(default=""),
     limite: int = Query(default=15, ge=1, le=100),
 ):
@@ -221,7 +248,8 @@ def get_top_fornecedores_compras(
     )
     parametros["limite"] = limite
 
-    query = f"""
+    query = Q(
+        pg=f"""
         SELECT
             COALESCE(
                 NULLIF(
@@ -259,14 +287,28 @@ def get_top_fornecedores_compras(
                 'Nao informado'
             )
 
-        ORDER BY valor_total DESC NULLS LAST
+        ORDER BY valor_total DESC NULLS LAST, fornecedor ASC
 
         LIMIT %(limite)s;
-    """
+    """,
+        sf=f"""
+        SELECT
+            COALESCE(NULLIF(TRIM(f.nome_fornecedor), ''), 'Nao informado') AS fornecedor,
+            COALESCE(SUM(c.preco_total), 0) AS valor_total,
+            COUNT(*) AS numero_compras,
+            COALESCE(SUM(c.quantidade_de_itens), 0) AS quantidade_itens
+        FROM mantenedora_compra_produto c
+        LEFT JOIN fornecedor f ON f.fornecedor_id = c.fornecedor_id
+        WHERE {where_sql}
+        GROUP BY COALESCE(NULLIF(TRIM(f.nome_fornecedor), ''), 'Nao informado')
+        ORDER BY valor_total DESC NULLS LAST, fornecedor ASC
+        LIMIT %(limite)s
+        """,
+    )
 
     try:
         return fetch_all(query, parametros)
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -274,7 +316,7 @@ def get_top_fornecedores_compras(
 def get_top_fabricantes_compras(
     data_inicio: date,
     data_fim: date,
-    catmat_id: int | None = Query(default=None, ge=1),
+    catmat_id: Optional[int] = Query(default=None, ge=1),
     tipo_compra: str = Query(default=""),
     limite: int = Query(default=15, ge=1, le=100),
 ):
@@ -286,7 +328,8 @@ def get_top_fabricantes_compras(
     )
     parametros["limite"] = limite
 
-    query = f"""
+    query = Q(
+        pg=f"""
         SELECT
             COALESCE(
                 NULLIF(
@@ -324,14 +367,28 @@ def get_top_fabricantes_compras(
                 'Nao informado'
             )
 
-        ORDER BY valor_total DESC NULLS LAST
+        ORDER BY valor_total DESC NULLS LAST, fabricante ASC
 
         LIMIT %(limite)s;
-    """
+    """,
+        sf=f"""
+        SELECT
+            COALESCE(NULLIF(TRIM(fab.nome_fabricante), ''), 'Nao informado') AS fabricante,
+            COALESCE(SUM(c.preco_total), 0) AS valor_total,
+            COUNT(*) AS numero_compras,
+            COALESCE(SUM(c.quantidade_de_itens), 0) AS quantidade_itens
+        FROM mantenedora_compra_produto c
+        LEFT JOIN fabricante fab ON fab.fabricante_id = c.fabricante_id
+        WHERE {where_sql}
+        GROUP BY COALESCE(NULLIF(TRIM(fab.nome_fabricante), ''), 'Nao informado')
+        ORDER BY valor_total DESC NULLS LAST, fabricante ASC
+        LIMIT %(limite)s
+        """,
+    )
 
     try:
         return fetch_all(query, parametros)
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -339,7 +396,7 @@ def get_top_fabricantes_compras(
 def get_compras_por_modalidade(
     data_inicio: date,
     data_fim: date,
-    catmat_id: int | None = Query(default=None, ge=1),
+    catmat_id: Optional[int] = Query(default=None, ge=1),
     tipo_compra: str = Query(default=""),
 ):
     where_sql, parametros = _params_comuns(
@@ -349,7 +406,8 @@ def get_compras_por_modalidade(
         tipo_compra,
     )
 
-    query = f"""
+    query = Q(
+        pg=f"""
         SELECT
             COALESCE(
                 NULLIF(
@@ -384,12 +442,24 @@ def get_compras_por_modalidade(
                 'Nao informado'
             )
 
-        ORDER BY valor_total DESC NULLS LAST;
-    """
+        ORDER BY valor_total DESC NULLS LAST, modalidade ASC;
+    """,
+        sf=f"""
+        SELECT
+            COALESCE(NULLIF(TRIM(c.modalidade_de_compra), ''), 'Nao informado') AS modalidade,
+            COALESCE(SUM(c.preco_total), 0) AS valor_total,
+            COUNT(*) AS numero_compras,
+            COALESCE(SUM(c.quantidade_de_itens), 0) AS quantidade_itens
+        FROM mantenedora_compra_produto c
+        WHERE {where_sql}
+        GROUP BY COALESCE(NULLIF(TRIM(c.modalidade_de_compra), ''), 'Nao informado')
+        ORDER BY valor_total DESC NULLS LAST, modalidade ASC
+        """,
+    )
 
     try:
         return fetch_all(query, parametros)
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -397,7 +467,7 @@ def get_compras_por_modalidade(
 def get_compras_por_tipo(
     data_inicio: date,
     data_fim: date,
-    catmat_id: int | None = Query(default=None, ge=1),
+    catmat_id: Optional[int] = Query(default=None, ge=1),
     tipo_compra: str = Query(default=""),
 ):
     where_sql, parametros = _params_comuns(
@@ -407,7 +477,8 @@ def get_compras_por_tipo(
         tipo_compra,
     )
 
-    query = f"""
+    query = Q(
+        pg=f"""
         SELECT
             COALESCE(
                 NULLIF(
@@ -442,12 +513,24 @@ def get_compras_por_tipo(
                 'Nao informado'
             )
 
-        ORDER BY valor_total DESC NULLS LAST;
-    """
+        ORDER BY valor_total DESC NULLS LAST, tipo_compra ASC;
+    """,
+        sf=f"""
+        SELECT
+            COALESCE(NULLIF(TRIM(c.tipo_da_compra), ''), 'Nao informado') AS tipo_compra,
+            COALESCE(SUM(c.preco_total), 0) AS valor_total,
+            COUNT(*) AS numero_compras,
+            COALESCE(SUM(c.quantidade_de_itens), 0) AS quantidade_itens
+        FROM mantenedora_compra_produto c
+        WHERE {where_sql}
+        GROUP BY COALESCE(NULLIF(TRIM(c.tipo_da_compra), ''), 'Nao informado')
+        ORDER BY valor_total DESC NULLS LAST, tipo_compra ASC
+        """,
+    )
 
     try:
         return fetch_all(query, parametros)
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -455,7 +538,7 @@ def get_compras_por_tipo(
 def get_compras_recentes(
     data_inicio: date,
     data_fim: date,
-    catmat_id: int | None = Query(default=None, ge=1),
+    catmat_id: Optional[int] = Query(default=None, ge=1),
     tipo_compra: str = Query(default=""),
     limite: int = Query(default=500, ge=1, le=500),
 ):
@@ -467,7 +550,8 @@ def get_compras_recentes(
     )
     parametros["limite"] = limite
 
-    query = f"""
+    query = Q(
+        pg=f"""
         SELECT
             c.data_de_compra,
             cat.codigo_catmat,
@@ -505,9 +589,33 @@ def get_compras_recentes(
             c.mantenedora_compra_produto_id DESC
 
         LIMIT %(limite)s;
-    """
+    """,
+        sf=f"""
+        SELECT
+            c.data_de_compra,
+            cat.codigo_catmat,
+            cat.descricao_catmat,
+            c.modalidade_de_compra,
+            c.tipo_da_compra,
+            c.quantidade_de_itens,
+            c.preco_unitario,
+            c.preco_total,
+            f.nome_fornecedor,
+            fab.nome_fabricante,
+            m.nome_mantenedora
+        FROM mantenedora_compra_produto c
+        LEFT JOIN produto p ON p.produto_id = c.produto_id
+        LEFT JOIN catmat cat ON cat.catmat_id = p.catmat_id
+        LEFT JOIN fornecedor f ON f.fornecedor_id = c.fornecedor_id
+        LEFT JOIN fabricante fab ON fab.fabricante_id = c.fabricante_id
+        LEFT JOIN mantenedora m ON m.mantenedora_id = c.mantenedora_id
+        WHERE {where_sql}
+        ORDER BY c.data_de_compra DESC NULLS LAST, c.mantenedora_compra_produto_id DESC
+        LIMIT %(limite)s
+        """,
+    )
 
     try:
         return fetch_all(query, parametros)
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc

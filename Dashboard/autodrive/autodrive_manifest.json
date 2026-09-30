@@ -1,0 +1,10 @@
+{
+  "core_url": "https://autodrive-api-standalone.stg.dadosfera.ai",
+  "assistant_url": "https://autodrive-assistant-api-standalone.stg.dadosfera.ai",
+  "dataset_id": "b4fafa26-f562-4bdb-928a-6c82de2daa4b",
+  "assistant_id": "943a5cc3-ffc8-4d1a-a610-ea3a645612ac",
+  "kb_name": "embrapii-datasus-dashboard-v1",
+  "assistant_name": "EMBRAPII · Analista DATASUS",
+  "widget_host": "https://autodrive-standalone.stg.dadosfera.ai",
+  "client": "dadosfera-stg"
+}

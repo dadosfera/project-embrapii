@@ -41,6 +41,8 @@ import {
   type ResumoMedicamento,
 } from "../lib/api";
 
+import { useUiContext } from "../lib/uiContext";
+
 
 type AbaCompras =
   | "preco"
@@ -340,6 +342,102 @@ function GraficoBarrasHorizontal({
       </ResponsiveContainer>
     </div>
   );
+}
+
+
+const MAX_PONTOS_BRUTOS = 60;
+
+
+/**
+ * Contexto da tela para o chat: pequeno vai bruto (é o que está nos gráficos), grande vai resumido —
+ * a evolução de preço vira média anual acima de 60 pontos e o histórico de compras (até 500 linhas) vira
+ * totais por ano × tipo + as 15 compras mais recentes.
+ */
+function contextoMedicamento(
+  dados: DadosMedicamento,
+  item: CatmatItem,
+  abaCompras: AbaCompras,
+  busca: string | null,
+) {
+  const evolucao = dados.evolucaoPreco.map((e) => ({
+    data: String(e.data_de_compra).slice(0, 10),
+    preco_medio: numero(e.preco_medio),
+  }));
+
+  const porAno = new Map<string, { soma: number; n: number }>();
+  for (const e of evolucao) {
+    const ano = e.data.slice(0, 4);
+    const acc = porAno.get(ano) ?? { soma: 0, n: 0 };
+    acc.soma += e.preco_medio;
+    acc.n += 1;
+    porAno.set(ano, acc);
+  }
+
+  const comprasResumo = new Map<string, { ano: string; tipo: string; compras: number; valor_total: number; itens: number }>();
+  for (const c of dados.compras) {
+    const ano = (c.data_de_compra ?? "").slice(0, 4) || "N/I";
+    const tipo = c.tipo_da_compra ?? "NÃO INFORMADO";
+    const chave = `${ano}|${tipo}`;
+    const acc = comprasResumo.get(chave) ?? { ano, tipo, compras: 0, valor_total: 0, itens: 0 };
+    acc.compras += 1;
+    acc.valor_total += numero(c.preco_total);
+    acc.itens += numero(c.quantidade_de_itens);
+    comprasResumo.set(chave, acc);
+  }
+
+  return {
+    screen: "Medicamentos",
+    description:
+      "Detalhe de um medicamento CATMAT: KPIs de estoque (última posição por instituição), lotes vencendo em 90 dias, "
+      + "estoque por UF e compras públicas (preço, fornecedores, fabricantes, histórico).",
+    filters: { busca, aba_compras: abaCompras, janela_lotes_dias: dados.lotes.dias },
+    selection: {
+      catmat_id: item.catmat_id,
+      codigo_catmat: item.codigo_catmat,
+      descricao: item.descricao_catmat,
+      produtos_vinculados: dados.produtos.length,
+    },
+    visible_kpis: {
+      estoque_total: numero(dados.resumo.estoque_total),
+      instituicoes_com_registro: numero(dados.resumo.instituicoes_com_registro),
+      instituicoes_estoque_zerado: numero(dados.resumo.instituicoes_estoque_zerado),
+      preco_medio_compra: dados.resumo.preco_medio_compra === null ? null : numero(dados.resumo.preco_medio_compra),
+      lotes_vencendo_90d: dados.lotes.quantidade_lotes,
+    },
+    visible_data: {
+      estoque_por_uf: dados.estoqueUf.map((e) => ({
+        uf: e.uf ?? "N/I",
+        estoque_total: numero(e.estoque_total),
+        num_instituicoes: numero(e.num_instituicoes),
+      })),
+      ...(evolucao.length <= MAX_PONTOS_BRUTOS
+        ? { evolucao_preco: evolucao }
+        : {
+            evolucao_preco_por_ano: [...porAno.entries()].map(([ano, a]) => ({ ano, preco_medio: a.soma / a.n })),
+            evolucao_preco_pontos: evolucao.length,
+          }),
+      fornecedores_top: dados.fornecedores.map((f) => ({ nome: f.nome_fornecedor, valor_total: numero(f.valor_total) })),
+      fabricantes_top: dados.fabricantes.map((f) => ({ nome: f.nome_fabricante, valor_total: numero(f.valor_total) })),
+      lotes_vencendo: dados.lotes.items.slice(0, 20).map((l) => ({
+        instituicao_id: l.instituicao_id,
+        lote: l.numero_do_lote,
+        quantidade: numero(l.quantidade_do_item_em_estoque),
+        validade: l.data_de_validade?.slice(0, 10) ?? null,
+      })),
+      compras_por_ano: [...comprasResumo.values()].sort((a, b) => a.ano.localeCompare(b.ano)),
+      compras_recentes: dados.compras.slice(0, 15).map((c) => ({
+        data: c.data_de_compra?.slice(0, 10) ?? null,
+        tipo: c.tipo_da_compra,
+        modalidade: c.modalidade_de_compra,
+        quantidade: c.quantidade_de_itens,
+        preco_unitario: c.preco_unitario,
+        preco_total: c.preco_total,
+        fornecedor: c.nome_fornecedor,
+        mantenedora: c.nome_mantenedora,
+      })),
+      historico_compras_linhas: dados.compras.length,
+    },
+  };
 }
 
 
@@ -942,6 +1040,21 @@ export function Medicamentos() {
     );
 
 
+  useUiContext(
+    dados && medicamentoCarregado
+      ? contextoMedicamento(dados, medicamentoCarregado, abaCompras, buscaConfirmada)
+      : {
+          screen: "Medicamentos",
+          description: carregando
+            ? "Carregando os dados do medicamento selecionado."
+            : "Nenhum medicamento carregado: o usuário ainda está buscando no catálogo CATMAT.",
+          filters: { busca: busca || null, resultados_da_busca: resultados.length },
+          selection: null,
+        },
+    [dados, medicamentoCarregado, abaCompras, buscaConfirmada, carregando, busca, resultados.length],
+  );
+
+
   return (
     <main className="mx-auto min-h-[calc(100vh-4rem)] max-w-[1440px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8 lg:py-10">
       <header>
@@ -1123,7 +1236,7 @@ export function Medicamentos() {
         && !carregando
         && (
           <section className="mt-7 space-y-8">
-            <div>
+            <div data-chat-context="medicamento selecionado">
               <p className="text-sm leading-6 text-slate-500">
                 Código CATMAT selecionado —{" "}
                 <strong className="font-semibold text-slate-700">
@@ -1146,7 +1259,10 @@ export function Medicamentos() {
             </div>
 
 
-            <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
+            <section
+              data-chat-context="KPIs"
+              className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4"
+            >
               <Kpi
                 titulo="Estoque total (última posição)"
                 valor={
@@ -1192,7 +1308,7 @@ export function Medicamentos() {
             <hr className="border-slate-200" />
 
 
-            <section>
+            <section data-chat-context="alerta de lotes">
               {dados.lotes
                 .quantidade_lotes
                 > 0 ? (

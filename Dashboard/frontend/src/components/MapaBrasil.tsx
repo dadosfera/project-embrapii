@@ -9,6 +9,8 @@ import {
   geoPath,
 } from "d3-geo";
 
+import { assetUrl } from "../lib/base";
+
 type Coordenadas =
   | number[]
   | Coordenadas[];
@@ -107,7 +109,7 @@ Promise<FeatureCollectionUf> {
   if (!geojsonPromise) {
     geojsonPromise =
       fetch(
-        "/maps/brasil-ufs.geojson",
+        assetUrl("maps/brasil-ufs.geojson"),
       )
         .then(
           async (response) => {

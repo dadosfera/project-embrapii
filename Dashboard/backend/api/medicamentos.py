@@ -1,7 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
-import psycopg
 
-from backend.database import fetch_all, fetch_one
+from backend.database import DatabaseError, Q, fetch_all, fetch_one
 
 
 router = APIRouter(
@@ -13,7 +12,7 @@ router = APIRouter(
 def _database_error(exc: Exception) -> HTTPException:
     return HTTPException(
         status_code=503,
-        detail=f"Erro ao consultar o PostgreSQL: {exc}",
+        detail=f"Erro ao consultar o banco: {exc}",
     )
 
 
@@ -32,7 +31,24 @@ def buscar_medicamentos(
 
     Pesquisa no catálogo CATMAT por descrição ou código.
     """
-    query = """
+    # Q(pg, sf): altere as duas versões juntas
+    query = Q(
+        pg="""
+        SELECT
+            catmat_id,
+            codigo_catmat,
+            descricao_catmat
+        FROM catmat
+        WHERE
+            descricao_catmat ILIKE %(termo)s
+            OR codigo_catmat ILIKE %(termo)s
+        ORDER BY
+            descricao_catmat COLLATE "C",
+            codigo_catmat COLLATE "C",
+            catmat_id
+        LIMIT %(limite)s;
+    """,
+        sf="""
         SELECT
             catmat_id,
             codigo_catmat,
@@ -43,9 +59,11 @@ def buscar_medicamentos(
             OR codigo_catmat ILIKE %(termo)s
         ORDER BY
             descricao_catmat,
-            codigo_catmat
-        LIMIT %(limite)s;
-    """
+            codigo_catmat,
+            catmat_id
+        LIMIT %(limite)s
+        """,
+    )
 
     try:
         return fetch_all(
@@ -55,7 +73,7 @@ def buscar_medicamentos(
                 "limite": limite,
             },
         )
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -64,7 +82,8 @@ def listar_produtos_do_catmat(catmat_id: int):
     """
     Equivalente ao get_produtos_by_catmat() do Streamlit.
     """
-    query = """
+    query = Q(
+        pg="""
         SELECT
             produto_id,
             catmat_id,
@@ -74,14 +93,26 @@ def listar_produtos_do_catmat(catmat_id: int):
         FROM produto
         WHERE catmat_id = %(catmat_id)s
         ORDER BY produto_id;
-    """
+    """,
+        sf="""
+        SELECT
+            produto_id,
+            catmat_id,
+            anvisa,
+            generico,
+            codigo_catmat
+        FROM produto
+        WHERE catmat_id = %(catmat_id)s
+        ORDER BY produto_id
+        """,
+    )
 
     try:
         return fetch_all(
             query,
             {"catmat_id": catmat_id},
         )
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -94,7 +125,8 @@ def resumo_medicamento(catmat_id: int):
     A última posição é obtida por instituição considerando
     todos os produto_id vinculados ao CATMAT.
     """
-    query = """
+    query = Q(
+        pg="""
         WITH produtos_catmat AS (
             SELECT produto_id
             FROM produto
@@ -145,7 +177,55 @@ def resumo_medicamento(catmat_id: int):
             rc.preco_medio_compra
         FROM resumo_estoque re
         CROSS JOIN resumo_compras rc;
-    """
+    """,
+        sf="""
+        WITH produtos_catmat AS (
+            SELECT produto_id
+            FROM produto
+            WHERE catmat_id = %(catmat_id)s
+        ),
+        estoque_atual AS (
+            SELECT
+                iep.instituicao_id,
+                iep.produto_id,
+                iep.quantidade_do_item_em_estoque,
+                iep.data_de_posicao_no_estoque,
+                iep.data_de_validade,
+                iep.numero_do_lote
+            FROM instituicao_estoca_produto iep
+            INNER JOIN produtos_catmat p
+                ON p.produto_id = iep.produto_id
+            QUALIFY ROW_NUMBER() OVER (
+                PARTITION BY iep.instituicao_id
+                ORDER BY
+                    iep.data_de_posicao_no_estoque DESC NULLS LAST,
+                    iep.instituicao_estoca_produto_id DESC
+            ) = 1
+        ),
+        resumo_estoque AS (
+            SELECT
+                COALESCE(SUM(quantidade_do_item_em_estoque), 0) AS estoque_total,
+                COUNT(DISTINCT instituicao_id) AS instituicoes_com_registro,
+                COUNT_IF(quantidade_do_item_em_estoque = 0) AS instituicoes_estoque_zerado
+            FROM estoque_atual
+        ),
+        resumo_compras AS (
+            SELECT
+                AVG(c.preco_unitario) AS preco_medio_compra
+            FROM mantenedora_compra_produto c
+            INNER JOIN produtos_catmat p
+                ON p.produto_id = c.produto_id
+            WHERE c.preco_unitario IS NOT NULL
+        )
+        SELECT
+            re.estoque_total,
+            re.instituicoes_com_registro,
+            re.instituicoes_estoque_zerado,
+            rc.preco_medio_compra
+        FROM resumo_estoque re
+        CROSS JOIN resumo_compras rc
+        """,
+    )
 
     try:
         result = fetch_one(
@@ -159,7 +239,7 @@ def resumo_medicamento(catmat_id: int):
             "instituicoes_estoque_zerado": 0,
             "preco_medio_compra": None,
         }
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -180,7 +260,8 @@ def lotes_vencendo(
     filtra os registros com estoque positivo e validade dentro
     da janela informada.
     """
-    query = """
+    query = Q(
+        pg="""
         WITH produtos_catmat AS (
             SELECT produto_id
             FROM produto
@@ -217,8 +298,49 @@ def lotes_vencendo(
             AND ea.data_de_validade::date
                 <= CURRENT_DATE
                 + (%(dias)s * INTERVAL '1 day')
-        ORDER BY ea.data_de_validade;
-    """
+        ORDER BY ea.data_de_validade, ea.instituicao_id;
+    """,
+        sf="""
+        WITH produtos_catmat AS (
+            SELECT produto_id
+            FROM produto
+            WHERE catmat_id = %(catmat_id)s
+        ),
+        estoque_atual AS (
+            SELECT
+                iep.instituicao_id,
+                iep.produto_id,
+                iep.quantidade_do_item_em_estoque,
+                iep.data_de_posicao_no_estoque,
+                iep.data_de_validade,
+                iep.numero_do_lote
+            FROM instituicao_estoca_produto iep
+            INNER JOIN produtos_catmat p
+                ON p.produto_id = iep.produto_id
+            QUALIFY ROW_NUMBER() OVER (
+                PARTITION BY iep.instituicao_id
+                ORDER BY
+                    iep.data_de_posicao_no_estoque DESC NULLS LAST,
+                    iep.instituicao_estoca_produto_id DESC
+            ) = 1
+        )
+        SELECT
+            ea.instituicao_id,
+            ea.produto_id,
+            ea.numero_do_lote,
+            ea.quantidade_do_item_em_estoque,
+            ea.data_de_posicao_no_estoque,
+            ea.data_de_validade
+        FROM estoque_atual ea
+        WHERE
+            ea.data_de_validade IS NOT NULL
+            AND ea.quantidade_do_item_em_estoque > 0
+            AND ea.data_de_validade::date >= CURRENT_DATE
+            AND ea.data_de_validade::date
+                <= DATEADD(day, %(dias)s, CURRENT_DATE)
+        ORDER BY ea.data_de_validade, ea.instituicao_id
+        """,
+    )
 
     try:
         items = fetch_all(
@@ -234,7 +356,7 @@ def lotes_vencendo(
             "quantidade_lotes": len(items),
             "items": items,
         }
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -245,7 +367,8 @@ def estoque_por_uf(catmat_id: int):
 
     Mantém a última posição por instituição e agrega estoque por UF.
     """
-    query = """
+    query = Q(
+        pg="""
         WITH produtos_catmat AS (
             SELECT produto_id
             FROM produto
@@ -277,15 +400,48 @@ def estoque_por_uf(catmat_id: int):
         INNER JOIN v_endereco_completo v
             ON v.endereco_id = i.endereco_id
         GROUP BY v.sigla_unidade_federativa
-        ORDER BY estoque_total DESC;
-    """
+        ORDER BY estoque_total DESC, uf ASC;
+    """,
+        sf="""
+        WITH produtos_catmat AS (
+            SELECT produto_id
+            FROM produto
+            WHERE catmat_id = %(catmat_id)s
+        ),
+        ultima_posicao AS (
+            SELECT
+                iep.instituicao_id,
+                iep.quantidade_do_item_em_estoque
+            FROM instituicao_estoca_produto iep
+            INNER JOIN produtos_catmat p
+                ON p.produto_id = iep.produto_id
+            QUALIFY ROW_NUMBER() OVER (
+                PARTITION BY iep.instituicao_id
+                ORDER BY
+                    iep.data_de_posicao_no_estoque DESC NULLS LAST,
+                    iep.instituicao_estoca_produto_id DESC
+            ) = 1
+        )
+        SELECT
+            v.sigla_unidade_federativa AS uf,
+            COALESCE(SUM(up.quantidade_do_item_em_estoque), 0) AS estoque_total,
+            COUNT(DISTINCT up.instituicao_id) AS num_instituicoes
+        FROM ultima_posicao up
+        INNER JOIN instituicao i
+            ON i.instituicao_id = up.instituicao_id
+        INNER JOIN v_endereco_completo v
+            ON v.endereco_id = i.endereco_id
+        GROUP BY v.sigla_unidade_federativa
+        ORDER BY estoque_total DESC, uf ASC
+        """,
+    )
 
     try:
         return fetch_all(
             query,
             {"catmat_id": catmat_id},
         )
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -294,7 +450,8 @@ def evolucao_preco_compra(catmat_id: int):
     """
     Média do preço unitário por data de compra.
     """
-    query = """
+    query = Q(
+        pg="""
         WITH produtos_catmat AS (
             SELECT produto_id
             FROM produto
@@ -311,14 +468,33 @@ def evolucao_preco_compra(catmat_id: int):
             AND c.preco_unitario IS NOT NULL
         GROUP BY c.data_de_compra
         ORDER BY c.data_de_compra;
-    """
+    """,
+        sf="""
+        WITH produtos_catmat AS (
+            SELECT produto_id
+            FROM produto
+            WHERE catmat_id = %(catmat_id)s
+        )
+        SELECT
+            c.data_de_compra,
+            AVG(c.preco_unitario) AS preco_medio
+        FROM mantenedora_compra_produto c
+        INNER JOIN produtos_catmat p
+            ON p.produto_id = c.produto_id
+        WHERE
+            c.data_de_compra IS NOT NULL
+            AND c.preco_unitario IS NOT NULL
+        GROUP BY c.data_de_compra
+        ORDER BY c.data_de_compra
+        """,
+    )
 
     try:
         return fetch_all(
             query,
             {"catmat_id": catmat_id},
         )
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -330,7 +506,8 @@ def compras_por_fornecedor(
     """
     Gasto total por fornecedor, limitado aos 15 maiores por padrão.
     """
-    query = """
+    query = Q(
+        pg="""
         WITH produtos_catmat AS (
             SELECT produto_id
             FROM produto
@@ -355,9 +532,28 @@ def compras_por_fornecedor(
                 NULLIF(BTRIM(f.nome_fornecedor), ''),
                 'Não informado'
             )
-        ORDER BY valor_total DESC NULLS LAST
+        ORDER BY valor_total DESC NULLS LAST, nome_fornecedor ASC
         LIMIT %(limite)s;
-    """
+    """,
+        sf="""
+        WITH produtos_catmat AS (
+            SELECT produto_id
+            FROM produto
+            WHERE catmat_id = %(catmat_id)s
+        )
+        SELECT
+            COALESCE(NULLIF(TRIM(f.nome_fornecedor), ''), 'Não informado') AS nome_fornecedor,
+            COALESCE(SUM(c.preco_total), 0) AS valor_total
+        FROM mantenedora_compra_produto c
+        INNER JOIN produtos_catmat p
+            ON p.produto_id = c.produto_id
+        LEFT JOIN fornecedor f
+            ON f.fornecedor_id = c.fornecedor_id
+        GROUP BY COALESCE(NULLIF(TRIM(f.nome_fornecedor), ''), 'Não informado')
+        ORDER BY valor_total DESC NULLS LAST, nome_fornecedor ASC
+        LIMIT %(limite)s
+        """,
+    )
 
     try:
         return fetch_all(
@@ -367,7 +563,7 @@ def compras_por_fornecedor(
                 "limite": limite,
             },
         )
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -379,7 +575,8 @@ def compras_por_fabricante(
     """
     Gasto total por fabricante, limitado aos 15 maiores por padrão.
     """
-    query = """
+    query = Q(
+        pg="""
         WITH produtos_catmat AS (
             SELECT produto_id
             FROM produto
@@ -404,9 +601,28 @@ def compras_por_fabricante(
                 NULLIF(BTRIM(fab.nome_fabricante), ''),
                 'Não informado'
             )
-        ORDER BY valor_total DESC NULLS LAST
+        ORDER BY valor_total DESC NULLS LAST, nome_fabricante ASC
         LIMIT %(limite)s;
-    """
+    """,
+        sf="""
+        WITH produtos_catmat AS (
+            SELECT produto_id
+            FROM produto
+            WHERE catmat_id = %(catmat_id)s
+        )
+        SELECT
+            COALESCE(NULLIF(TRIM(fab.nome_fabricante), ''), 'Não informado') AS nome_fabricante,
+            COALESCE(SUM(c.preco_total), 0) AS valor_total
+        FROM mantenedora_compra_produto c
+        INNER JOIN produtos_catmat p
+            ON p.produto_id = c.produto_id
+        LEFT JOIN fabricante fab
+            ON fab.fabricante_id = c.fabricante_id
+        GROUP BY COALESCE(NULLIF(TRIM(fab.nome_fabricante), ''), 'Não informado')
+        ORDER BY valor_total DESC NULLS LAST, nome_fabricante ASC
+        LIMIT %(limite)s
+        """,
+    )
 
     try:
         return fetch_all(
@@ -416,7 +632,7 @@ def compras_por_fabricante(
                 "limite": limite,
             },
         )
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
 
 
@@ -431,7 +647,8 @@ def historico_compras(
 
     Retorna os registros em ordem cronológica.
     """
-    query = """
+    query = Q(
+        pg="""
         WITH produtos_catmat AS (
             SELECT produto_id
             FROM produto
@@ -461,7 +678,39 @@ def historico_compras(
             c.mantenedora_compra_produto_id ASC
         LIMIT %(limite)s
         OFFSET %(offset)s;
-    """
+    """,
+        sf="""
+        WITH produtos_catmat AS (
+            SELECT produto_id
+            FROM produto
+            WHERE catmat_id = %(catmat_id)s
+        )
+        SELECT
+            c.data_de_compra,
+            c.modalidade_de_compra,
+            c.tipo_da_compra,
+            c.quantidade_de_itens,
+            c.preco_unitario,
+            c.preco_total,
+            f.nome_fornecedor,
+            fab.nome_fabricante,
+            m.nome_mantenedora
+        FROM mantenedora_compra_produto c
+        INNER JOIN produtos_catmat p
+            ON p.produto_id = c.produto_id
+        LEFT JOIN fornecedor f
+            ON f.fornecedor_id = c.fornecedor_id
+        LEFT JOIN fabricante fab
+            ON fab.fabricante_id = c.fabricante_id
+        LEFT JOIN mantenedora m
+            ON m.mantenedora_id = c.mantenedora_id
+        ORDER BY
+            c.data_de_compra ASC NULLS LAST,
+            c.mantenedora_compra_produto_id ASC
+        LIMIT %(limite)s
+        OFFSET %(offset)s
+        """,
+    )
 
     try:
         items = fetch_all(
@@ -478,5 +727,5 @@ def historico_compras(
             "offset": offset,
             "items": items,
         }
-    except (psycopg.Error, RuntimeError) as exc:
+    except (DatabaseError, RuntimeError) as exc:
         raise _database_error(exc) from exc
