@@ -21,6 +21,10 @@ from backend.database import Q, fetch_all
 LIMITE_PADRAO = 20
 
 # Postgres é legado (ver Dashboard/README.md); esta carga só é usada com DB_ENGINE=snowflake.
+# Custo da carga: o SELECT varre mantenedora_compra_produto inteira (GROUP BY fornecedor_id) — o
+# tempo de carga/aquecimento escala com o tamanho dessa tabela, não com o nº de fornecedores (~3,1
+# mil linhas no resultado agregado). Se a tabela crescer muito, considerar um agregado incremental
+# ou materializado em vez de recalcular tudo a cada TTL.
 _SQL = Q(
     pg="""
         SELECT

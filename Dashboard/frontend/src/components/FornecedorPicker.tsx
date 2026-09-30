@@ -1,19 +1,18 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useId } from "react";
 import { Command as CommandPrimitive } from "cmdk";
 
 import { buscarFornecedoresAutocomplete, type FornecedorAutocomplete } from "../lib/api";
 import { cn } from "../lib/utils";
 import { Icon } from "../ui/Icon";
 import { formatarCnpj, moedaCompacta } from "../ui/format";
+import { useAutocomplete } from "./useAutocomplete";
 
 /**
  * Seletor de fornecedor com autocomplete (Compras e Fornecedores), no mesmo padrão do
  * CatmatPicker: campo único, busca sem acento no backend (/api/fornecedores/busca),
- * debounce, mínimo de caracteres e guarda contra resposta desatualizada.
+ * debounce, mínimo de caracteres e guarda contra resposta desatualizada — o "motor" comum
+ * vem de useAutocomplete.
  */
-
-const ESPERA_MS = 250;
-const MINIMO = 2;
 
 type Props = {
   id: string;
@@ -26,60 +25,27 @@ type Props = {
 
 export function FornecedorPicker({ id, label, value, onSelect, placeholder, className }: Props) {
   const listaId = useId();
-  const [texto, setTexto] = useState(value?.nome ?? "");
-  const [editando, setEditando] = useState(false);
-  const [aberto, setAberto] = useState(false);
-  const [itens, setItens] = useState<FornecedorAutocomplete[]>([]);
-  const [carregando, setCarregando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
-  const pedido = useRef(0);
-  const raiz = useRef<HTMLDivElement>(null);
-
-  // Seleção vinda de fora: mostra o nome enquanto o usuário não estiver digitando.
-  useEffect(() => {
-    if (!editando) setTexto(value?.nome ?? "");
-  }, [value, editando]);
-
-  useEffect(() => {
-    const termo = texto.trim();
-    if (!editando || termo.length < MINIMO) {
-      setItens([]);
-      setCarregando(false);
-      return;
-    }
-    const meu = ++pedido.current;
-    setCarregando(true);
-    const timer = window.setTimeout(() => {
-      buscarFornecedoresAutocomplete(termo)
-        .then((r) => {
-          if (meu !== pedido.current) return;
-          setItens(r);
-          setErro(null);
-        })
-        .catch((e: unknown) => {
-          if (meu !== pedido.current) return;
-          setItens([]);
-          setErro(e instanceof Error ? e.message : "Não foi possível consultar os fornecedores.");
-        })
-        .finally(() => {
-          if (meu === pedido.current) setCarregando(false);
-        });
-    }, ESPERA_MS);
-    return () => window.clearTimeout(timer);
-  }, [texto, editando]);
-
-  useEffect(() => {
-    function fora(event: MouseEvent) {
-      if (raiz.current && !raiz.current.contains(event.target as Node)) fechar();
-    }
-    document.addEventListener("mousedown", fora);
-    return () => document.removeEventListener("mousedown", fora);
+  const {
+    raiz,
+    texto,
+    termo,
+    editando,
+    aberto,
+    itens,
+    carregando,
+    erro,
+    minimo,
+    setAberto,
+    setTexto,
+    aoDigitar,
+    aoEscapar,
+    fechar,
+  } = useAutocomplete<FornecedorAutocomplete[]>({
+    valorTexto: value?.nome ?? "",
+    buscar: buscarFornecedoresAutocomplete,
+    vazio: [],
+    mensagemErro: "Não foi possível consultar os fornecedores.",
   });
-
-  function fechar() {
-    setAberto(false);
-    setEditando(false);
-  }
 
   function escolher(fornecedor: FornecedorAutocomplete) {
     onSelect(fornecedor);
@@ -87,8 +53,7 @@ export function FornecedorPicker({ id, label, value, onSelect, placeholder, clas
     fechar();
   }
 
-  const termo = texto.trim();
-  const mostrarLista = aberto && editando && termo.length >= MINIMO;
+  const mostrarLista = aberto && editando && termo.length >= minimo;
 
   return (
     <div ref={raiz} className={cn("relative", className)}>
@@ -108,20 +73,13 @@ export function FornecedorPicker({ id, label, value, onSelect, placeholder, clas
             aria-autocomplete="list"
             style={{ outline: "none" }}
             value={texto}
-            onChange={(event) => {
-              setTexto(event.target.value);
-              setEditando(true);
-              setAberto(true);
-            }}
+            onChange={(event) => aoDigitar(event.target.value)}
             onFocus={(event) => {
               setAberto(true);
               if (value) event.currentTarget.select();
             }}
             onKeyDown={(event) => {
-              if (event.key === "Escape") {
-                fechar();
-                setTexto(value?.nome ?? "");
-              }
+              if (event.key === "Escape") aoEscapar();
             }}
             placeholder={placeholder ?? "Digite o nome ou o CNPJ do fornecedor"}
             aria-controls={listaId}

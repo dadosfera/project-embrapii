@@ -215,6 +215,10 @@ def get_mapa_fornecedores_por_uf(
     return resultado
 
 
+# `/ranking` monta o SQL com f-string (`f"""... WHERE ... {filtro_uf} {filtro_fornecedor} ..."""`),
+# colando só fragmentos FIXOS por engine (os textos abaixo — o nome da função TRIM/BTRIM muda com
+# o engine, o resto não). Os valores que variam por requisição (uf, fornecedor_id) nunca entram na
+# string: vão como parâmetro nomeado (`%(uf)s`, `%(fornecedor_id)s`) no dicionário de parametros.
 def _filtro_uf(engine: str) -> str:
     trim = "BTRIM" if engine == "postgres" else "TRIM"
     return f" AND COALESCE(NULLIF({trim}(mun.sigla_uf), ''), 'Nao informado') = %(uf)s"

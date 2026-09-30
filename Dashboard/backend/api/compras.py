@@ -31,6 +31,14 @@ def _database_error(exc: Exception) -> HTTPException:
     )
 
 
+# As rotas abaixo montam o SQL com f-string (`f"""... WHERE {where_sql} ..."""`), mas só para colar
+# fragmentos FIXOS por engine que este módulo já conhece (o `where_sql` devolvido por
+# `_montar_filtros`/`_params_comuns`, com os mesmos placeholders nas duas versões pg/sf — ver
+# test_queries_consistency.py). Nenhum valor vindo do usuário entra direto na string: tudo o que
+# varia por requisição (datas, catmat_id, tipo_compra, fornecedor_id, uf, limite) vai como parâmetro
+# nomeado (`%(nome)s`), nunca interpolado.
+
+
 def _montar_filtros(
     data_inicio: date,
     data_fim: date,

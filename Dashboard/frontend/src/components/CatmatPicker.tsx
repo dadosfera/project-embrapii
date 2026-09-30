@@ -1,20 +1,19 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useId } from "react";
 import { Command as CommandPrimitive } from "cmdk";
 
 import { buscarCatmatAgrupado, type BlocoBuscaCatmat, type GrupoCatmat } from "../lib/api";
 import { cn } from "../lib/utils";
 import { Icon } from "../ui/Icon";
+import { useAutocomplete } from "./useAutocomplete";
 
 /**
  * Seletor único de medicamento CATMAT (Medicamentos, Mapa e Compras).
  *
  * Um campo com autocomplete: busca sem acento no backend (/busca-agrupada), resultados agrupados por composição
  * (princípio ativo), cada linha é um item-base com as variantes somadas e selos de onde há dado. Escolher já
- * seleciona — sem "Buscar" nem "Pesquisar".
+ * seleciona — sem "Buscar" nem "Pesquisar". Estado/efeitos comuns (debounce, guarda contra resposta
+ * desatualizada, fechar ao clicar fora) vêm de useAutocomplete — ver também FornecedorPicker.
  */
-
-const ESPERA_MS = 250;
-const MINIMO = 2;
 
 export function SelosDados({
   temCompras,
@@ -55,60 +54,27 @@ type Props = {
 
 export function CatmatPicker({ id, label, value, onSelect, placeholder, className }: Props) {
   const listaId = useId();
-  const [texto, setTexto] = useState(value?.nome ?? "");
-  const [editando, setEditando] = useState(false);
-  const [aberto, setAberto] = useState(false);
-  const [blocos, setBlocos] = useState<BlocoBuscaCatmat[]>([]);
-  const [carregando, setCarregando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
-  const pedido = useRef(0);
-  const raiz = useRef<HTMLDivElement>(null);
-
-  // Seleção vinda de fora (URL, outra página): mostra o nome enquanto o usuário não estiver digitando.
-  useEffect(() => {
-    if (!editando) setTexto(value?.nome ?? "");
-  }, [value, editando]);
-
-  useEffect(() => {
-    const termo = texto.trim();
-    if (!editando || termo.length < MINIMO) {
-      setBlocos([]);
-      setCarregando(false);
-      return;
-    }
-    const meu = ++pedido.current;
-    setCarregando(true);
-    const timer = window.setTimeout(() => {
-      buscarCatmatAgrupado(termo)
-        .then((r) => {
-          if (meu !== pedido.current) return;
-          setBlocos(r);
-          setErro(null);
-        })
-        .catch((e: unknown) => {
-          if (meu !== pedido.current) return;
-          setBlocos([]);
-          setErro(e instanceof Error ? e.message : "Não foi possível consultar o catálogo.");
-        })
-        .finally(() => {
-          if (meu === pedido.current) setCarregando(false);
-        });
-    }, ESPERA_MS);
-    return () => window.clearTimeout(timer);
-  }, [texto, editando]);
-
-  useEffect(() => {
-    function fora(event: MouseEvent) {
-      if (raiz.current && !raiz.current.contains(event.target as Node)) fechar();
-    }
-    document.addEventListener("mousedown", fora);
-    return () => document.removeEventListener("mousedown", fora);
+  const {
+    raiz,
+    texto,
+    termo,
+    editando,
+    aberto,
+    itens: blocos,
+    carregando,
+    erro,
+    minimo,
+    setAberto,
+    setTexto,
+    aoDigitar,
+    aoEscapar,
+    fechar,
+  } = useAutocomplete<BlocoBuscaCatmat[]>({
+    valorTexto: value?.nome ?? "",
+    buscar: buscarCatmatAgrupado,
+    vazio: [],
+    mensagemErro: "Não foi possível consultar o catálogo.",
   });
-
-  function fechar() {
-    setAberto(false);
-    setEditando(false);
-  }
 
   function escolher(grupo: GrupoCatmat) {
     onSelect(grupo);
@@ -117,8 +83,7 @@ export function CatmatPicker({ id, label, value, onSelect, placeholder, classNam
   }
 
   const total = blocos.reduce((n, b) => n + b.itens.length, 0);
-  const termo = texto.trim();
-  const mostrarLista = aberto && editando && termo.length >= MINIMO;
+  const mostrarLista = aberto && editando && termo.length >= minimo;
 
   return (
     <div ref={raiz} className={cn("relative", className)}>
@@ -139,20 +104,13 @@ export function CatmatPicker({ id, label, value, onSelect, placeholder, classNam
             // o contêiner já mostra o foco; o :focus-visible global (fora de @layer) desenharia um segundo contorno
             style={{ outline: "none" }}
             value={texto}
-            onChange={(event) => {
-              setTexto(event.target.value);
-              setEditando(true);
-              setAberto(true);
-            }}
+            onChange={(event) => aoDigitar(event.target.value)}
             onFocus={(event) => {
               setAberto(true);
               if (value) event.currentTarget.select();
             }}
             onKeyDown={(event) => {
-              if (event.key === "Escape") {
-                fechar();
-                setTexto(value?.nome ?? "");
-              }
+              if (event.key === "Escape") aoEscapar();
             }}
             placeholder={placeholder ?? "Digite o nome ou o código CATMAT (ex.: dipirona, BR0267203)"}
             aria-controls={listaId}
