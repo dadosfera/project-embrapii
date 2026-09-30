@@ -52,6 +52,14 @@ def aquecer_indice_catmat() -> None:
         catmat_index.aquecer()
 
 
+@app.on_event("startup")
+def aquecer_indice_fornecedor() -> None:
+    if os.getenv("FORNECEDOR_INDEX_WARMUP", "1") != "0":
+        from backend import fornecedor_index
+
+        fornecedor_index.aquecer()
+
+
 @app.get("/api")
 def root():
     return {
