@@ -373,3 +373,8 @@ main[tabindex="-1"]:focus {
 .hachura-sem-registro {
   background: repeating-linear-gradient(45deg, var(--beast-basic-200) 0 3px, var(--beast-basic-600) 3px 4px);
 }
+
+/* Launcher do chat Autodrive (fixo no canto inferior direito): folga para não cobrir paginação e rodapé. */
+body.com-chat-autodrive {
+  padding-bottom: 96px;
+}

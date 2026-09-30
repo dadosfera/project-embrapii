@@ -32,7 +32,11 @@ declare global {
 
 const USER_ID = "embrapii-demo-user";
 
-/** Correções de layout do widget (mesmas do Porto): o :host fixo herda min-height:100% e o composer estoura a largura. */
+/**
+ * Correções de layout do widget (mesmas do Porto): o :host fixo herda min-height:100% e o composer estoura a largura.
+ * Fechado, o :host continua com a largura do painel (faixa invisível de 480 px no rodapé) e engolia os cliques da página,
+ * como o "Próxima" das tabelas; por isso só o launcher recebe ponteiro enquanto o chat não está aberto.
+ */
 function injetarCorrecoes(): void {
   const host = document.querySelector("autodrive-chat") as (HTMLElement & { shadowRoot: ShadowRoot | null }) | null;
   const root = host?.shadowRoot;
@@ -44,6 +48,8 @@ function injetarCorrecoes(): void {
       height: auto !important; min-height: 0 !important; top: auto !important; bottom: 24px !important;
       max-height: calc(100vh - 48px) !important; width: min(480px, calc(100vw - 32px)) !important;
     }
+    :host(:not([data-chat-open="true"])) { pointer-events: none !important; }
+    :host(:not([data-chat-open="true"])) .ad-chat__launcher { pointer-events: auto !important; }
     :host([data-chat-open="true"]) .ad-chat { min-height: 0 !important; height: min(720px, calc(100vh - 170px)) !important; max-height: calc(100vh - 170px) !important; }
     .ad-chat__shell { height: auto !important; min-height: 0 !important; max-width: 100% !important; overflow: visible !important; }
     .ad-chat, .ad-chat__content, .ad-chat__composer, .ad-chat__form, .ad-chat__starter-tray, .ad-chat__starter-list {
@@ -65,6 +71,8 @@ function montar(cfg: ChatConfig) {
   const container = document.createElement("div");
   container.id = "autodrive-chat";
   document.body.appendChild(container);
+  // folga no fim da página para o launcher (64 px, canto inferior direito) não cobrir o último conteúdo
+  document.body.classList.add("com-chat-autodrive");
 
   const config = {
     container: "#autodrive-chat",

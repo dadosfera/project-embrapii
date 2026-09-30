@@ -23,6 +23,7 @@ import {
 
 import { DataTable } from "../components/DataTable";
 import { CatmatPicker } from "../components/CatmatPicker";
+import { FornecedorPicker } from "../components/FornecedorPicker";
 import {
   Select,
   SelectContent,
@@ -40,6 +41,7 @@ import { Icon } from "@/ui/Icon";
 import { KpiCard } from "@/ui/KpiCard";
 import { PageHeader } from "@/ui/PageHeader";
 import { PeriodoAnos } from "@/ui/PeriodoAnos";
+import { SeletorUf } from "@/ui/SeletorUf";
 import { anosEntre, datasDoPeriodo, rotuloPeriodo } from "@/ui/periodo";
 import { categorica, eixo, grade, tooltip } from "@/ui/chartTheme";
 import { useEhTelaEstreita } from "@/ui/useEhTelaEstreita";
@@ -71,6 +73,7 @@ import {
   type CompraPorTipo,
   type CompraRecente,
   type FiltrosCompras,
+  type FornecedorAutocomplete,
   type KpisCompras,
   type RankingFabricanteCompra,
   type RankingFornecedorCompra,
@@ -100,8 +103,12 @@ type FiltrosConfirmados = {
   anoAte: number;
   catmat_id: number | null;
   tipo: string;
+  fornecedor_id: number | null;
+  uf: string;
   produto_descricao: string;
   tipo_descricao: string;
+  fornecedor_descricao: string;
+  uf_descricao: string;
 };
 
 
@@ -264,6 +271,18 @@ export function Compras() {
     setGrupoFiltro,
   ] = useState<GrupoCatmat | null>(null);
 
+  // Filtro de fornecedor (autocomplete, ver backend/fornecedor_index.py).
+  const [
+    fornecedorFiltro,
+    setFornecedorFiltro,
+  ] = useState<FornecedorAutocomplete | null>(null);
+
+  // Filtro de UF da mantenedora compradora ("" = todas).
+  const [
+    ufFiltro,
+    setUfFiltro,
+  ] = useState("");
+
   // Intervalo de anos disponível (vem do backend): a página abre carregada com ele inteiro.
   const [
     anoMinimo,
@@ -373,6 +392,8 @@ export function Compras() {
     anoAte: number;
     grupo: GrupoCatmat | null;
     tipo: string;
+    fornecedor: FornecedorAutocomplete | null;
+    uf: string;
   }) {
     setErro(null);
     setFalhaCarga(null);
@@ -388,6 +409,10 @@ export function Compras() {
       catmatId = f.grupo.catmat_id;
       produtoDescricao = `${f.grupo.nome} — CATMAT ${f.grupo.base}`;
     }
+
+    const fornecedorId = f.fornecedor?.fornecedor_id ?? null;
+    const fornecedorDescricao = f.fornecedor ? f.fornecedor.nome : "Todos os fornecedores";
+    const ufDescricao = f.uf || "Todos os estados";
 
     const meu = ++pedido.current;
 
@@ -429,6 +454,8 @@ export function Compras() {
             === "Todos"
               ? ""
               : f.tipo,
+          fornecedor_id: fornecedorId,
+          uf: f.uf,
         };
 
       const [
@@ -474,10 +501,14 @@ export function Compras() {
         anoAte: f.anoAte,
         catmat_id: catmatId,
         tipo: f.tipo,
+        fornecedor_id: fornecedorId,
+        uf: f.uf,
         produto_descricao:
           produtoDescricao,
         tipo_descricao:
           f.tipo,
+        fornecedor_descricao: fornecedorDescricao,
+        uf_descricao: ufDescricao,
       });
 
       setDados({
@@ -521,6 +552,8 @@ export function Compras() {
             anoAte: resposta.ano_maximo,
             grupo: null,
             tipo: "Todos",
+            fornecedor: null,
+            uf: "",
           });
         }
       } catch (error) {
@@ -553,11 +586,13 @@ export function Compras() {
       anoAte,
       grupo: grupoFiltro,
       tipo: tipoCompra,
+      fornecedor: fornecedorFiltro,
+      uf: ufFiltro,
     });
   }
 
 
-  // Há alterações não aplicadas: o form (anoDe/anoAte/grupo/tipo) diverge do que está na tela.
+  // Há alterações não aplicadas: o form (anoDe/anoAte/grupo/tipo/fornecedor/uf) diverge do que está na tela.
   const pendente =
     filtrosConfirmados != null
     && (
@@ -565,6 +600,8 @@ export function Compras() {
       || anoAte !== filtrosConfirmados.anoAte
       || (grupoFiltro?.catmat_id ?? null) !== filtrosConfirmados.catmat_id
       || tipoCompra !== filtrosConfirmados.tipo
+      || (fornecedorFiltro?.fornecedor_id ?? null) !== filtrosConfirmados.fornecedor_id
+      || ufFiltro !== filtrosConfirmados.uf
     );
 
 
@@ -1206,6 +1243,22 @@ export function Compras() {
                 </SelectContent>
               </Select>
             </div>
+
+            <FornecedorPicker
+              id="fornecedor-compras"
+              label="Fornecedor (opcional)"
+              value={fornecedorFiltro}
+              onSelect={setFornecedorFiltro}
+              className="min-w-0"
+            />
+
+            <SeletorUf
+              id="uf-compras"
+              label="Estado da compra"
+              value={ufFiltro}
+              onChange={setUfFiltro}
+              disabled={carregando}
+            />
           </div>
 
           <BotaoAplicar
@@ -1295,6 +1348,14 @@ export function Compras() {
               {" | "}Tipo:{" "}
               <strong className="font-semibold text-[var(--text)]">
                 {filtrosConfirmados.tipo_descricao}
+              </strong>
+              {" | "}Fornecedor:{" "}
+              <strong className="font-semibold text-[var(--text)]">
+                {filtrosConfirmados.fornecedor_descricao}
+              </strong>
+              {" | "}Estado:{" "}
+              <strong className="font-semibold text-[var(--text)]">
+                {filtrosConfirmados.uf_descricao}
               </strong>
             </p>
 

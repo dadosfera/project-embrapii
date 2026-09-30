@@ -1,7 +1,9 @@
 from datetime import date
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
+from backend import fornecedor_index
 from backend.database import DatabaseError, Q, fetch_all, fetch_one, get_engine
 
 
@@ -16,6 +18,18 @@ def _database_error(exc: Exception) -> HTTPException:
         status_code=503,
         detail=f"Erro ao consultar o banco: {exc}",
     )
+
+
+@router.get("/busca")
+def buscar_fornecedores_autocomplete(
+    q: str = Query(..., min_length=1, max_length=120, description="Nome ou CNPJ do fornecedor."),
+    limite: int = Query(20, ge=1, le=100),
+):
+    """Autocomplete de fornecedor (índice em memória, ver backend/fornecedor_index.py)."""
+    try:
+        return fornecedor_index.buscar(q, limite)
+    except (DatabaseError, RuntimeError) as exc:
+        raise _database_error(exc) from exc
 
 
 def _validar_datas(data_inicio: date, data_fim: date) -> None:
@@ -201,9 +215,17 @@ def get_mapa_fornecedores_por_uf(
     return resultado
 
 
+# `/ranking` monta o SQL com f-string (`f"""... WHERE ... {filtro_uf} {filtro_fornecedor} ..."""`),
+# colando só fragmentos FIXOS por engine (os textos abaixo — o nome da função TRIM/BTRIM muda com
+# o engine, o resto não). Os valores que variam por requisição (uf, fornecedor_id) nunca entram na
+# string: vão como parâmetro nomeado (`%(uf)s`, `%(fornecedor_id)s`) no dicionário de parametros.
 def _filtro_uf(engine: str) -> str:
     trim = "BTRIM" if engine == "postgres" else "TRIM"
     return f" AND COALESCE(NULLIF({trim}(mun.sigla_uf), ''), 'Nao informado') = %(uf)s"
+
+
+def _filtro_fornecedor_id() -> str:
+    return " AND c.fornecedor_id = %(fornecedor_id)s"
 
 
 @router.get("/ranking")
@@ -211,6 +233,7 @@ def get_ranking_fornecedores(
     data_inicio: date,
     data_fim: date,
     uf: str = Query(default=""),
+    fornecedor_id: Optional[int] = Query(default=None, ge=1),
     limite: int = Query(default=100, ge=1, le=500),
 ):
     """
@@ -218,13 +241,15 @@ def get_ranking_fornecedores(
     quantidade de itens e a classificacao nacional/estrangeiro.
 
     Se uf for informada, filtra pelas compras cuja mantenedora
-    esta localizada naquela UF.
+    esta localizada naquela UF. Se fornecedor_id for informado,
+    filtra pelo fornecedor (autocomplete, ver backend/fornecedor_index.py).
     """
     _validar_datas(data_inicio, data_fim)
 
     engine = get_engine()
     uf_normalizada = uf.strip().upper()
     filtro_uf = ""
+    filtro_fornecedor = ""
 
     parametros = {
         "data_inicio": data_inicio,
@@ -235,6 +260,10 @@ def get_ranking_fornecedores(
     if uf_normalizada:
         filtro_uf = _filtro_uf(engine)
         parametros["uf"] = uf_normalizada
+
+    if fornecedor_id is not None:
+        filtro_fornecedor = _filtro_fornecedor_id()
+        parametros["fornecedor_id"] = fornecedor_id
 
     query = Q(
         pg=f"""
@@ -282,6 +311,7 @@ def get_ranking_fornecedores(
         WHERE c.data_de_compra >= %(data_inicio)s
           AND c.data_de_compra < %(data_fim_exclusiva)s
         {filtro_uf}
+        {filtro_fornecedor}
 
         GROUP BY
             COALESCE(NULLIF(BTRIM(f.nome_fornecedor), ''), 'Nao informado'),
@@ -339,6 +369,7 @@ def get_ranking_fornecedores(
         WHERE c.data_de_compra >= %(data_inicio)s
           AND c.data_de_compra < %(data_fim_exclusiva)s
         {filtro_uf}
+        {filtro_fornecedor}
 
         GROUP BY
             COALESCE(NULLIF(TRIM(f.nome_fornecedor), ''), 'Nao informado'),

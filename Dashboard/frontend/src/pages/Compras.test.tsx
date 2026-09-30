@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,6 +9,7 @@ import {
   buscarComprasPorModalidade,
   buscarComprasPorTipo,
   buscarComprasRecentes,
+  buscarFornecedoresAutocomplete,
   buscarIntervaloCompras,
   buscarKpisCompras,
   buscarRankingFabricantes,
@@ -73,6 +74,8 @@ describe("Compras", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
+    // jsdom não implementa scrollIntoView; o Radix Select chama ao abrir (ver SeletorUf).
+    Element.prototype.scrollIntoView = vi.fn();
   });
 
   it("abre carregada em 2020-2025 sem nenhum clique", async () => {
@@ -114,5 +117,43 @@ describe("Compras", () => {
 
     expect(await screen.findByText("Sem compras na base")).toBeInTheDocument();
     expect(buscarKpisCompras).not.toHaveBeenCalled();
+  });
+
+  it("escolher fornecedor e UF e clicar Aplicar manda fornecedor_id e uf nas requisições", async () => {
+    stubApi(POR_ANO_PADRAO);
+    vi.mocked(buscarFornecedoresAutocomplete).mockResolvedValue([
+      {
+        fornecedor_id: 99,
+        nome: "DIMEVA DISTRIBUIDORA DE MEDICAMENTOS LTDA",
+        cnpj: "12345678000199",
+        valor_total: 1_000_000,
+        numero_compras: 10,
+      },
+    ]);
+
+    renderCompras();
+    await waitFor(() => expect(buscarKpisCompras).toHaveBeenCalledTimes(1));
+
+    fireEvent.change(screen.getByLabelText("Fornecedor (opcional)"), {
+      target: { value: "dimeva" },
+    });
+    const opcao = await screen.findByText(/DIMEVA DISTRIBUIDORA/, {}, { timeout: 2000 });
+    fireEvent.click(opcao);
+
+    fireEvent.click(screen.getByRole("combobox", { name: "Estado da compra" }));
+    fireEvent.click(await screen.findByRole("option", { name: "MG" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Aplicar" }));
+
+    await waitFor(() => {
+      expect(buscarKpisCompras).toHaveBeenLastCalledWith(
+        expect.objectContaining({ fornecedor_id: 99, uf: "MG" }),
+      );
+    });
+
+    expect(screen.getByText(/Filtros aplicados/).parentElement).toHaveTextContent(
+      /Fornecedor:\s*DIMEVA DISTRIBUIDORA/,
+    );
+    expect(screen.getByText(/Filtros aplicados/).parentElement).toHaveTextContent(/Estado:\s*MG/);
   });
 });

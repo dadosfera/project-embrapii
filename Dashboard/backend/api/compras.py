@@ -17,6 +17,12 @@ TIPOS_COMPRA = {
     "JUDICIAL",
 }
 
+# UFs válidas (27): mesma lista do frontend (src/lib/ufs.ts).
+UFS = {
+    "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG",
+    "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
+}
+
 
 def _database_error(exc: Exception) -> HTTPException:
     return HTTPException(
@@ -25,11 +31,21 @@ def _database_error(exc: Exception) -> HTTPException:
     )
 
 
+# As rotas abaixo montam o SQL com f-string (`f"""... WHERE {where_sql} ..."""`), mas só para colar
+# fragmentos FIXOS por engine que este módulo já conhece (o `where_sql` devolvido por
+# `_montar_filtros`/`_params_comuns`, com os mesmos placeholders nas duas versões pg/sf — ver
+# test_queries_consistency.py). Nenhum valor vindo do usuário entra direto na string: tudo o que
+# varia por requisição (datas, catmat_id, tipo_compra, fornecedor_id, uf, limite) vai como parâmetro
+# nomeado (`%(nome)s`), nunca interpolado.
+
+
 def _montar_filtros(
     data_inicio: date,
     data_fim: date,
     catmat_id: Optional[int],
     tipo_compra: str,
+    fornecedor_id: Optional[int] = None,
+    uf: str = "",
 ) -> Tuple[str, Dict]:
     """
     Reproduz os filtros usados pela página Streamlit de compras.
@@ -48,6 +64,14 @@ def _montar_filtros(
         raise HTTPException(
             status_code=400,
             detail="Tipo da compra inválido.",
+        )
+
+    uf_normalizada = uf.strip().upper()
+
+    if uf_normalizada and uf_normalizada not in UFS:
+        raise HTTPException(
+            status_code=400,
+            detail="UF inválida.",
         )
 
     filtros = [
@@ -78,6 +102,23 @@ def _montar_filtros(
         )
         parametros["tipo_compra"] = tipo
 
+    if fornecedor_id is not None:
+        filtros.append("c.fornecedor_id = %(fornecedor_id)s")
+        parametros["fornecedor_id"] = fornecedor_id
+
+    if uf_normalizada:
+        filtros.append(
+            """
+            c.mantenedora_id IN (
+                SELECT m.mantenedora_id
+                FROM mantenedora m
+                JOIN municipio mun ON mun.codigo_do_municipio = m.municipio_id
+                WHERE mun.sigla_uf = %(uf)s
+            )
+            """
+        )
+        parametros["uf"] = uf_normalizada
+
     return " AND ".join(filtros), parametros
 
 
@@ -86,12 +127,16 @@ def _params_comuns(
     data_fim: date,
     catmat_id: Optional[int],
     tipo_compra: str,
+    fornecedor_id: Optional[int] = None,
+    uf: str = "",
 ):
     return _montar_filtros(
         data_inicio=data_inicio,
         data_fim=data_fim,
         catmat_id=catmat_id,
         tipo_compra=tipo_compra,
+        fornecedor_id=fornecedor_id,
+        uf=uf,
     )
 
 
@@ -152,12 +197,16 @@ def get_compras_por_ano(
     data_fim: date,
     catmat_id: Optional[int] = Query(default=None, ge=1),
     tipo_compra: str = Query(default=""),
+    fornecedor_id: Optional[int] = Query(default=None, ge=1),
+    uf: str = Query(default=""),
 ):
     where_sql, parametros = _params_comuns(
         data_inicio,
         data_fim,
         catmat_id,
         tipo_compra,
+        fornecedor_id,
+        uf,
     )
 
     # Q(pg, sf): altere as duas versões juntas
@@ -263,12 +312,16 @@ def get_kpis_compras(
     data_fim: date,
     catmat_id: Optional[int] = Query(default=None, ge=1),
     tipo_compra: str = Query(default=""),
+    fornecedor_id: Optional[int] = Query(default=None, ge=1),
+    uf: str = Query(default=""),
 ):
     where_sql, parametros = _params_comuns(
         data_inicio,
         data_fim,
         catmat_id,
         tipo_compra,
+        fornecedor_id,
+        uf,
     )
 
     # Q(pg, sf): altere as duas versões juntas
@@ -335,12 +388,16 @@ def get_compras_por_mes(
     data_fim: date,
     catmat_id: Optional[int] = Query(default=None, ge=1),
     tipo_compra: str = Query(default=""),
+    fornecedor_id: Optional[int] = Query(default=None, ge=1),
+    uf: str = Query(default=""),
 ):
     where_sql, parametros = _params_comuns(
         data_inicio,
         data_fim,
         catmat_id,
         tipo_compra,
+        fornecedor_id,
+        uf,
     )
 
     query = Q(
@@ -400,6 +457,8 @@ def get_top_fornecedores_compras(
     data_fim: date,
     catmat_id: Optional[int] = Query(default=None, ge=1),
     tipo_compra: str = Query(default=""),
+    fornecedor_id: Optional[int] = Query(default=None, ge=1),
+    uf: str = Query(default=""),
     limite: int = Query(default=15, ge=1, le=100),
 ):
     where_sql, parametros = _params_comuns(
@@ -407,6 +466,8 @@ def get_top_fornecedores_compras(
         data_fim,
         catmat_id,
         tipo_compra,
+        fornecedor_id,
+        uf,
     )
     parametros["limite"] = limite
 
@@ -480,6 +541,8 @@ def get_top_fabricantes_compras(
     data_fim: date,
     catmat_id: Optional[int] = Query(default=None, ge=1),
     tipo_compra: str = Query(default=""),
+    fornecedor_id: Optional[int] = Query(default=None, ge=1),
+    uf: str = Query(default=""),
     limite: int = Query(default=15, ge=1, le=100),
 ):
     where_sql, parametros = _params_comuns(
@@ -487,6 +550,8 @@ def get_top_fabricantes_compras(
         data_fim,
         catmat_id,
         tipo_compra,
+        fornecedor_id,
+        uf,
     )
     parametros["limite"] = limite
 
@@ -560,12 +625,16 @@ def get_compras_por_modalidade(
     data_fim: date,
     catmat_id: Optional[int] = Query(default=None, ge=1),
     tipo_compra: str = Query(default=""),
+    fornecedor_id: Optional[int] = Query(default=None, ge=1),
+    uf: str = Query(default=""),
 ):
     where_sql, parametros = _params_comuns(
         data_inicio,
         data_fim,
         catmat_id,
         tipo_compra,
+        fornecedor_id,
+        uf,
     )
 
     query = Q(
@@ -631,12 +700,16 @@ def get_compras_por_tipo(
     data_fim: date,
     catmat_id: Optional[int] = Query(default=None, ge=1),
     tipo_compra: str = Query(default=""),
+    fornecedor_id: Optional[int] = Query(default=None, ge=1),
+    uf: str = Query(default=""),
 ):
     where_sql, parametros = _params_comuns(
         data_inicio,
         data_fim,
         catmat_id,
         tipo_compra,
+        fornecedor_id,
+        uf,
     )
 
     query = Q(
@@ -702,6 +775,8 @@ def get_compras_recentes(
     data_fim: date,
     catmat_id: Optional[int] = Query(default=None, ge=1),
     tipo_compra: str = Query(default=""),
+    fornecedor_id: Optional[int] = Query(default=None, ge=1),
+    uf: str = Query(default=""),
     limite: int = Query(default=500, ge=1, le=500),
 ):
     where_sql, parametros = _params_comuns(
@@ -709,6 +784,8 @@ def get_compras_recentes(
         data_fim,
         catmat_id,
         tipo_compra,
+        fornecedor_id,
+        uf,
     )
     parametros["limite"] = limite
 
