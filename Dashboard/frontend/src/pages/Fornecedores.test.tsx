@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { buscarIntervaloCompras } from "../lib/api";
+import { buscarFornecedoresAutocomplete, buscarIntervaloCompras } from "../lib/api";
 import {
   buscarMapaFornecedoresPorUf,
   buscarRankingFornecedores,
@@ -74,6 +74,8 @@ describe("Fornecedores", () => {
       ok: true,
       json: () => Promise.resolve(GEOJSON),
     }));
+    // jsdom não implementa scrollIntoView; o Radix Select chama ao abrir (ver SeletorUf).
+    Element.prototype.scrollIntoView = vi.fn();
   });
 
   afterEach(() => {
@@ -90,6 +92,7 @@ describe("Fornecedores", () => {
         "2025-12-31",
         undefined,
         100,
+        undefined,
       );
     });
   });
@@ -107,6 +110,7 @@ describe("Fornecedores", () => {
         "2025-12-31",
         "MG",
         100,
+        undefined,
       );
     });
 
@@ -120,11 +124,12 @@ describe("Fornecedores", () => {
         "2025-12-31",
         undefined,
         100,
+        undefined,
       );
     });
 
     expect(
-      screen.getByText("Tabela: todas as UFs. Clique numa UF do mapa para filtrar."),
+      screen.getByText("Tabela: todas as UFs e fornecedores. Clique numa UF do mapa para filtrar."),
     ).toBeInTheDocument();
   });
 
@@ -184,5 +189,71 @@ describe("Fornecedores", () => {
     expect(mg.getAttribute("aria-label")).not.toMatch(/%\s*%/);
 
     expect(screen.getByText("Legenda (%)")).toBeInTheDocument();
+  });
+
+  it("buscar e escolher um fornecedor filtra o ranking por fornecedor_id", async () => {
+    stubApi();
+    vi.mocked(buscarFornecedoresAutocomplete).mockResolvedValue([
+      {
+        fornecedor_id: 7,
+        nome: "UNIQUE DISTRIBUIDORA HOSPITALAR",
+        cnpj: "11122233000144",
+        valor_total: 300_000,
+        numero_compras: 9,
+      },
+    ]);
+    render(<Fornecedores />);
+
+    await screen.findByRole("button", { name: /Minas Gerais \(MG\)/ });
+
+    fireEvent.change(screen.getByLabelText("Fornecedor"), { target: { value: "unique" } });
+    const opcao = await screen.findByText("UNIQUE DISTRIBUIDORA HOSPITALAR");
+    fireEvent.click(opcao);
+
+    await waitFor(() => {
+      expect(buscarRankingFornecedores).toHaveBeenLastCalledWith(
+        "2020-01-01",
+        "2025-12-31",
+        undefined,
+        100,
+        7,
+      );
+    });
+
+    expect(screen.getByText(/Tabela filtrada por/)).toHaveTextContent("UNIQUE DISTRIBUIDORA HOSPITALAR");
+  });
+
+  it("escolher uma UF no SeletorUf pina a mesma UF no mapa e vice-versa", async () => {
+    stubApi();
+    render(<Fornecedores />);
+
+    await screen.findByRole("button", { name: /Minas Gerais \(MG\)/ });
+
+    fireEvent.click(screen.getByRole("combobox", { name: "Estado" }));
+    fireEvent.click(await screen.findByRole("option", { name: "MG" }));
+
+    await waitFor(() => {
+      expect(buscarRankingFornecedores).toHaveBeenLastCalledWith(
+        "2020-01-01",
+        "2025-12-31",
+        "MG",
+        100,
+        undefined,
+      );
+    });
+    expect(screen.getByText(/Tabela filtrada por/)).toHaveTextContent("MG");
+
+    // "Limpar UF" também zera o SeletorUf (mesmo estado do mapa).
+    fireEvent.click(screen.getByRole("button", { name: "Limpar UF" }));
+    await waitFor(() => {
+      expect(buscarRankingFornecedores).toHaveBeenLastCalledWith(
+        "2020-01-01",
+        "2025-12-31",
+        undefined,
+        100,
+        undefined,
+      );
+    });
+    expect(screen.getByRole("combobox", { name: "Estado" })).toHaveTextContent("Todas");
   });
 });
