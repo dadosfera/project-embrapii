@@ -1,5 +1,7 @@
 import {
   type FormEvent,
+  useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -11,8 +13,8 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Line,
-  LineChart,
+  Cell,
+  LabelList,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -20,8 +22,7 @@ import {
 } from "recharts";
 
 import { DataTable } from "../components/DataTable";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { CatmatPicker } from "../components/CatmatPicker";
 import {
   Select,
   SelectContent,
@@ -31,36 +32,41 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BotaoAplicar } from "@/ui/BotaoAplicar";
 import { ChartFrame } from "@/ui/ChartFrame";
 import { EmptyState } from "@/ui/EmptyState";
 import { ErrorState } from "@/ui/ErrorState";
 import { Icon } from "@/ui/Icon";
 import { KpiCard } from "@/ui/KpiCard";
 import { PageHeader } from "@/ui/PageHeader";
-import { categorica, dotPara, eixo, grade, linha, tooltip } from "@/ui/chartTheme";
+import { PeriodoAnos } from "@/ui/PeriodoAnos";
+import { anosEntre, datasDoPeriodo, rotuloPeriodo } from "@/ui/periodo";
+import { categorica, eixo, grade, tooltip } from "@/ui/chartTheme";
 import { useEhTelaEstreita } from "@/ui/useEhTelaEstreita";
 import {
-  SEM_DADO,
   data as dataBR,
   moedaCompacta,
   moedaExata,
   numeroCompacto,
   numeroExato,
+  percentual,
   quantidade,
 } from "@/ui/format";
 
+import { anotarOutliers, completarAnos, notaOutlier, type AnoCompras } from "./comprasAnual";
+
 import {
-  buscarComprasPorMes,
+  buscarComprasPorAno,
   buscarComprasPorModalidade,
   buscarComprasPorTipo,
   buscarComprasRecentes,
+  buscarIntervaloCompras,
   buscarKpisCompras,
-  buscarMedicamentos,
   buscarRankingFabricantes,
   buscarRankingFornecedores,
   listarProdutos,
-  type CatmatItem,
-  type CompraPorMes,
+  type GrupoCatmat,
+  type CompraPorAno,
   type CompraPorModalidade,
   type CompraPorTipo,
   type CompraRecente,
@@ -80,7 +86,7 @@ type AbaCompras =
 
 type DadosCompras = {
   kpis: KpisCompras;
-  porMes: CompraPorMes[];
+  porAno: CompraPorAno[];
   fornecedores: RankingFornecedorCompra[];
   fabricantes: RankingFabricanteCompra[];
   modalidades: CompraPorModalidade[];
@@ -89,14 +95,21 @@ type DadosCompras = {
 };
 
 
-type FiltrosConfirmados = FiltrosCompras & {
+type FiltrosConfirmados = {
+  anoDe: number;
+  anoAte: number;
+  catmat_id: number | null;
+  tipo: string;
   produto_descricao: string;
   tipo_descricao: string;
 };
 
 
-/** O Radix Select não aceita item com value "": "Todos os produtos" usa esta sentinela na UI. */
-const TODOS_PRODUTOS = "__todos__";
+const TIPOS_COMPRA = [
+  { valor: "Todos", rotulo: "Todos" },
+  { valor: "ADMINISTRATIVA", rotulo: "Administrativa" },
+  { valor: "JUDICIAL", rotulo: "Judicial" },
+] as const;
 
 
 /** Coerção numérica (a API pode mandar decimal como string). */
@@ -119,118 +132,6 @@ function numeroOuNulo(valor: unknown): number | null {
   if (valor === null || valor === undefined || valor === "") return null;
   const convertido = Number(valor);
   return Number.isFinite(convertido) ? convertido : null;
-}
-
-
-/** Participação com uma casa ("12,3%"). O format.ts não tem percentual, por isso fica aqui. */
-function percentual(
-  valor: unknown,
-) {
-  if (valor === null || valor === undefined) return SEM_DADO;
-  return `${numero(valor).toLocaleString("pt-BR", {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  })}%`;
-}
-
-
-const MESES_CURTOS = [
-  "jan", "fev", "mar", "abr", "mai", "jun",
-  "jul", "ago", "set", "out", "nov", "dez",
-];
-
-
-/** "AAAA-MM-DD" → "jan/24", rótulo do eixo mensal. O format.ts não tem mês, por isso fica aqui. */
-function rotuloMes(
-  valor: string,
-) {
-  const [
-    ano,
-    mes,
-  ] = valor
-    .slice(0, 10)
-    .split("-")
-    .map(Number);
-
-  if (
-    !ano
-    || !mes
-  ) {
-    return valor;
-  }
-
-  return `${MESES_CURTOS[mes - 1]}/${String(ano).slice(-2)}`;
-}
-
-
-function hojeIso() {
-  const agora =
-    new Date();
-
-  const ano =
-    agora.getFullYear();
-
-  const mes =
-    String(
-      agora.getMonth() + 1,
-    ).padStart(
-      2,
-      "0",
-    );
-
-  const dia =
-    String(
-      agora.getDate(),
-    ).padStart(
-      2,
-      "0",
-    );
-
-  return `${ano}-${mes}-${dia}`;
-}
-
-
-function umAnoAntesIso() {
-  const agora =
-    new Date();
-
-  agora.setFullYear(
-    agora.getFullYear() - 1,
-  );
-
-  const ano =
-    agora.getFullYear();
-
-  const mes =
-    String(
-      agora.getMonth() + 1,
-    ).padStart(
-      2,
-      "0",
-    );
-
-  const dia =
-    String(
-      agora.getDate(),
-    ).padStart(
-      2,
-      "0",
-    );
-
-  return `${ano}-${mes}-${dia}`;
-}
-
-
-function rotuloCatmat(
-  item: CatmatItem,
-) {
-  return `${
-    item.descricao_catmat
-    ?? "Sem descrição"
-  } — CATMAT ${
-    item.codigo_catmat
-    ?? "sem código"
-  }`;
 }
 
 
@@ -357,52 +258,48 @@ function GraficoRanking({
 
 
 export function Compras() {
+  // Filtro de medicamento: item-base CATMAT (as compras ficam no código-base puro, ver backend/catmat_index.py).
   const [
-    buscaProduto,
-    setBuscaProduto,
-  ] = useState("");
+    grupoFiltro,
+    setGrupoFiltro,
+  ] = useState<GrupoCatmat | null>(null);
+
+  // Intervalo de anos disponível (vem do backend): a página abre carregada com ele inteiro.
+  const [
+    anoMinimo,
+    setAnoMinimo,
+  ] = useState<number | null>(null);
 
   const [
-    buscandoProduto,
-    setBuscandoProduto,
-  ] = useState(false);
+    anoMaximo,
+    setAnoMaximo,
+  ] = useState<number | null>(null);
 
   const [
-    opcoesCatmat,
-    setOpcoesCatmat,
-  ] =
-    useState<
-      CatmatItem[]
-    >([]);
+    anoDe,
+    setAnoDe,
+  ] = useState<number | null>(null);
 
   const [
-    avisoBusca,
-    setAvisoBusca,
-  ] =
-    useState<
-      string | null
-    >(null);
+    anoAte,
+    setAnoAte,
+  ] = useState<number | null>(null);
 
   const [
-    catmatSelecionado,
-    setCatmatSelecionado,
-  ] = useState("");
+    carregandoIntervalo,
+    setCarregandoIntervalo,
+  ] = useState(true);
+
+  // Falha ao buscar o intervalo: guarda o erro real; a tentativa refaz o efeito de carga.
+  const [
+    falhaIntervalo,
+    setFalhaIntervalo,
+  ] = useState<unknown>(null);
 
   const [
-    dataInicio,
-    setDataInicio,
-  ] =
-    useState(
-      umAnoAntesIso(),
-    );
-
-  const [
-    dataFim,
-    setDataFim,
-  ] =
-    useState(
-      hojeIso(),
-    );
+    tentativaIntervalo,
+    setTentativaIntervalo,
+  ] = useState(0);
 
   const [
     tipoCompra,
@@ -433,6 +330,10 @@ export function Compras() {
   const formFiltros =
     useRef<HTMLFormElement>(null);
 
+  // Descarta respostas de pedidos antigos (padrão de Mapa.tsx: pedidoEstoque).
+  const pedido =
+    useRef(0);
+
   const [
     filtrosConfirmados,
     setFiltrosConfirmados,
@@ -458,96 +359,23 @@ export function Compras() {
     );
 
 
-  const catmatAtual =
-    opcoesCatmat.find(
-      (item) =>
-        String(
-          item.catmat_id,
-        )
-        === catmatSelecionado,
-    );
+  const anos = useMemo(
+    () =>
+      anoMinimo != null && anoMaximo != null
+        ? anosEntre(anoMinimo, anoMaximo)
+        : [],
+    [anoMinimo, anoMaximo],
+  );
 
 
-  async function buscarProduto(
-    event:
-      FormEvent<HTMLFormElement>,
-  ) {
-    event.preventDefault();
-
-    const termo =
-      buscaProduto.trim();
-
-    if (!termo) {
-      setOpcoesCatmat([]);
-      setCatmatSelecionado("");
-      setAvisoBusca(null);
-      return;
-    }
-
-    setBuscandoProduto(true);
-    setAvisoBusca(null);
-
-    try {
-      const itens =
-        await buscarMedicamentos(
-          termo,
-        );
-
-      setOpcoesCatmat(
-        itens,
-      );
-      setCatmatSelecionado(
-        "",
-      );
-
-      if (
-        itens.length === 0
-      ) {
-        setAvisoBusca(
-          "Nenhum CATMAT foi encontrado para essa busca. Você ainda pode consultar todos os produtos.",
-        );
-      }
-    } catch (error) {
-      setAvisoBusca(
-        error
-          instanceof Error
-          ? error.message
-          : "Não foi possível buscar produtos.",
-      );
-    } finally {
-      setBuscandoProduto(false);
-    }
-  }
-
-
-  async function aplicarFiltros(
-    event:
-      FormEvent<HTMLFormElement>,
-  ) {
-    event.preventDefault();
-
+  async function carregar(f: {
+    anoDe: number;
+    anoAte: number;
+    grupo: GrupoCatmat | null;
+    tipo: string;
+  }) {
     setErro(null);
     setFalhaCarga(null);
-
-    if (
-      !dataInicio
-      || !dataFim
-    ) {
-      setErro(
-        "Informe a data inicial e a data final.",
-      );
-      return;
-    }
-
-    if (
-      dataFim
-      < dataInicio
-    ) {
-      setErro(
-        "A data final não pode ser anterior à data inicial.",
-      );
-      return;
-    }
 
     let catmatId:
       number | null =
@@ -556,27 +384,12 @@ export function Compras() {
     let produtoDescricao =
       "Todos os produtos";
 
-    if (
-      catmatSelecionado
-    ) {
-      if (
-        !catmatAtual
-      ) {
-        setErro(
-          "Selecione um produto válido.",
-        );
-        return;
-      }
-
-      catmatId =
-        catmatAtual
-          .catmat_id;
-
-      produtoDescricao =
-        rotuloCatmat(
-          catmatAtual,
-        );
+    if (f.grupo) {
+      catmatId = f.grupo.catmat_id;
+      produtoDescricao = `${f.grupo.nome} — CATMAT ${f.grupo.base}`;
     }
+
+    const meu = ++pedido.current;
 
     setCarregando(true);
     setDados(null);
@@ -593,34 +406,34 @@ export function Compras() {
             catmatId,
           );
 
+        if (meu !== pedido.current) return;
+
         if (
           produtos.length === 0
         ) {
           setErro(
             "O CATMAT selecionado não possui produtos vinculados.",
           );
+          setCarregando(false);
           return;
         }
       }
 
       const filtros:
         FiltrosCompras = {
-          data_inicio:
-            dataInicio,
-          data_fim:
-            dataFim,
+          ...datasDoPeriodo(f.anoDe, f.anoAte),
           catmat_id:
             catmatId,
           tipo_compra:
-            tipoCompra
+            f.tipo
             === "Todos"
               ? ""
-              : tipoCompra,
+              : f.tipo,
         };
 
       const [
         kpis,
-        porMes,
+        porAno,
         fornecedores,
         fabricantes,
         modalidades,
@@ -631,7 +444,7 @@ export function Compras() {
           buscarKpisCompras(
             filtros,
           ),
-          buscarComprasPorMes(
+          buscarComprasPorAno(
             filtros,
           ),
           buscarRankingFornecedores(
@@ -654,17 +467,22 @@ export function Compras() {
           ),
         ]);
 
+      if (meu !== pedido.current) return;
+
       setFiltrosConfirmados({
-        ...filtros,
+        anoDe: f.anoDe,
+        anoAte: f.anoAte,
+        catmat_id: catmatId,
+        tipo: f.tipo,
         produto_descricao:
           produtoDescricao,
         tipo_descricao:
-          tipoCompra,
+          f.tipo,
       });
 
       setDados({
         kpis,
-        porMes,
+        porAno,
         fornecedores,
         fabricantes,
         modalidades,
@@ -672,11 +490,89 @@ export function Compras() {
         recentes,
       });
     } catch (error) {
-      setFalhaCarga(error);
+      if (meu === pedido.current) setFalhaCarga(error);
     } finally {
-      setCarregando(false);
+      if (meu === pedido.current) setCarregando(false);
     }
   }
+
+
+  // Busca o intervalo de anos disponível na montagem e carrega a página já com ele inteiro,
+  // sem exigir clique. `tentativaIntervalo` refaz o efeito quando o usuário pede "Tentar de novo".
+  useEffect(() => {
+    let ativo = true;
+
+    async function carregarIntervalo() {
+      setCarregandoIntervalo(true);
+      setFalhaIntervalo(null);
+
+      try {
+        const resposta = await buscarIntervaloCompras();
+        if (!ativo) return;
+
+        setAnoMinimo(resposta.ano_minimo);
+        setAnoMaximo(resposta.ano_maximo);
+
+        if (resposta.ano_minimo != null && resposta.ano_maximo != null) {
+          setAnoDe(resposta.ano_minimo);
+          setAnoAte(resposta.ano_maximo);
+          await carregar({
+            anoDe: resposta.ano_minimo,
+            anoAte: resposta.ano_maximo,
+            grupo: null,
+            tipo: "Todos",
+          });
+        }
+      } catch (error) {
+        if (!ativo) return;
+        setFalhaIntervalo(error);
+      } finally {
+        if (ativo) setCarregandoIntervalo(false);
+      }
+    }
+
+    void carregarIntervalo();
+
+    return () => {
+      ativo = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tentativaIntervalo]);
+
+
+  async function aoSubmeter(
+    event:
+      FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    if (anoDe == null || anoAte == null) return;
+
+    await carregar({
+      anoDe,
+      anoAte,
+      grupo: grupoFiltro,
+      tipo: tipoCompra,
+    });
+  }
+
+
+  // Há alterações não aplicadas: o form (anoDe/anoAte/grupo/tipo) diverge do que está na tela.
+  const pendente =
+    filtrosConfirmados != null
+    && (
+      anoDe !== filtrosConfirmados.anoDe
+      || anoAte !== filtrosConfirmados.anoAte
+      || (grupoFiltro?.catmat_id ?? null) !== filtrosConfirmados.catmat_id
+      || tipoCompra !== filtrosConfirmados.tipo
+    );
+
+
+  // O /intervalo respondeu (sem falhar), mas não trouxe nenhum ano: não há compras na base.
+  const semDadosBase =
+    !carregandoIntervalo
+    && falhaIntervalo == null
+    && (anoMinimo == null || anoMaximo == null);
 
 
   const totalComprado =
@@ -686,30 +582,57 @@ export function Compras() {
     );
 
 
-  const mensalGrafico =
+  const anosAnotados: AnoCompras[] =
     useMemo(
       () =>
-        (
-          dados?.porMes
-          ?? []
-        ).map(
-          (item) => ({
-            mes:
-              rotuloMes(
-                item.mes,
-              ),
-            valor_total:
-              numero(
-                item.valor_total,
-              ),
-            numero_compras:
-              numero(
-                item.numero_compras,
-              ),
-          }),
+        anotarOutliers(
+          filtrosConfirmados
+            ? completarAnos(
+                dados?.porAno ?? [],
+                filtrosConfirmados.anoDe,
+                filtrosConfirmados.anoAte,
+              )
+            : dados?.porAno ?? [],
         ),
-      [dados],
+      [dados, filtrosConfirmados],
     );
+
+
+  const anosMarcados =
+    useMemo(
+      () =>
+        anosAnotados.filter(
+          (a) => a.outlier,
+        ),
+      [anosAnotados],
+    );
+
+
+  // O maior dos outliers do período (na prática, quase sempre só há um): a base do hint do KPI.
+  const anoDestaque =
+    useMemo(
+      () =>
+        anosMarcados.reduce<
+          AnoCompras | null
+        >(
+          (maior, atual) =>
+            !maior
+            || (atual.maior_registro ?? 0)
+              > (maior.maior_registro ?? 0)
+              ? atual
+              : maior,
+          null,
+        ),
+      [anosMarcados],
+    );
+
+
+  const hintValorTotal =
+    anoDestaque
+      ? `Inclui 1 registro de ${moedaCompacta(
+          anoDestaque.maior_registro,
+        )} em ${anoDestaque.ano}; veja a nota no gráfico anual.`
+      : undefined;
 
 
   const fornecedoresTabela =
@@ -1201,6 +1124,10 @@ export function Compras() {
   // Resolve a paleta uma vez por montagem (lê as variáveis CSS do documento).
   const paleta = useMemo(() => categorica(), []);
 
+  // Id de pattern único (SVG): útil só depois de sanear os dois-pontos que useId() gera,
+  // que não são válidos num id de atributo/url().
+  const idHachura = `${useId().replace(/[^a-zA-Z0-9_-]/g, "")}-hachura`;
+
 
   return (
     <main id="conteudo" tabIndex={-1} className="mx-auto min-h-[calc(100vh-4rem)] max-w-[1440px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8 lg:py-10">
@@ -1218,130 +1145,38 @@ export function Compras() {
         </h2>
 
         <form
-          onSubmit={buscarProduto}
-          className="mt-5"
-        >
-          <label
-            htmlFor="busca-produto-compras"
-            className="block text-sm font-semibold text-[var(--text)]"
-          >
-            Filtrar por medicamento ou produto CATMAT (opcional)
-          </label>
-
-          <div className="mt-2 flex flex-col gap-3 sm:flex-row">
-            <Input
-              id="busca-produto-compras"
-              value={buscaProduto}
-              onChange={(event) => setBuscaProduto(event.target.value)}
-              placeholder="Ex.: dipirona, insulina, seringa..."
-              className="h-10 bg-panel sm:flex-1"
-            />
-
-            <Button
-              type="submit"
-              variant="outline"
-              disabled={buscandoProduto}
-              className="h-10 w-full px-5 sm:w-auto"
-            >
-              <Icon name="search" size={16} />
-              {buscandoProduto
-                ? "Buscando..."
-                : "Buscar CATMAT"}
-            </Button>
-          </div>
-        </form>
-
-
-        {avisoBusca && (
-          <div
-            role="status"
-            className="mt-3 flex items-start gap-2 rounded-[var(--radius-md)] border border-warning-border bg-[var(--warning-soft)] px-4 py-3 text-sm leading-6 text-warning-text"
-          >
-            <Icon name="alert" size={18} className="mt-0.5" />
-            {avisoBusca}
-          </div>
-        )}
-
-
-        <form
           ref={formFiltros}
-          onSubmit={aplicarFiltros}
+          onSubmit={aoSubmeter}
           className="mt-6 border-t border-line pt-6"
         >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label
-                htmlFor="data-inicio"
-                className="block text-sm font-semibold text-[var(--text)]"
-              >
-                Data inicial
-              </label>
-
-              <Input
-                id="data-inicio"
-                type="date"
-                value={dataInicio}
-                max={hojeIso()}
-                onChange={(event) => setDataInicio(event.target.value)}
-                className="mt-2 h-10 bg-panel"
+            {anos.length > 0 && anoDe != null && anoAte != null ? (
+              <PeriodoAnos
+                id="compras-periodo"
+                anos={anos}
+                de={anoDe}
+                ate={anoAte}
+                onChange={(de, ate) => {
+                  setAnoDe(de);
+                  setAnoAte(ate);
+                }}
+                disabled={carregando}
+                className="sm:col-span-2"
               />
-            </div>
+            ) : carregandoIntervalo ? (
+              <div className="sm:col-span-2">
+                <Skeleton className="h-16 w-full max-w-sm" />
+              </div>
+            ) : null}
 
-            <div>
-              <label
-                htmlFor="data-fim"
-                className="block text-sm font-semibold text-[var(--text)]"
-              >
-                Data final
-              </label>
-
-              <Input
-                id="data-fim"
-                type="date"
-                value={dataFim}
-                max={hojeIso()}
-                onChange={(event) => setDataFim(event.target.value)}
-                className="mt-2 h-10 bg-panel"
-              />
-            </div>
-
-            <div className="min-w-0">
-              <label
-                htmlFor="produto-compras"
-                className="block text-sm font-semibold text-[var(--text)]"
-              >
-                Produto
-              </label>
-
-              <Select
-                value={catmatSelecionado || TODOS_PRODUTOS}
-                onValueChange={(valor) =>
-                  setCatmatSelecionado(valor === TODOS_PRODUTOS ? "" : valor)
-                }
-              >
-                <SelectTrigger
-                  id="produto-compras"
-                  className="mt-2 h-10 w-full min-w-0 bg-panel data-[size=default]:h-10"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-
-                <SelectContent position="popper" className="max-w-[min(90vw,48rem)]">
-                  <SelectItem value={TODOS_PRODUTOS}>
-                    Todos os produtos
-                  </SelectItem>
-
-                  {opcoesCatmat.map((item) => (
-                    <SelectItem
-                      key={item.catmat_id}
-                      value={String(item.catmat_id)}
-                    >
-                      {rotuloCatmat(item)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <CatmatPicker
+              id="produto-compras"
+              label="Medicamento (opcional)"
+              value={grupoFiltro}
+              onSelect={setGrupoFiltro}
+              placeholder="Todos os produtos — digite para filtrar"
+              className="min-w-0"
+            />
 
             <div>
               <label
@@ -1363,25 +1198,44 @@ export function Compras() {
                 </SelectTrigger>
 
                 <SelectContent position="popper">
-                  <SelectItem value="Todos">Todos</SelectItem>
-                  <SelectItem value="ADMINISTRATIVA">ADMINISTRATIVA</SelectItem>
-                  <SelectItem value="JUDICIAL">JUDICIAL</SelectItem>
+                  {TIPOS_COMPRA.map((item) => (
+                    <SelectItem key={item.valor} value={item.valor}>
+                      {item.rotulo}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          <Button
+          <BotaoAplicar
             type="submit"
-            disabled={carregando}
-            className="mx-auto mt-6 flex h-10 w-full sm:w-1/2 lg:w-1/4"
-          >
-            {carregando
-              ? "Carregando análises..."
-              : "Pesquisar"}
-          </Button>
+            carregando={carregando}
+            pendente={pendente}
+            className="mx-auto mt-6 flex w-full flex-col items-center sm:w-1/2 lg:w-1/4"
+          />
         </form>
       </section>
+
+
+      {falhaIntervalo != null && (
+        <div className="mt-5">
+          <ErrorState
+            error={falhaIntervalo}
+            onRetry={() => setTentativaIntervalo((n) => n + 1)}
+          />
+        </div>
+      )}
+
+
+      {semDadosBase && (
+        <div className="mt-5">
+          <EmptyState
+            title="Sem compras na base"
+            cause="Não há compras registradas na base de dados."
+          />
+        </div>
+      )}
 
 
       {erro && (
@@ -1405,19 +1259,7 @@ export function Compras() {
       )}
 
 
-      {!filtrosConfirmados
-        && !carregando
-        && (
-          <p className="mt-5 flex items-center gap-2 text-sm leading-6 text-muted">
-            <Icon name="info" size={16} />
-            <span>
-              Escolha o período e clique em <strong className="font-semibold text-[var(--text)]">Pesquisar</strong> para carregar as análises.
-            </span>
-          </p>
-        )}
-
-
-      {carregando && (
+      {(carregando || carregandoIntervalo) && !dados && (
         <section className="mt-6 space-y-4" aria-busy="true">
           <Skeleton className="h-8 w-full max-w-2xl" />
 
@@ -1439,12 +1281,12 @@ export function Compras() {
           <section className="mt-6 space-y-8">
             <p className="text-sm leading-6 text-muted">
               Filtros aplicados:{" "}
+              Período:{" "}
               <strong className="font-semibold text-[var(--text)]">
-                {dataBR(filtrosConfirmados.data_inicio)}
-              </strong>{" "}
-              até{" "}
-              <strong className="font-semibold text-[var(--text)]">
-                {dataBR(filtrosConfirmados.data_fim)}
+                {rotuloPeriodo(
+                  filtrosConfirmados.anoDe,
+                  filtrosConfirmados.anoAte,
+                )}
               </strong>
               {" | "}Produto:{" "}
               <strong className="font-semibold text-[var(--text)]">
@@ -1473,6 +1315,7 @@ export function Compras() {
                     value={numeroOuNulo(dados.kpis.valor_total)}
                     format={moedaCompacta}
                     exact={moedaExata}
+                    hint={hintValorTotal}
                   />
 
                   <KpiCard
@@ -1500,14 +1343,14 @@ export function Compras() {
 
                 <section>
                   <h2 className="text-xl font-semibold tracking-tight text-[var(--text)]">
-                    Evolução mensal das compras
+                    Evolução anual das compras
                   </h2>
 
-                  {mensalGrafico.length
+                  {anosAnotados.length
                     === 0 ? (
                     <div className="mt-4">
                       <EmptyState
-                        title="Sem série mensal"
+                        title="Sem série anual"
                         cause="Não há compras no período selecionado com esses filtros."
                       />
                     </div>
@@ -1515,29 +1358,54 @@ export function Compras() {
                     <div className="mt-4 grid grid-cols-1 gap-5 lg:grid-cols-2">
                       <div className="min-w-0">
                         <ChartFrame as="h3"
-                          title="Valor total comprado por mês"
+                          title="Valor total comprado por ano"
                           source="DATASUS"
+                          legend={
+                            anosMarcados.length > 0 ? (
+                              <span className="flex items-center gap-2 text-xs text-muted">
+                                <svg width={14} height={14} aria-hidden="true" style={{ outline: "none" }}>
+                                  <rect width={14} height={14} fill={`url(#${idHachura})`} />
+                                </svg>
+                                Barra hachurada: um único registro passa de 20% do valor do ano. O registro foi mantido.
+                              </span>
+                            ) : undefined
+                          }
                         >
                           <div className="h-72 w-full sm:h-80">
                             <ResponsiveContainer
                               width="100%"
                               height="100%"
                             >
-                              <LineChart
-                                data={mensalGrafico}
+                              <BarChart
+                                data={anosAnotados}
                                 margin={{
-                                  top: 8,
+                                  top: 24,
                                   right: 8,
                                   bottom: 8,
                                   left: 0,
                                 }}
                               >
+                                <defs>
+                                  <pattern
+                                    id={idHachura}
+                                    patternUnits="userSpaceOnUse"
+                                    width={6}
+                                    height={6}
+                                    patternTransform="rotate(45)"
+                                  >
+                                    <rect width={6} height={6} fill="var(--beast-primary-100)" />
+                                    <line x1={0} y1={0} x2={0} y2={6} stroke={paleta[0]} strokeWidth={3} />
+                                  </pattern>
+                                </defs>
+
                                 <CartesianGrid {...grade} />
 
                                 <XAxis
                                   {...eixo}
-                                  dataKey="mes"
-                                  minTickGap={30}
+                                  dataKey="ano"
+                                  tickFormatter={(valor, indice) =>
+                                    anosAnotados[indice]?.outlier ? `${valor}*` : `${valor}`
+                                  }
                                 />
 
                                 <YAxis
@@ -1548,27 +1416,46 @@ export function Compras() {
 
                                 <Tooltip
                                   {...tooltip}
-                                  cursor={{ stroke: "var(--beast-basic-600)" }}
+                                  cursor={{ fill: "var(--beast-basic-300)" }}
                                   formatter={(valor) => moedaExata(numero(valor))}
                                 />
 
-                                <Line
-                                  {...linha}
+                                <Bar
                                   dataKey="valor_total"
                                   name="Valor total"
-                                  stroke={paleta[0]}
-                                  dot={dotPara(mensalGrafico.length)}
-                                />
-                              </LineChart>
+                                  radius={[4, 4, 0, 0]}
+                                >
+                                  {anosAnotados.map((a) => (
+                                    <Cell
+                                      key={a.ano}
+                                      fill={a.outlier ? `url(#${idHachura})` : paleta[0]}
+                                    />
+                                  ))}
+
+                                  <LabelList
+                                    dataKey="valor_total"
+                                    position="top"
+                                    formatter={(v: unknown) => moedaCompacta(numero(v))}
+                                  />
+                                </Bar>
+                              </BarChart>
                             </ResponsiveContainer>
                           </div>
+
+                          {anosMarcados.length > 0 && (
+                            <ul className="mt-3 space-y-1 text-sm leading-6 text-muted">
+                              {anosMarcados.map((a) => (
+                                <li key={a.ano}>{notaOutlier(a)}</li>
+                              ))}
+                            </ul>
+                          )}
                         </ChartFrame>
                       </div>
 
 
                       <div className="min-w-0">
                         <ChartFrame as="h3"
-                          title="Número de compras por mês"
+                          title="Registros de compra por ano"
                           source="DATASUS"
                         >
                           <div className="h-72 w-full sm:h-80">
@@ -1576,10 +1463,10 @@ export function Compras() {
                               width="100%"
                               height="100%"
                             >
-                              <LineChart
-                                data={mensalGrafico}
+                              <BarChart
+                                data={anosAnotados}
                                 margin={{
-                                  top: 8,
+                                  top: 24,
                                   right: 8,
                                   bottom: 8,
                                   left: 0,
@@ -1589,8 +1476,7 @@ export function Compras() {
 
                                 <XAxis
                                   {...eixo}
-                                  dataKey="mes"
-                                  minTickGap={30}
+                                  dataKey="ano"
                                 />
 
                                 <YAxis
@@ -1601,18 +1487,23 @@ export function Compras() {
 
                                 <Tooltip
                                   {...tooltip}
-                                  cursor={{ stroke: "var(--beast-basic-600)" }}
+                                  cursor={{ fill: "var(--beast-basic-300)" }}
                                   formatter={(valor) => numeroExato(numero(valor))}
                                 />
 
-                                <Line
-                                  {...linha}
+                                <Bar
                                   dataKey="numero_compras"
                                   name="Compras"
-                                  stroke={paleta[0]}
-                                  dot={dotPara(mensalGrafico.length)}
-                                />
-                              </LineChart>
+                                  fill={paleta[0]}
+                                  radius={[4, 4, 0, 0]}
+                                >
+                                  <LabelList
+                                    dataKey="numero_compras"
+                                    position="top"
+                                    formatter={(v: unknown) => numeroCompacto(numero(v))}
+                                  />
+                                </Bar>
+                              </BarChart>
                             </ResponsiveContainer>
                           </div>
                         </ChartFrame>

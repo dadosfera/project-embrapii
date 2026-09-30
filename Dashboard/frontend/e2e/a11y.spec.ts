@@ -27,44 +27,49 @@ async function semViolacoesGraves(page: Page) {
   ).toEqual([]);
 }
 
+/** Digita no seletor CATMAT e escolhe a opção cujo texto contém `opcao` (cmdk: role="option"). */
+async function escolherCatmat(page: Page, campo: string, termo: string, opcao: string | RegExp) {
+  await page.locator(campo).fill(termo);
+  const item = page.getByRole("option").filter({ hasText: opcao }).first();
+  await item.waitFor({ state: "visible", timeout: 60_000 });
+  await item.click();
+}
+
 // Estados que só aparecem depois de interação (os mesmos do smoke.spec.ts).
 const INTERACOES: Record<string, (page: Page) => Promise<void>> = {
   medicamentos: async (page) => {
-    await page.getByPlaceholder("ex: dipirona, insulina, seringa...").fill("dipirona");
-    await page.getByRole("button", { name: "Buscar", exact: true }).click();
-    const select = page.getByLabel("Selecione o item");
-    await select.waitFor({ state: "visible" });
-    await select.selectOption({ index: 1 });
-    const resumo = page.waitForResponse((r) => r.url().includes("/api/medicamentos/") && r.url().includes("/resumo"));
-    await page.getByRole("button", { name: "Pesquisar" }).click();
+    const resumo = page.waitForResponse((r) => r.url().includes("/resumo") && r.url().includes("escopo=grupo"));
+    await escolherCatmat(page, "#busca-medicamento", "dipirona 500", "DIPIRONA SÓDICA, DOSAGEM:500 MG");
     await resumo;
-    // Estado carregado (o mesmo que o smoke confere): botão de volta a "Pesquisar" e KPI com valor.
-    await expect(page.getByRole("button", { name: "Pesquisar" })).toBeEnabled({ timeout: 60_000 });
     await expect(
       page.locator("article").filter({ has: page.getByText("Preço médio de compra", { exact: true }) }).locator("p").last(),
     ).toContainText("R$");
   },
   compras: async (page) => {
-    await page.getByLabel("Data inicial").fill("2015-01-01");
-    await page.getByLabel("Data final").fill("2024-12-31");
-    const kpis = page.waitForResponse((r) => r.url().includes("/api/compras/kpis"));
-    await page.getByRole("button", { name: "Pesquisar" }).click();
-    await kpis;
-    await expect(page.getByRole("button", { name: "Pesquisar" })).toBeEnabled({ timeout: 60_000 });
+    // A página abre carregada em 2020–2025, sem exigir clique: só espera o KPI.
     await expect(
       page.locator("article").filter({ has: page.getByText("Valor total comprado", { exact: true }) }).locator("p").last(),
-    ).toContainText("R$");
+    ).toContainText("R$", { timeout: 60_000 });
+  },
+  leitos: async (page) => {
+    // Idem: carrega ao abrir com a competência mais recente.
+    await expect(
+      page.locator("article").filter({ has: page.getByText("Leitos gerais", { exact: true }) }).locator("p").last(),
+    ).not.toHaveText(/^(0|sem dado)$/, { timeout: 60_000 });
   },
   mapa: async (page) => {
-    await page.getByPlaceholder("Ex.: dipirona, insulina, seringa...").fill("dipirona");
-    await page.getByRole("button", { name: "Localizar itens" }).click();
-    const select = page.getByLabel("Item", { exact: true });
-    await select.waitFor({ state: "visible" });
-    await select.selectOption({ index: 1 });
-    const estoque = page.waitForResponse((r) => r.url().includes("/api/medicamentos/") && r.url().includes("/estoque-por-uf"));
-    await page.getByRole("button", { name: "Buscar", exact: true }).click();
+    const estoque = page.waitForResponse((r) => r.url().includes("/estoque-por-uf") && r.url().includes("escopo=grupo"));
+    await escolherCatmat(page, "#mapa-busca-catmat", "dipirona 500", "DIPIRONA SÓDICA, DOSAGEM:500 MG");
     await estoque;
     await expect(page.locator("tbody tr").first()).toBeVisible();
+  },
+  fornecedores: async (page) => {
+    // Fixa uma UF pelo teclado (foco + Enter no mapa), como o usuário faria.
+    const sp = page.getByRole("button", { name: /\(SP\):/ });
+    await sp.waitFor({ state: "visible", timeout: 60_000 });
+    await sp.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.locator("body")).toContainText("Tabela filtrada por SP");
   },
 };
 

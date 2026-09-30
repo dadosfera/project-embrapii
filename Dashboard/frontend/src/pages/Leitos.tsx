@@ -17,12 +17,12 @@ import {
   LineChart,
   ResponsiveContainer,
   Tooltip,
+  type TooltipContentProps,
   XAxis,
   YAxis,
 } from "recharts";
 
 import { DataTable } from "../components/DataTable";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -33,6 +33,8 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alternador } from "@/ui/Alternador";
+import { BotaoAplicar } from "@/ui/BotaoAplicar";
 import { ChartFrame } from "@/ui/ChartFrame";
 import { EmptyState } from "@/ui/EmptyState";
 import { ErrorState } from "@/ui/ErrorState";
@@ -44,10 +46,11 @@ import {
   data as dataBR,
   numeroCompacto,
   numeroExato,
-  SEM_DADO,
+  percentual,
 } from "@/ui/format";
 
 import {
+  buscarEvolucaoLeitos,
   buscarOpcoesLeitos,
   buscarPainelLeitos,
   type EvolucaoLeitos,
@@ -61,6 +64,7 @@ import {
 } from "../lib/api";
 
 import { inicioHaMeses } from "./leitosDatas";
+import { barrasEmpilhadasUf, type MetricaUf } from "./leitosUf";
 
 
 type AbaLeitos =
@@ -111,16 +115,6 @@ function numeroOuNulo(valor: unknown): number | null {
 }
 
 
-/** Participação com uma casa ("12,3%"). O format.ts não tem percentual, por isso fica aqui. */
-function percentual(valor: number | null | undefined) {
-  if (valor === null || valor === undefined || Number.isNaN(valor)) return SEM_DADO;
-  return `${valor.toLocaleString("pt-BR", {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  })}%`;
-}
-
-
 const MESES_CURTOS = [
   "jan", "fev", "mar", "abr", "mai", "jun",
   "jul", "ago", "set", "out", "nov", "dez",
@@ -168,6 +162,27 @@ const LEGENDA = {
 const formatarTooltip = (valor: unknown) => numeroExato(numero(valor));
 
 
+/** Tooltip do gráfico empilhado por UF: valores exatos de SUS/não SUS/total, mais o "% SUS". */
+function TooltipBarrasUf({ active, payload, label }: TooltipContentProps) {
+  if (!active || !payload || payload.length === 0) return null;
+
+  const ponto = payload[0]?.payload as
+    | { sus: number; nao_sus: number; total: number; percentual_sus: number | null }
+    | undefined;
+  if (!ponto) return null;
+
+  return (
+    <div style={tooltip.contentStyle} className="px-3 py-2">
+      <p className="font-semibold">{label}</p>
+      <p>SUS: {numeroExato(ponto.sus)}</p>
+      <p>Não SUS: {numeroExato(ponto.nao_sus)}</p>
+      <p>Total: {numeroExato(ponto.total)}</p>
+      <p>% SUS: {percentual(ponto.percentual_sus)}</p>
+    </div>
+  );
+}
+
+
 export function Leitos() {
   const [intervalo, setIntervalo] = useState<IntervaloLeitos | null>(null);
   const [ufs, setUfs] = useState<string[]>([]);
@@ -177,24 +192,93 @@ export function Leitos() {
   const [tentativaOpcoes, setTentativaOpcoes] = useState(0);
   const [modo, setModo] = useState<ModoLeitos>("ultima_competencia");
   const [uf, setUf] = useState("");
-  const [dataInicio, setDataInicio] = useState("");
-  const [dataFim, setDataFim] = useState("");
+  // Datas da evolução: só o formulário da aba "Evolução histórica" as edita.
+  const [dataInicioEvolucao, setDataInicioEvolucao] = useState("");
+  const [dataFimEvolucao, setDataFimEvolucao] = useState("");
   const [carregando, setCarregando] = useState(false);
-  // Mensagem de validação da página (aviso inline).
-  const [erro, setErro] = useState<string | null>(null);
+  const [carregandoEvolucao, setCarregandoEvolucao] = useState(false);
+  // Mensagem de validação da aba Evolução (aviso inline, só ali).
+  const [erroEvolucao, setErroEvolucao] = useState<string | null>(null);
   // Falha de requisição do painel: guarda o erro real para o ErrorState.
   const [falhaPainel, setFalhaPainel] = useState<unknown>(null);
+  // Falha da evolução isolada (aba "Evolução histórica"): estado próprio, para não acionar o
+  // ErrorState de página inteira quando só a evolução falhou (o resto do painel continua ok).
+  const [falhaEvolucao, setFalhaEvolucao] = useState<unknown>(null);
   const [avisos, setAvisos] = useState<string[]>([]);
   const [filtrosConfirmados, setFiltrosConfirmados] = useState<FiltrosConfirmados | null>(null);
   const [dados, setDados] = useState<DadosLeitos | null>(null);
   const [aba, setAba] = useState<AbaLeitos>("uf");
+  const [metricaUf, setMetricaUf] = useState<MetricaUf>("gerais");
 
   const formFiltros = useRef<HTMLFormElement>(null);
+  const formEvolucao = useRef<HTMLFormElement>(null);
+
+  // Descarta respostas de pedidos antigos (padrão de Compras.tsx): um pedido por fluxo,
+  // porque o painel inteiro e a evolução isolada podem estar em voo ao mesmo tempo.
+  const pedidoPainel = useRef(0);
+  const pedidoEvolucao = useRef(0);
+
+  // Espelha filtrosConfirmados de forma síncrona (a closure de aplicarEvolucao capturaria
+  // um valor velho): usado para checar, depois do await, se o painel mudou de UF enquanto
+  // o pedido de evolução estava em voo.
+  const filtrosConfirmadosRef = useRef<FiltrosConfirmados | null>(null);
+  useEffect(() => {
+    filtrosConfirmadosRef.current = filtrosConfirmados;
+  }, [filtrosConfirmados]);
 
   // Resolve a paleta uma vez por montagem (lê as variáveis CSS do documento).
   const paleta = useMemo(() => categorica(), []);
 
 
+  async function carregarPainel(filtros: FiltrosLeitos, dataInicio: string, dataFim: string) {
+    const meu = ++pedidoPainel.current;
+
+    // Invalida qualquer requisição de evolução isolada em voo: se ela resolver depois deste
+    // painel (possivelmente para outra UF), não pode sobrescrever dados.evolucao com dado velho.
+    pedidoEvolucao.current += 1;
+    setCarregandoEvolucao(false);
+
+    setFalhaPainel(null);
+    setFalhaEvolucao(null);
+    setAvisos([]);
+    setCarregando(true);
+    setAba("uf");
+
+    try {
+      const resposta = await buscarPainelLeitos(filtros, dataInicio, dataFim);
+      if (meu !== pedidoPainel.current) return;
+
+      setDados({
+        kpis: resposta.kpis,
+        porUf: resposta.por_uf,
+        tiposUti: resposta.tipos_uti,
+        evolucao: resposta.evolucao,
+        instituicoes: resposta.instituicoes,
+      });
+
+      setAvisos([]);
+
+      setFiltrosConfirmados({
+        modo: filtros.modo,
+        modoDescricao:
+          filtros.modo === "ultima_competencia"
+            ? "Competência mais recente da base"
+            : "Última posição de cada instituição",
+        uf: filtros.uf,
+        ufDescricao: filtros.uf || "Todas",
+        dataInicio,
+        dataFim,
+      });
+    } catch (error) {
+      if (meu === pedidoPainel.current) setFalhaPainel(error);
+    } finally {
+      if (meu === pedidoPainel.current) setCarregando(false);
+    }
+  }
+
+
+  // Busca o intervalo/as UFs na montagem e já carrega o painel inteiro (competência mais
+  // recente, todas as UFs), sem exigir clique. `tentativaOpcoes` refaz o efeito no "Tentar de novo".
   useEffect(() => {
     let ativo = true;
 
@@ -214,12 +298,17 @@ export function Leitos() {
 
         if (resposta.data_minima && resposta.data_maxima) {
           const inicioCandidato = inicioHaMeses(dataLocal(resposta.data_maxima), MESES_PADRAO);
-          setDataInicio(
+          const inicio =
             inicioCandidato < resposta.data_minima
               ? resposta.data_minima
-              : inicioCandidato,
-          );
-          setDataFim(resposta.data_maxima);
+              : inicioCandidato;
+          const fim = resposta.data_maxima;
+
+          setDataInicioEvolucao(inicio);
+          setDataFimEvolucao(fim);
+
+          if (!ativo) return;
+          await carregarPainel({ modo: "ultima_competencia", uf: "" }, inicio, fim);
         }
       } catch (error) {
         if (!ativo) return;
@@ -234,61 +323,86 @@ export function Leitos() {
     return () => {
       ativo = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tentativaOpcoes]);
 
 
   async function aplicarFiltros(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    setErro(null);
-    setFalhaPainel(null);
-    setAvisos([]);
+    // Se a carga automática inicial falhou, `filtrosConfirmados` nunca chega a existir — sem
+    // este fallback para as datas da evolução, "Tentar de novo" (ErrorState) e "Aplicar" ficam
+    // sem efeito algum (o retorno antecipado abaixo nunca deixava carregarPainel rodar).
+    const dataInicio = filtrosConfirmados?.dataInicio ?? dataInicioEvolucao;
+    const dataFim = filtrosConfirmados?.dataFim ?? dataFimEvolucao;
 
-    if (!dataInicio || !dataFim) {
-      setErro("Informe o início e o final da evolução histórica.");
+    if (!dataInicio || !dataFim) return;
+
+    await carregarPainel({ modo, uf }, dataInicio, dataFim);
+  }
+
+
+  async function aplicarEvolucao(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    setErroEvolucao(null);
+    setFalhaEvolucao(null);
+
+    if (!dataInicioEvolucao || !dataFimEvolucao) {
+      setErroEvolucao("Informe o início e o final da evolução histórica.");
       return;
     }
 
-    if (dataFim < dataInicio) {
-      setErro("A data final não pode ser anterior à data inicial.");
+    if (dataFimEvolucao < dataInicioEvolucao) {
+      setErroEvolucao("A data final não pode ser anterior à data inicial.");
       return;
     }
 
-    setCarregando(true);
-    setAba("uf");
+    if (!filtrosConfirmados) return;
 
-    const filtros: FiltrosLeitos = { modo, uf };
+    const meu = ++pedidoEvolucao.current;
+    const ufPedido = filtrosConfirmados.uf;
+
+    setCarregandoEvolucao(true);
 
     try {
-      const resposta = await buscarPainelLeitos(filtros, dataInicio, dataFim);
+      const evolucao = await buscarEvolucaoLeitos(
+        ufPedido,
+        dataInicioEvolucao,
+        dataFimEvolucao,
+      );
+      // Descarta se: (a) um pedido mais novo (outra evolução, ou um carregarPainel) já
+      // invalidou este; ou (b) o painel mudou de UF enquanto este pedido estava em voo —
+      // aplicar a resposta antiga sobrescreveria a evolução da UF nova com dado da antiga.
+      if (meu !== pedidoEvolucao.current) return;
+      if (filtrosConfirmadosRef.current?.uf !== ufPedido) return;
 
-      setDados({
-        kpis: resposta.kpis,
-        porUf: resposta.por_uf,
-        tiposUti: resposta.tipos_uti,
-        evolucao: resposta.evolucao,
-        instituicoes: resposta.instituicoes,
-      });
-
-      setAvisos([]);
-
-      setFiltrosConfirmados({
-        modo,
-        modoDescricao:
-          modo === "ultima_competencia"
-            ? "Competência mais recente da base"
-            : "Última posição de cada instituição",
-        uf,
-        ufDescricao: uf || "Todas",
-        dataInicio,
-        dataFim,
-      });
+      setDados((atual) => (atual ? { ...atual, evolucao } : atual));
+      setFiltrosConfirmados((atual) =>
+        atual
+          ? { ...atual, dataInicio: dataInicioEvolucao, dataFim: dataFimEvolucao }
+          : atual,
+      );
     } catch (error) {
-      setFalhaPainel(error);
+      if (meu === pedidoEvolucao.current) setFalhaEvolucao(error);
     } finally {
-      setCarregando(false);
+      if (meu === pedidoEvolucao.current) setCarregandoEvolucao(false);
     }
   }
+
+
+  // Há alterações não aplicadas: os filtros gerais divergem do que está de fato carregado.
+  const pendenteGeral =
+    filtrosConfirmados != null
+    && (modo !== filtrosConfirmados.modo || uf !== filtrosConfirmados.uf);
+
+  // Idem para o período da evolução.
+  const pendenteEvolucao =
+    filtrosConfirmados != null
+    && (
+      dataInicioEvolucao !== filtrosConfirmados.dataInicio
+      || dataFimEvolucao !== filtrosConfirmados.dataFim
+    );
 
 
   // Sem leitos gerais não há participação a calcular: vira "sem dado", não 0%.
@@ -522,8 +636,14 @@ export function Leitos() {
   );
 
 
-  // Uma linha legível por UF (27 no país); com poucas UFs fica no mínimo de 320 px.
-  const alturaUf = Math.max(320, porUfTabela.length * 24);
+  const barrasUf = useMemo(
+    () => barrasEmpilhadasUf(dados?.porUf ?? [], metricaUf),
+    [dados, metricaUf],
+  );
+
+
+  // Uma linha legível por UF (27 no país); com poucas UFs fica no mínimo de 56 px de moldura.
+  const alturaBarrasUf = barrasUf.length * 22 + 56;
 
 
   const semFalhas = falhaOpcoes == null && falhaPainel == null;
@@ -544,10 +664,6 @@ export function Leitos() {
             <Icon name="funnel" size={18} className="text-primary" />
             Filtros
           </h2>
-
-          <p className="mt-1 text-sm leading-6 text-muted">
-            O período é aplicado somente à evolução histórica.
-          </p>
 
           {carregandoOpcoes && (
             <p className="mt-2 text-xs font-medium text-primary" role="status">
@@ -635,60 +751,15 @@ export function Leitos() {
                 </SelectContent>
               </Select>
             </div>
-
-
-            <div>
-              <label
-                htmlFor="inicio-evolucao"
-                className="block text-sm font-semibold text-[var(--text)]"
-              >
-                Início da evolução
-              </label>
-
-              <Input
-                id="inicio-evolucao"
-                type="date"
-                disabled={carregandoOpcoes || !intervalo}
-                value={dataInicio}
-                min={intervalo?.data_minima ?? undefined}
-                max={intervalo?.data_maxima ?? undefined}
-                onChange={(event) => setDataInicio(event.target.value)}
-                className="mt-2 h-10 bg-panel"
-              />
-            </div>
-
-
-            <div>
-              <label
-                htmlFor="fim-evolucao"
-                className="block text-sm font-semibold text-[var(--text)]"
-              >
-                Final da evolução
-              </label>
-
-              <Input
-                id="fim-evolucao"
-                type="date"
-                disabled={carregandoOpcoes || !intervalo}
-                value={dataFim}
-                min={intervalo?.data_minima ?? undefined}
-                max={intervalo?.data_maxima ?? undefined}
-                onChange={(event) => setDataFim(event.target.value)}
-                className="mt-2 h-10 bg-panel"
-              />
-            </div>
           </div>
 
 
-          <Button
+          <BotaoAplicar
             type="submit"
-            disabled={carregando || !dataInicio || !dataFim}
-            className="mx-auto mt-6 flex h-10 w-full sm:w-1/2 lg:w-1/4"
-          >
-            {carregando
-              ? "Carregando análises..."
-              : "Aplicar filtros"}
-          </Button>
+            carregando={carregando}
+            pendente={pendenteGeral}
+            className="mx-auto mt-6 flex w-full flex-col items-center sm:w-1/2 lg:w-1/4"
+          />
         </form>
       </section>
 
@@ -699,17 +770,6 @@ export function Leitos() {
             error={falhaOpcoes}
             onRetry={() => setTentativaOpcoes((n) => n + 1)}
           />
-        </div>
-      )}
-
-
-      {erro && (
-        <div
-          role="status"
-          className="mt-5 flex items-start gap-2 rounded-[var(--radius-md)] border border-warning-border bg-[var(--warning-soft)] px-4 py-3 text-sm leading-6 text-warning-text"
-        >
-          <Icon name="alert" size={18} className="mt-0.5" />
-          {erro}
         </div>
       )}
 
@@ -738,26 +798,17 @@ export function Leitos() {
       )}
 
 
-      {!dados
-        && !carregando
-        && !erro
-        && semFalhas
-        && (
-          <div className="mt-5 flex items-start gap-2 rounded-[var(--radius-md)] border border-line bg-primary-tint px-4 py-3 text-sm leading-6 text-[var(--text)]">
-            <Icon name="info" size={18} className="mt-0.5 text-primary" />
-            <span>
-              Escolha os filtros e clique em <strong>Aplicar filtros</strong> para carregar as análises.
-            </span>
-          </div>
-        )}
-
-
       {carregando && (
         <section className="mt-6 space-y-4" aria-busy="true">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {[1, 2, 3, 4, 5, 6].map((item) => (
-              <Skeleton key={item} className="h-28" />
-            ))}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
           </div>
 
           <Skeleton className="h-80" />
@@ -779,14 +830,6 @@ export function Leitos() {
               <strong className="font-semibold text-[var(--text)]">
                 {filtrosConfirmados.ufDescricao}
               </strong>
-              {" | "}Evolução:{" "}
-              <strong className="font-semibold text-[var(--text)]">
-                {dataBR(filtrosConfirmados.dataInicio)}
-              </strong>
-              {" até "}
-              <strong className="font-semibold text-[var(--text)]">
-                {dataBR(filtrosConfirmados.dataFim)}
-              </strong>
             </p>
 
 
@@ -798,19 +841,26 @@ export function Leitos() {
               />
             ) : (
               <>
-                <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
+                <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                   <KpiCard
+                    destaque
                     label="Leitos gerais"
                     value={numeroOuNulo(dados.kpis.leitos_gerais)}
                     format={numeroCompacto}
                   />
 
                   <KpiCard
-                    label="Leitos SUS"
-                    value={numeroOuNulo(dados.kpis.leitos_sus)}
-                    format={numeroCompacto}
+                    destaque
+                    label="Participação do SUS"
+                    value={percentualSus}
+                    format={percentual}
+                    exact={percentual}
+                    hint={`${numeroCompacto(numero(dados.kpis.leitos_sus))} leitos SUS. Percentual dos leitos gerais destinados ao SUS.`}
                   />
+                </section>
 
+
+                <section className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
                   <KpiCard
                     label="Leitos de UTI"
                     value={numeroOuNulo(dados.kpis.leitos_uti)}
@@ -827,14 +877,6 @@ export function Leitos() {
                     label="Instituições com registro"
                     value={numeroOuNulo(dados.kpis.instituicoes_com_registro)}
                     format={numeroCompacto}
-                  />
-
-                  <KpiCard
-                    label="Participação do SUS"
-                    value={percentualSus}
-                    format={percentual}
-                    exact={percentual}
-                    hint="Percentual dos leitos gerais identificados como destinados ao SUS."
                   />
                 </section>
 
@@ -884,7 +926,7 @@ export function Leitos() {
                       Distribuição geográfica dos leitos
                     </h2>
 
-                    {porUfTabela.length === 0 ? (
+                    {barrasUf.length === 0 ? (
                       <div className="mt-4">
                         <EmptyState
                           title="Sem dados por UF"
@@ -893,45 +935,38 @@ export function Leitos() {
                       </div>
                     ) : (
                       <div className="mt-4 space-y-5">
-                        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-                          <div className="min-w-0">
-                            <ChartFrame as="h3" title="Leitos gerais e leitos SUS" source="DATASUS">
-                              <div className="w-full" style={{ height: alturaUf }}>
-                                <ResponsiveContainer width="100%" height="100%">
-                                  <BarChart data={porUfTabela} layout="vertical" margin={MARGEM_HORIZONTAL}>
-                                    <CartesianGrid {...grade} horizontal={false} vertical />
-                                    <XAxis {...eixo} type="number" tickFormatter={(v) => numeroCompacto(v)} />
-                                    <YAxis {...eixo} type="category" dataKey="uf" width={40} tick={{ ...eixo.tick, fontSize: 11 }} />
-                                    <Tooltip {...tooltip} formatter={formatarTooltip} />
-                                    <Legend {...LEGENDA} />
-                                    <Bar dataKey="leitos_gerais" name="Leitos gerais" fill={paleta[0]} radius={[0, 4, 4, 0]} />
-                                    <Bar dataKey="leitos_sus" name="Leitos SUS" fill={paleta[1]} radius={[0, 4, 4, 0]} />
-                                  </BarChart>
-                                </ResponsiveContainer>
-                              </div>
-                            </ChartFrame>
+                        <ChartFrame
+                          as="h3"
+                          title="Leitos por UF, SUS e não SUS"
+                          source="DATASUS"
+                          legend={
+                            <Alternador
+                              rotulo="Tipo de leito"
+                              opcoes={[
+                                { valor: "gerais", rotulo: "Gerais" },
+                                { valor: "uti", rotulo: "UTI" },
+                              ]}
+                              valor={metricaUf}
+                              onChange={setMetricaUf}
+                            />
+                          }
+                        >
+                          <div className="w-full" style={{ height: alturaBarrasUf }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                              <BarChart data={barrasUf} layout="vertical" barCategoryGap={3} margin={MARGEM_HORIZONTAL}>
+                                <CartesianGrid {...grade} horizontal={false} vertical />
+                                <XAxis {...eixo} type="number" tickFormatter={(v) => numeroCompacto(v)} />
+                                <YAxis {...eixo} type="category" dataKey="uf" interval={0} width={36} tick={{ ...eixo.tick, fontSize: 11 }} />
+                                <Tooltip content={(props) => <TooltipBarrasUf {...props} />} />
+                                <Legend {...LEGENDA} />
+                                <Bar dataKey="sus" stackId="uf" name="SUS" fill={paleta[0]} />
+                                <Bar dataKey="nao_sus" stackId="uf" name="Não SUS" fill={paleta[1]} radius={[0, 4, 4, 0]} />
+                              </BarChart>
+                            </ResponsiveContainer>
                           </div>
+                        </ChartFrame>
 
-                          <div className="min-w-0">
-                            <ChartFrame as="h3" title="Leitos de UTI e UTI SUS" source="DATASUS">
-                              <div className="w-full" style={{ height: alturaUf }}>
-                                <ResponsiveContainer width="100%" height="100%">
-                                  <BarChart data={porUfTabela} layout="vertical" margin={MARGEM_HORIZONTAL}>
-                                    <CartesianGrid {...grade} horizontal={false} vertical />
-                                    <XAxis {...eixo} type="number" tickFormatter={(v) => numeroCompacto(v)} />
-                                    <YAxis {...eixo} type="category" dataKey="uf" width={40} tick={{ ...eixo.tick, fontSize: 11 }} />
-                                    <Tooltip {...tooltip} formatter={formatarTooltip} />
-                                    <Legend {...LEGENDA} />
-                                    <Bar dataKey="leitos_uti" name="Leitos de UTI" fill={paleta[0]} radius={[0, 4, 4, 0]} />
-                                    <Bar dataKey="leitos_uti_sus" name="UTI SUS" fill={paleta[1]} radius={[0, 4, 4, 0]} />
-                                  </BarChart>
-                                </ResponsiveContainer>
-                              </div>
-                            </ChartFrame>
-                          </div>
-                        </div>
-
-                        <DataTable data={porUfTabela} columns={colunasUf} pageSize={10} />
+                        <DataTable data={porUfTabela} columns={colunasUf} pageSize={27} />
                       </div>
                     )}
                   </TabsContent>
@@ -978,7 +1013,77 @@ export function Leitos() {
                       Evolução dos leitos por competência
                     </h2>
 
-                    {evolucaoGrafico.length === 0 ? (
+                    <form
+                      ref={formEvolucao}
+                      onSubmit={aplicarEvolucao}
+                      className="mt-4 flex flex-wrap items-end gap-4 rounded-[var(--radius-md)] border border-line bg-panel p-4"
+                    >
+                      <div>
+                        <label
+                          htmlFor="inicio-evolucao"
+                          className="block text-sm font-semibold text-[var(--text)]"
+                        >
+                          Início da evolução
+                        </label>
+
+                        <Input
+                          id="inicio-evolucao"
+                          type="date"
+                          disabled={carregandoOpcoes || !intervalo}
+                          value={dataInicioEvolucao}
+                          min={intervalo?.data_minima ?? undefined}
+                          max={intervalo?.data_maxima ?? undefined}
+                          onChange={(event) => setDataInicioEvolucao(event.target.value)}
+                          className="mt-2 h-10 bg-panel"
+                        />
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor="fim-evolucao"
+                          className="block text-sm font-semibold text-[var(--text)]"
+                        >
+                          Final da evolução
+                        </label>
+
+                        <Input
+                          id="fim-evolucao"
+                          type="date"
+                          disabled={carregandoOpcoes || !intervalo}
+                          value={dataFimEvolucao}
+                          min={intervalo?.data_minima ?? undefined}
+                          max={intervalo?.data_maxima ?? undefined}
+                          onChange={(event) => setDataFimEvolucao(event.target.value)}
+                          className="mt-2 h-10 bg-panel"
+                        />
+                      </div>
+
+                      <BotaoAplicar
+                        type="submit"
+                        ariaLabel="Aplicar período da evolução"
+                        carregando={carregandoEvolucao}
+                        pendente={pendenteEvolucao}
+                      />
+                    </form>
+
+                    {erroEvolucao && (
+                      <div
+                        role="status"
+                        className="mt-4 flex items-start gap-2 rounded-[var(--radius-md)] border border-warning-border bg-[var(--warning-soft)] px-4 py-3 text-sm leading-6 text-warning-text"
+                      >
+                        <Icon name="alert" size={18} className="mt-0.5" />
+                        {erroEvolucao}
+                      </div>
+                    )}
+
+                    {falhaEvolucao != null ? (
+                      <div className="mt-4">
+                        <ErrorState
+                          error={falhaEvolucao}
+                          onRetry={() => formEvolucao.current?.requestSubmit()}
+                        />
+                      </div>
+                    ) : evolucaoGrafico.length === 0 ? (
                       <div className="mt-4">
                         <EmptyState
                           title="Sem competências no período"

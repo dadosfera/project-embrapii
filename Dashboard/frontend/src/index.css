@@ -368,3 +368,8 @@ tbody td {
 main[tabindex="-1"]:focus {
   outline: none;
 }
+
+/* Amostra da legenda dos mapas para UF sem registro (distinta de 0): hachura, não cor sólida. */
+.hachura-sem-registro {
+  background: repeating-linear-gradient(45deg, var(--beast-basic-200) 0 3px, var(--beast-basic-600) 3px 4px);
+}

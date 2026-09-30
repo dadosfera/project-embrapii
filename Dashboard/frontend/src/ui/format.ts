@@ -14,6 +14,7 @@ const inteiro = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
 // não variar o nº de casas por linha ("668.027,14", "53.852.468,1", "234.110" na mesma coluna),
 // mostramos sempre arredondado para inteiro; quem precisar da fração exata vai à API, não à tela.
 const quantidadeFmt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
+const umaCasaFmt = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 function vazio(v: Num): v is null | undefined {
   return v === null || v === undefined || Number.isNaN(v);
@@ -34,6 +35,19 @@ export function numeroExato(v: Num): string {
 /** Quantidade (itens, unidades): sempre inteiro pt-BR, para não variar o nº de casas por linha/coluna. */
 export function quantidade(v: Num): string {
   return vazio(v) ? SEM_DADO : quantidadeFmt.format(v);
+}
+/**
+ * Número puro com uma casa decimal pt-BR ("12,3"), sem unidade/símbolo — quem quiser "%" ou outro
+ * sufixo compõe por cima. Usado pelo `formatar` do mapa (que já monta "12,3 %" com `unidade`) e
+ * pelos formatadores de percentual das páginas, para não duplicar a config do `Intl.NumberFormat`.
+ */
+export function numeroUmaCasa(v: Num): string {
+  return vazio(v) ? SEM_DADO : umaCasaFmt.format(v);
+}
+/** Participação com uma casa ("12,3%"): `numeroUmaCasa` mais o símbolo "%", ou SEM_DADO. */
+export function percentual(v: Num): string {
+  const texto = numeroUmaCasa(v);
+  return texto === SEM_DADO ? SEM_DADO : `${texto}%`;
 }
 /** "AAAA-MM-DD" (com ou sem hora) → "DD/MM/AAAA", sem passar por Date para não deslocar o fuso. */
 export function data(v: string | null | undefined): string {

@@ -1,0 +1,1829 @@
+[
+{
+"catmat_id": 13223,
+"codigo_catmat": "BR0339560 - INATIVO",
+"descricao_catmat": "TIRA REAGENTE UROANÁLISE, 10 PARÂMETROS",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 15626,
+"codigo_catmat": "BRINATIVO",
+"descricao_catmat": "INATIVO-SALBUTAMOL, SULFATO 0,4 MG/ML XAROPE  100 INATIVO ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 1306,
+"codigo_catmat": "BR0275476",
+"descricao_catmat": "DIPIRONA SÓDICA, COMPOSIÇÃO:ASSOCIADA À ADIFENINA E PROMETAZINA, CONCENTRAÇÃO:375MG + 12,5MG + 12,5MG/ML, USO:SOLUÇÃO INJETÁVEL",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 2984,
+"codigo_catmat": "BR0460889",
+"descricao_catmat": "MULTIVITAMINAS, COMPOSIÇÃO DE VITAMINAS:VITS: A, B1, B2, B3, B5, B6, B12, C, D, E, K, COMPOSIÇÃO DE SAIS MINERAIS:MINERAIS: CA, CR, CU, FE, I, MN, SE, ZN, COMPOSIÇÃO DE AMINOÁCIDOS:BIOTINA, OUTROS COMPONENTES:ÁCIDO FÓLICO",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 18327,
+"codigo_catmat": "BRBBR0278489U0097",
+"descricao_catmat": "ÁCIDO FÓLICO 0,2 MG/ML SOLUÇÃO ORAL 30 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 21276,
+"codigo_catmat": "BROBR0270620",
+"descricao_catmat": "ESCOPOLAMINA, BUTILBROMETO + DIPIRONA SÓDICA 10 + 250 MG COMPRIMIDO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 19069,
+"codigo_catmat": "BROBR0267203U0042",
+"descricao_catmat": "DIPIRONA SÓDICA  500 MG COMPRIMIDO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 15800,
+"codigo_catmat": "BR0278650U0042",
+"descricao_catmat": "CARISOPRODOL, DIPIRONA + PIRIDOXINA + TIAMINA + CIANOCOBALAMINA 250MG + 250MG + 100MG + 50MG + 1MG COMP",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 1888,
+"codigo_catmat": "BR0324414",
+"descricao_catmat": "LAMOTRIGINA, DOSAGEM:50 MG",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 2802,
+"codigo_catmat": "BR0340419",
+"descricao_catmat": "DIPIRONA SÓDICA, COMPOSIÇÃO:ASSOCIADA À CAFEÍNA E DIIDROERGOTAMINA, CONCENTRAÇÃO:350 MG + 100 MG + 1 MG",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 4424,
+"codigo_catmat": "BR0440604",
+"descricao_catmat": "MULTIVITAMINAS, COMPOSIÇÃO VITAMINAS:VITAMINAS A, B1, B2, B5, B6, B12, C, D3, E, COMPOSIÇÃO SAIS MINERAIS:MINERAIS: COBRE E ZINCO, ADICIONAL:ÁCIDO FÓLICO",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 12466,
+"codigo_catmat": "BR0367401 - INATIVO",
+"descricao_catmat": "COLETOR URINA, PVC, SISTEMA ABERTO, 2.000 ML, DESCARTÁVEL (INATIVO)",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 16735,
+"codigo_catmat": "BRNT05",
+"descricao_catmat": "FÓRMULA INFANTIL DE 0-6 MESES Á BASE DE PROTEÍNA ISOLADA DE SOJA.ISENTA DE LACTOSE E SACAROSE 400G",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 11826,
+"codigo_catmat": "BRINATIVO VII",
+"descricao_catmat": "INATIVO-SULFATO FERROSO 125 MG/ML SOLUÇÃO ORAL  30 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 16383,
+"codigo_catmat": "BR0275475-2",
+"descricao_catmat": "DIPIRONA + PROMETAZINA + ADIFENINA 500 + 5 + 10 MG SOLUÇÃO ORAL 20 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 20469,
+"codigo_catmat": "BROBR0272809",
+"descricao_catmat": "LAMOTRIGINA 100 MG COMPRIMIDO ELENCO ESTADUAL",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 4446,
+"codigo_catmat": "BR0449110",
+"descricao_catmat": "MULTIVITAMINAS, COMPOSIÇÃO DE VITAMINAS:VITS: A, B1, B2, B3, B6, B12, C, D, E, COMPOSIÇÃO DE SAIS MINERAIS:MINERAIS: CA, FE, ZN, OUTROS COMPONENTES:ÁCIDO FÓLICO",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 13539,
+"codigo_catmat": "BR0272442 - INATIVO",
+"descricao_catmat": "PINÇA HASLTEAD MOSQUITO 12,5 CM - CURVA - 1X2 DENTES",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 15226,
+"codigo_catmat": "BR0389957-1",
+"descricao_catmat": "DIPIRONA SÓDICA + ESCOPOLAMINA + HIOSCIAMINA + HOMATROPINA  300 + 6,5 + 104 + 1 MG+MCG+MCG+MG COMPRIMIDO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 15151,
+"codigo_catmat": "BR0273207 - INATIVO",
+"descricao_catmat": "MICRONEBULIZADOR, ADULTO, MÁSCARA EM PVC ATÓXICO,COPO ADAPTÁVEL, EXTENSOR C/ CONEXÃO UNIVERSAL A REDE DE O2 INATIVO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 14824,
+"codigo_catmat": "BR0447141U0041",
+"descricao_catmat": "MULTIVITAMINAS, VITS: A,B1,B2,B3,B6,B  12,C,D E E, MINERAIS: FERRO E ZINCO, ÁCIDO FÓLICO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 20845,
+"codigo_catmat": "BROBR0275475",
+"descricao_catmat": "DIPIRONA SÓDICA + ADIFENINA + PROMETAZINA 500 + 10 + 5 MG/1,5ML SOLUÇÃO ORAL 10 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 19985,
+"codigo_catmat": "BROBR0270621",
+"descricao_catmat": "ESCOPOLAMINA, BUTILBROMETO + DIPIRONA SÓDICA 4 + 500 MG/ML SOLUÇÃO INJETÁVEL 5 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 16122,
+"codigo_catmat": "BRNT03-1",
+"descricao_catmat": "FÓRMULA INFANTIL DE SEGUIMENTO A PARTIR DE 6 MESES, ISENTO DE GLÚTEN 400G",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 11151,
+"codigo_catmat": "BR0267205U0063",
+"descricao_catmat": "DIPIRONA SÓDICA  500 MG/ML SOLUÇÃO ORAL 10 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 15698,
+"codigo_catmat": "BRINATIVO I",
+"descricao_catmat": "INATIVO-MEPERIDINA 50 MG/ML SOLUÇÃO INJETÁVEL  2 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 9126,
+"codigo_catmat": "BR0449121",
+"descricao_catmat": "MULTIVITAMINAS, COMPOSIÇÃO DE VITAMINAS:VITS: A, B1, B2, B3, B5, B6, B12, C, D, E, H, K, OUTROS COMPONENTES:ÁCIDO FÓLICO, FOR",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 14554,
+"codigo_catmat": "BR0434557 -INATIVO",
+"descricao_catmat": "CURATIVO, HIDROCOLÓIDE, POLIURETANO,  REVESTIDO COM ALGINATO DE CÁLCIO E CARMELOSE, CERCA DE 10 X 10 CM, SEM  PERMEÁVEL, NÃO ADERENTE, ESTÉRIL, USO ÚNICO, EMBALAGEM INDIVIDUAL",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 14597,
+"codigo_catmat": "BRNT07-2",
+"descricao_catmat": "MÓDULO DE FIBRA SOLÚVEL.ISENTO DE SACAROSE E GLÚTEN 260G",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 3073,
+"codigo_catmat": "BR0602450",
+"descricao_catmat": "LAMOTRIGINA, CONCENTRAÇÃO:100 MG, FORMA FARMACÊUTICA:COMPRIMIDO DISPERSÍVEL",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 16531,
+"codigo_catmat": "BR0000000-INATIVO",
+"descricao_catmat": "INATIVO - CABO BISTURI, MATERIAL AÇO INOXIDÁVEL, TAMANHO Nº 3, APLICAÇÃO CIRURGIA, COMPRIMENTO 17",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 18514,
+"codigo_catmat": "BRNT08-3",
+"descricao_catmat": "FÓRMULA NUTRICIONALMENTE COMPLETA NORMOCALÓRICA,NORMOLIPÍDICA,NORMOPROTÉICA,ACRESCIDA DE FIBRAS 250ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 6717,
+"codigo_catmat": "BR0436731",
+"descricao_catmat": "ÁCIDO FÓLICO, CONCENTRAÇÃO:2 MG",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 12281,
+"codigo_catmat": "BR0305718U0011INATIV",
+"descricao_catmat": "NOREPINEFRINA 2 MG/ML SOLUÇÃO INJETÁVEL 4  ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 12111,
+"codigo_catmat": "BR0268345INATIVO",
+"descricao_catmat": "LAMIVUDINA 150 MG COMPRIMIDO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 1508,
+"codigo_catmat": "BR0283156",
+"descricao_catmat": "ORFENADRINA CITRATO, COMPOSIÇÃO:ASSOCIADA COM DIPIRONA E CAFEÍNA, DOSAGEM:35MG + 300MG + 50MG",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 10159,
+"codigo_catmat": "BR0356691",
+"descricao_catmat": "DIPIRONA SÓDICA, COMPOSIÇÃO:ASSOCIADA À PAPAVERINA, ADIFENINA E HOMATROPINA, CONCENTRAÇÃO:500 MG + 30 MG + 30 MG + 2,5 MG/ML,",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 19171,
+"codigo_catmat": "BROBR0267503U0042",
+"descricao_catmat": "ÁCIDO FÓLICO 5 MG COMPRIMIDO ELENCO ESTADUAL",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 16444,
+"codigo_catmat": "BR0485862 - INATIVO",
+"descricao_catmat": "CURATIVO, FRASCO C/ GEL, P/ FERIDA, À BASE DE HIDROGEL, C/ PHMB, ESTÉRIL",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 14633,
+"codigo_catmat": "BR0368249 - INATIVO",
+"descricao_catmat": "FIO DE SUTURA, POLIPROPILENO, 5-0, AZUL, 75 CM, 1 AGULHA EM CADA PONTA DO FIO,P/USO CARDIOVASCULAR, 1/2 CÍRCULO CILÍNDRICA,1,70 CM, ESTÉRIL  ,",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 816,
+"codigo_catmat": "BR0267206",
+"descricao_catmat": "DIPIRONA SÓDICA, DOSAGEM:50 MG/ML, APRESENTAÇÃO:SOLUÇÃO ORAL",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 13915,
+"codigo_catmat": "BR0383602 - INATIVO",
+"descricao_catmat": "ATADURA, CREPOM, 100% ALGODÃO, 10 CM, 120 CM, 13 FIOS - INATIVO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 10091,
+"codigo_catmat": "BR0270873",
+"descricao_catmat": "PAPAVERINA, APRESENTAÇÃO:ASSOCIADA COM DIPIRONA, EXTRATO DE BELLADONA LINNÉ, COMPOSIÇÃO:EXTRATO HYOSCYAMUS NIGER LINNÉ E EXTR",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 20045,
+"codigo_catmat": "BROBR0267206",
+"descricao_catmat": "DIPIRONA SÓDICA  50 MG/ML SOLUÇÃO ORAL 100 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 16446,
+"codigo_catmat": "BRNT07-3",
+"descricao_catmat": "MÓDULO DE FIBRAS SOLÚVEIS E INSOLÚVEIS. ISENTO DE SACAROSE, LACTOSE E GLÚTEN, PÓ, 250 G",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 21640,
+"codigo_catmat": "BR0393803U0074",
+"descricao_catmat": "ÁCIDO FÓLICO 1 MG/ML SOL ORAL (FR) 150 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 18540,
+"codigo_catmat": "BR0296742 - INATIVO",
+"descricao_catmat": "OLMESARTANA 40 MG COMPRIMIDO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 14009,
+"codigo_catmat": "BR0368190",
+"descricao_catmat": "FERROCARBONILA + ÁCIDO FÓLICO + MULTIVITAMINAS COMPRIMIDO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 3025,
+"codigo_catmat": "BR0449112",
+"descricao_catmat": "MULTIVITAMINAS, COMPOSIÇÃO DE VITAMINAS:VITS: A, B1, B2, B3, B5, B6, B12, C, D, E, H, K, COMPOSIÇÃO DE SAIS MINERAIS:MINERAIS:CA,CL,CR,CU,FE,I, K, MG, MN,MO, P, SE, ZN, OUTROS COMPONENTES:ÁCIDO FÓLICO",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 16023,
+"codigo_catmat": "BRINATIVBR0465320U0118",
+"descricao_catmat": "ALFAEPOETINA 10.000 UI PÓ LIOF INJ (FR-AMP) GRUPO 1.A",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 19109,
+"codigo_catmat": "BRSBR0267503U0042",
+"descricao_catmat": "ÁCIDO FÓLICO 5 MG COMPRIMIDO ELENCO ESTADUAL",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 16236,
+"codigo_catmat": "BR0435720U0041",
+"descricao_catmat": "ÁCIDO FÓLICO + DEXTROALFATOCOFEROL 0,4 + 10 MG CÁPSULA GELATINOSA MOLE",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 14596,
+"codigo_catmat": "BRNT07-1",
+"descricao_catmat": "MÓDULO DE FIBRA SOLÚVEL.ISENTO DE SACAROSE E GLÚTEN 155G",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 12906,
+"codigo_catmat": "BRINATIVOBR0325430",
+"descricao_catmat": "PRESERVATIVO MASCULINO BORRACHA NATURAL LUBRIFICADO 49MM",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 19104,
+"codigo_catmat": "BRSBR0267205U0063",
+"descricao_catmat": "DIPIRONA SÓDICA  500 MG/ML SOLUÇÃO ORAL 10 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 18499,
+"codigo_catmat": "BRBBR0267205U0086",
+"descricao_catmat": "DIPIRONA SÓDICA  500 MG/ML SOLUÇÃO ORAL 20 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 9417,
+"codigo_catmat": "BR0448601",
+"descricao_catmat": "ÁCIDO FÓLICO, COMPOSIÇÃO:ASSOCIADO AO FERRO, CONCENTRAÇÃO:5 MG + 30 MG",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 12903,
+"codigo_catmat": "BR0385209INATIVO",
+"descricao_catmat": "EQUIPO DE INFUSÃO, PVC CRISTAL, MÍN. 120 CM, CÂMARA FLEXÍVEL C/ FILTRO AR, GOTA PADRÃO, REGULADOR DE FLUXO, INJETOR LATERAL\"Y\", LUER C/ TAMPA, ESTÉRIL",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 19623,
+"codigo_catmat": "BROBR0295040U0042",
+"descricao_catmat": "LAMOTRIGINA 25 MG COMP GRUPO 2",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 14834,
+"codigo_catmat": "BR0389957-2",
+"descricao_catmat": "DIPIRONA SÓDICA + ESCOPOLAMINA + HIOSCIAMINA + HOMATROPINA  300  MG + 6,5 MCG + 104 MCG + 1 MG SOLUÇÃO 15 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 18312,
+"codigo_catmat": "BREBR0295040U0042",
+"descricao_catmat": "LAMOTRIGINA 25 MG COMP GRUPO 2",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 3180,
+"codigo_catmat": "BR0448587",
+"descricao_catmat": "PIRIDOXINA, COMPOSIÇÃO:CLORIDRATO, ASSOCIADA AO ÁCIDO FÓLICO E VIT B12, CONCENTRAÇÃO:4 MG + 0,8 MG + 0,4 MG",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 15816,
+"codigo_catmat": "BR0607789",
+"descricao_catmat": "ÁCIDO FÓLICO, ASSOCIADO AO INOSITOL 200 MCG + 2 G SACHE",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 20803,
+"codigo_catmat": "BROBR0267205U0086",
+"descricao_catmat": "DIPIRONA SÓDICA  500 MG/ML SOLUÇÃO ORAL 20 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 12100,
+"codigo_catmat": "BRNT06-1",
+"descricao_catmat": "FÓRMULA INFANTIL A PARTIR DE 6 MESES Á BASE DE PROTEÍNA ISOLADA DE SOJA.ISENTA DE LACTOSE E SACAROSE 800G",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 19537,
+"codigo_catmat": "BRSBR0272809U0042",
+"descricao_catmat": "LAMOTRIGINA 100 MG COMP GRUPO 2",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 17365,
+"codigo_catmat": "BRINATIVO III",
+"descricao_catmat": "INATIVO-ERITROPOETINA HUMANA RECOMBINANTE 3000 UI PÓ PARA SOLUÇÃO INJETÁVEL 2 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 13544,
+"codigo_catmat": "BR0281040 - INATIVO",
+"descricao_catmat": "FIO DE SUTURA, CATGUT SIMPLES C, AGULHA, 5-0, COMPR. MÍNIMO 70 CM, 1,2 CÍRCULO CILÍNDRICA, 2,0 CM, ESTÉRIL",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 12082,
+"codigo_catmat": "BR0372348 - INATIVO",
+"descricao_catmat": "- TUBO , PLÁSTICO, 2 ML, COM CITRATO DE   SÓDIO 3,2%, COLETA DE SANGUE, À VÁCUO, ESTÉRIL, DESCARTÁVEL",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 19103,
+"codigo_catmat": "BRSBR0267203U0042",
+"descricao_catmat": "DIPIRONA SÓDICA  500 MG COMPRIMIDO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 281,
+"codigo_catmat": "BR0270622",
+"descricao_catmat": "ESCOPOLAMINA BUTILBROMETO, APRESENTAÇÃO:ASSOCIADA COM DIPIRONA SÓDICA, DOSAGEM:6,67MG + 333MG/ML, INDICAÇÃO:SOLUÇÃO ORAL",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 18066,
+"codigo_catmat": "BR0403932 - INATIVO",
+"descricao_catmat": "AMIDO DE MILHO MODIFICADO INSTANTÂNEO E GOMAS ALIMENTARES",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 14765,
+"codigo_catmat": "BRNT02-1",
+"descricao_catmat": "FÓRMULA INFANTIL DE PARTIDA 0-6 MESES, ISENTO DE GLÚTEN 400G",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 16585,
+"codigo_catmat": "BRNT09-4",
+"descricao_catmat": "ALIMENTO NUTRICIONALMENTE COMPLETO 1-10 ANOS, PROTEÍNA DO SORO DO LEITE, VITAMINAS, MINERAIS.ISENTO DE GLÚTEN E LACTOSE 850G",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 12099,
+"codigo_catmat": "BRNT02-2",
+"descricao_catmat": "FÓRMULA INFANTIL DE PARTIDA 0-6 MESES, ISENTO DE GLÚTEN 800G",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 15070,
+"codigo_catmat": "BR0104469-5",
+"descricao_catmat": "HIDRATANTE HIPOALERGÊNICO LOÇÃO CREMOSA 500ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 16092,
+"codigo_catmat": "BRNT09-2",
+"descricao_catmat": "ALIMENTO NUTRICIONALMENTE COMPLETO 1-10 ANOS, PROTEÍNA DO SORO DO LEITE, VITAMINAS, MINERAIS.ISENTO DE GLÚTEN E LACTOSE 900G",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 18524,
+"codigo_catmat": "BRBBR0267205U0075",
+"descricao_catmat": "DIPIRONA SÓDICA  500 MG/ML SOLUÇÃO ORAL 15 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 15210,
+"codigo_catmat": "BR0104469-3",
+"descricao_catmat": "HIDRATANTE HIPOALERGENICO LOÇÃO CREMOSA 240 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 12988,
+"codigo_catmat": "BRNT08-1",
+"descricao_catmat": "FÓRMULA NUTRICIONALMENTE COMPLETA NORMOCALÓRICA,NORMOLIPÍDICA,NORMOPROTÉICA,ACRESCIDA DE FIBRAS 500ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 19141,
+"codigo_catmat": "BRSBR0268252U0009",
+"descricao_catmat": "DIPIRONA SÓDICA  500 MG/ML SOLUÇÃO INJETÁVEL 2 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 13625,
+"codigo_catmat": "BR0437178 - INATIVO",
+"descricao_catmat": "CATETER PERIFÉRICO, POLÍMERO RADIOPACO, VENOSO, AGULHA AÇO INOX, 20 GAU, CERCA 30 MM, CONECTOR PADRÃO, CÂMARA REFLUXO C/ FILTRO, C/ SISTEMA SEGURANÇA SEGUNDO NR/32, ESTÉRIL, DESCARTÁVEL, EMBALAGEM INDIVIDUAL",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 14224,
+"codigo_catmat": "BRNT04",
+"descricao_catmat": "FÓRMULA INFANTIL ISENTO DE LACTOSE 400G",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 4496,
+"codigo_catmat": "BR0473598",
+"descricao_catmat": "MULTIVITAMINAS, COMPOSIÇÃO DE VITAMINAS:VITS: A, B1, B2, B3, B5, B6, B12, C, D, E, H, COMPOSIÇÃO DE SAIS MINERAIS:MINERAIS: CA, CR, CU, FE, I, MG, MN, MO, SE, ZN, OUTROS COMPONENTES:ÁCIDO FÓLICO, FORMA FARMACÊUTICA 1:PASTILHA MASTIGÁVEL",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 17172,
+"codigo_catmat": "BR(INATIVO)BR03302200",
+"descricao_catmat": "(INATIVO) LANCETA 29GX1,5MM DESCARTÁVEL PARA PUNÇÃO DIGITAL; EM AÇO INOXIDÁVEL, PONTA EM BISEL E EMBUTIDA NO CORPO PLÁSTICO OU OUTRO MATERIAL COMPATÍVEL COM A FINALIDADE, COM TAMPA PROTETORA DE FÁCIL REMOÇÃO E QUE PROTEJA A LANCETA APÓS O USO.",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 17163,
+"codigo_catmat": "BR0442481-INATIVO",
+"descricao_catmat": "EMBALAGEM P/ ESTERILIZAÇÃO, PAPEL GRAU CIRÚRGICO, C/ FILME POLÍMERO MULTILAMINADO, CERCA DE 60 G/M2, ENVELOPE, AUTOSSELANTE, CERCA DE 30 X 40 CM, C/ INDICADOR QUÍMICO, USO ÚNICO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 19415,
+"codigo_catmat": "BROBR0268252U0009",
+"descricao_catmat": "DIPIRONA SÓDICA  500 MG/ML SOLUÇÃO INJETÁVEL 2 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 13555,
+"codigo_catmat": "BRINATIVO 37",
+"descricao_catmat": "INATIVO-SONDA, LÁTEX SILICONIZADO, FOLEY, Nº 18, INATIVADO UTILIZAR BR0277019",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 13645,
+"codigo_catmat": "BR0297269 - INATIVO",
+"descricao_catmat": "CATETER OXIGENOTERAPIA Nº 12, PLÁSTICO ATÓXICO, SILICONIZADO, ESTÉRIL",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 13574,
+"codigo_catmat": "BR0270622-1",
+"descricao_catmat": "ESCOPOLAMINA, BUTILBROMETO + DIPIRONA SÓDICA 6,67 + 333,4 MG/ML SOLUÇÃO ORAL 10 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 12217,
+"codigo_catmat": "BR0295040U0042",
+"descricao_catmat": "LAMOTRIGINA 25 MG COMP GRUPO 2",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 3592,
+"codigo_catmat": "BR0602453",
+"descricao_catmat": "LAMOTRIGINA, CONCENTRAÇÃO:200 MG, FORMA FARMACÊUTICA:COMPRIMIDO DISPERSÍVEL",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 17506,
+"codigo_catmat": "BR0437891",
+"descricao_catmat": "FERRO QUELATO + COBRE QUELATO + ÁCIDO FÓLICO + MULTIVITAMINAS 300MCG + 20MG + 100MG + 20MG + 2MG + 0,5MG + 25 MG CÁPSULA",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 19912,
+"codigo_catmat": "BRBBR0272809U0042",
+"descricao_catmat": "LAMOTRIGINA 100 MG COMP GRUPO 2",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 17198,
+"codigo_catmat": "BR0431599INATIVO",
+"descricao_catmat": "SOFOSBUVIR 400 MG COMP REV",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 2389,
+"codigo_catmat": "BR0449181",
+"descricao_catmat": "MULTIVITAMINAS, COMPOSIÇÃO DE VITAMINAS:VITS: A, B1, B2, B3, B5, B6, B12, C, D, COMPOSIÇÃO DE SAIS MINERAIS:MINERAIS: FE, MN, ZN, OUTROS COMPONENTES:ÁCIDO FÓLICO",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 4152,
+"codigo_catmat": "BR0452410",
+"descricao_catmat": "MULTIVITAMINAS, COMPOSIÇÃO DE VITAMINAS:VITS: A, B1, B2, B5, B6, B12, C, D, E, K, COMPOSIÇÃO DE SAIS MINERAIS:MINERAIS: CA, CR, CU, FE, I, MG, MN, MO, SE, ZN, COMPOSIÇÃO DE AMINOÁCIDOS:BIOTINA, NIACINA, OUTROS COMPONENTES:ÁCIDO FÓLICO",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 4667,
+"codigo_catmat": "BR0393802",
+"descricao_catmat": "ÁCIDO FÓLICO, CONCENTRAÇÃO:3 MG/ML, FORMA FARMACEUTICA:SOLUÇÃO ORAL - GOTAS",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 13694,
+"codigo_catmat": "BR9278660",
+"descricao_catmat": "FERRO, QUELATO + ACIDO FOLICO + B12 300 + 5 + 0,015 MG COMP REV",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 20458,
+"codigo_catmat": "BROBR0324414U0042",
+"descricao_catmat": "LAMOTRIGINA 50 MG COMP GRUPO 2",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 12458,
+"codigo_catmat": "BR0269971 (INATIVO)",
+"descricao_catmat": "COMPRESSA GAZE, 100% ALGODÃO, 8 CAMADAS, 7,5 X 7,5 CM, 5 DOBRAS (INATIVO)",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 13631,
+"codigo_catmat": "BR0104469-1",
+"descricao_catmat": "HIDRATANTE HIPOALERGÊNICO LOÇÃO CREMOSA 120ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 17690,
+"codigo_catmat": "BR0339326INATIVO",
+"descricao_catmat": "(INATIVO) TESOURA, AÇO INOXIDÁVEL, 15 CM, CURVA FINA",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 11292,
+"codigo_catmat": "BR0250337 - INATIVO",
+"descricao_catmat": "CABO BISTURI, MATERIAL AÇO INOXIDÁVEL, TAMANHO Nº 3, APLICAÇÃO CIRURGIA, COMPRIMENTO 17",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 7141,
+"codigo_catmat": "BR0393804",
+"descricao_catmat": "ÁCIDO FÓLICO, COMPOSIÇÃO:ASSOCIADO AO FERRO AMINOÁCIDO QUELATO, CONCENTRAÇÃO:0,2MG + 250 MG/ML, FORMA FARMACEUTICA:SUSPENSÃO",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 18431,
+"codigo_catmat": "BREBR0324414U0042",
+"descricao_catmat": "LAMOTRIGINA 50 MG COMP GRUPO 2",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 14314,
+"codigo_catmat": "BR0275475-3",
+"descricao_catmat": "DIPIRONA + PROMETAZINA + ADIFENINA 500 + 5 + 10 MG COMPRIMIDO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 14634,
+"codigo_catmat": "BR0388561-INATIVO",
+"descricao_catmat": "AGULHA ANESTÉSICA,P/RAQUIDIANA,INOX,27 G X 3 1/2\",PONTA DE LÁPIS,ISENTO DE CORTE,C/ORIFÍCIO LATERAL,LUER LOCK,C/VISOR C/TAMPA,DESCART,ESTÉRIL",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 13982,
+"codigo_catmat": "BRINATIVOBR0395836",
+"descricao_catmat": "METRONIDAZOL + NISTATINA + CLORETO DE BENZALCÔNICO 250 MG + 100.000 UI + 1,25 MG/G CREME VAGINAL  40 G",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 21145,
+"codigo_catmat": "BRTESTE01",
+"descricao_catmat": "DIPIRONA SÓDICA  1 MCG AMP 1 L ELENCO ESTADUAL",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 18096,
+"codigo_catmat": "BRBBR0267503U0042",
+"descricao_catmat": "ÁCIDO FÓLICO 5 MG COMPRIMIDO ELENCO ESTADUAL",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 14086,
+"codigo_catmat": "BRINATIVO 33",
+"descricao_catmat": "INATIVO-GLICOSE 5 % SOLUÇÃO INJETÁVEL 500 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 15221,
+"codigo_catmat": "BR0340758U0042",
+"descricao_catmat": "DIPIRONA + CLORFENAMINA MALEATO + CAFEÍNA 250 MG + 2 MG E 250 MG + 30 MG COMP REV",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 16929,
+"codigo_catmat": "BR0270633-1",
+"descricao_catmat": "DIPIRONA + ISOMETEPTENO + CAFEÍNA 300 + 50 + 30 MG COMPRIMIDO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 17330,
+"codigo_catmat": "BR0405886 - INATIVO",
+"descricao_catmat": "PROTETOR SOLAR, UVA/UVB, FATOR 100, CREME",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 2274,
+"codigo_catmat": "BR0283157",
+"descricao_catmat": "ORFENADRINA CITRATO, COMPOSIÇÃO:ASSOCIADA COM DIPIRONA E CAFEÍNA, DOSAGEM:35MG + 300MG + 50MG/ML, APRESENTAÇÃO:SOLUÇÃO ORAL/GOTAS",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 10022,
+"codigo_catmat": "BR0342943",
+"descricao_catmat": "DIPIRONA SÓDICA, COMPOSIÇÃO:ASSOCIADA À PAPAVERINA, ADIFENINA E HOMATROPINA, CONCENTRAÇÃO:500 MG + 15 MG + 15 MG + 1 MG/ML, F",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 12817,
+"codigo_catmat": "BR0314803-INATIVO",
+"descricao_catmat": "PAPEL IMPRESSORA ULTRASSONÓGRAFO, TER MOSSENSÍVEL, 110 MM, VÍDEO PRINTER SONY UPP-110S",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 108,
+"codigo_catmat": "BR0267503",
+"descricao_catmat": "ÁCIDO FÓLICO, DOSAGEM:5 MG",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 3586,
+"codigo_catmat": "BR0449116",
+"descricao_catmat": "MULTIVITAMINAS, COMPOSIÇÃO DE VITAMINAS:VITS: A, B1, B2, B3, B5, B6, B12, C, D, E, H, COMPOSIÇÃO DE SAIS MINERAIS:MINERAIS: CA, FE, I, MG, MN, P, SE, ZN, OUTROS COMPONENTES:ÁCIDO FÓLICO, COMPOSIÇÃO ADICIONAL 1:LACTOBACILLUS ACIDOPHILLUS",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 4756,
+"codigo_catmat": "BR0272576",
+"descricao_catmat": "DIPIRONA SÓDICA, COMPOSIÇÃO:ASSOCIADA À CAFEÍNA E ISOMETEPTENO, CONCENTRAÇÃO:300MG + 30MG + 50MG/ML, USO:SOLUÇÃO ORAL - GOTAS",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 15569,
+"codigo_catmat": "BR0434251INATIVO",
+"descricao_catmat": "LEDIPASVIR + SOFOSBUVIR 90 + 400 MG COMPRIMIDO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 15699,
+"codigo_catmat": "BRINATIVO X",
+"descricao_catmat": "INATIVO-DEXAMETASONA 0,1 MG/ML ELIXIR 100 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 15967,
+"codigo_catmat": "BRINATIVO 35",
+"descricao_catmat": "INATIVO-BECLOMETASONA, DIPROPIONATO 50 MCG/ML SUSPENSÃO NASAL INATIVO, USAR BR0267582-1 DOSES",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 6625,
+"codigo_catmat": "BR0293872",
+"descricao_catmat": "SULFATO FERROSO, ASSOCIADO C/ÁCIDO FÓLICO,VITAMINAS: B1,B2,B6,B12,C, NICOTINAMIDA E PANTOTENATO DE CÁLCIO, 400MG +2MG +4MG +1",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 1482,
+"codigo_catmat": "BR0272809",
+"descricao_catmat": "LAMOTRIGINA, DOSAGEM:100 MG",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 18122,
+"codigo_catmat": "BRBBR0268252U0009",
+"descricao_catmat": "DIPIRONA SÓDICA  500 MG/ML SOLUÇÃO INJETÁVEL 2 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 17512,
+"codigo_catmat": "BRINATIVO IX",
+"descricao_catmat": "INATIVO-ESTREPTOMICINA, CLORIDRATO PÓ PARA SOLUÇÃO INJETÁVEL 1000 MG",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 17189,
+"codigo_catmat": "BR0600220",
+"descricao_catmat": "FERRO ELEMENTAR ASSOCIADO AO ÁCIDO FÓLICO E VIT B12 21 MG/ML + 0,25 MG/ML + 7,5 MCG/ML SOLUÇÃO ORAL 20 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 11196,
+"codigo_catmat": "BR0268252U0009",
+"descricao_catmat": "DIPIRONA SÓDICA  500 MG/ML SOLUÇÃO INJETÁVEL 2 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 16126,
+"codigo_catmat": "BR0437993 - INATIVO",
+"descricao_catmat": "UMECLIDÍNIO BROMETO + VILANTEROL, TRIFENATATO 62,5 MCG/DOSE + 25 MCG/DOSE MCG/DOSE PÓ PARA INALAÇÃO ORAL",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 2386,
+"codigo_catmat": "BR0449115",
+"descricao_catmat": "MULTIVITAMINAS, COMPOSIÇÃO DE VITAMINAS:VITS: A, B1, B2, B3, B6, B12, C, E, COMPOSIÇÃO DE SAIS MINERAIS:MINERAIS: CU, MN, SE, ZN, OUTROS COMPONENTES:ÁCIDO FÓLICO, COMPOSIÇÃO ADICIONAL 1:LUTEÍNA, ÔMEGA 3, DHA, EPA",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 12120,
+"codigo_catmat": "BR0328810INATIVO",
+"descricao_catmat": "LAMIVUDINA 10 MG/ML SOLUÇÃO ORAL 240 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 13977,
+"codigo_catmat": "BR0296825",
+"descricao_catmat": "ÁCIDO FÓLICO + FERRO AMINOÁCIDO QUELATO 5 MG + 150 MG COMPRIMIDO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 1553,
+"codigo_catmat": "BR0412380",
+"descricao_catmat": "DIPIRONA SÓDICA, COMPOSIÇÃO:ASSOCIADA COM ESCOPOLAMINA BUTILBROMETO, CONCENTRAÇÃO:500 MG + 4 MG/ML, FORMA FÍSICA:SOLUÇÃO INJETÁVEL, USO:USO VETERINÁRIO",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 13687,
+"codigo_catmat": "BR0104469-2",
+"descricao_catmat": "LOÇÃO HIDRATANTE FRASCO 473 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 9901,
+"codigo_catmat": "BR0449107",
+"descricao_catmat": "MULTIVITAMINAS, COMPOSIÇÃO DE VITAMINAS:VITS: A, B1, B2, B3, B5, B6, B12, C, D, E, H, OUTROS COMPONENTES:ÁCIDO FÓLICO, FORMA",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 11917,
+"codigo_catmat": "BR0277587 - INATIVO",
+"descricao_catmat": "CATETER OXIGENOTERAPIA Nº 6, PLÁSTICO ATÓXICO, SILICONIZADO, ESTÉRIL",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 13333,
+"codigo_catmat": "BR0425364",
+"descricao_catmat": "MULTIVITAMINAS, VITAMINAS A, COMPLEXO B, C, ASSOCIADAS ÁCIDO FÓLICO, BIOTINA, MG, ZN, FE COMPRIMIDO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 21498,
+"codigo_catmat": "BR0419002 - INATIVO",
+"descricao_catmat": "CONE ENDODÔNTICO, ABSORVENTE, PAPEL, 2ª SÉRIE, 28 MM, ESTOJO 120 PONTAS, SORTIDA, ESTÉRIL",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 12987,
+"codigo_catmat": "BRNT06",
+"descricao_catmat": "FÓRMULA INFANTIL A PARTIR DE 6 MESES Á BASE DE PROTEÍNA ISOLADA DE SOJA.ISENTA DE LACTOSE E SACAROSE 400G",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 15697,
+"codigo_catmat": "BRINATIVO 24",
+"descricao_catmat": "INATIVO-CLORETO DE SÓDIO 0,9 % SOLUÇÃO INJETÁVEL  500 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 19364,
+"codigo_catmat": "BROBR0270622",
+"descricao_catmat": "ESCOPOLAMINA, BUTILBROMETO + DIPIRONA SÓDICA 6,67 + 333,4 MG/ML SOLUÇÃO ORAL 20 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 15679,
+"codigo_catmat": "BR0278490",
+"descricao_catmat": "ÁCIDO FÓLICO 0,4 MG/ML SOLUÇÃO ORAL 100 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 60,
+"codigo_catmat": "BR0278489",
+"descricao_catmat": "ÁCIDO FÓLICO, DOSAGEM:0,2 MG/ML, USO:SOLUÇÃO ORAL - GOTAS",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 11101,
+"codigo_catmat": "BR0375486",
+"descricao_catmat": "DIPIRONA SÓDICA, ASPECTO FÍSICO:PÓ CRISTALINO ESBRANQUIÇADO, FÓRMULA QUÍMICA:C13H16N3NASO4, PESO MOLECULAR:333,34 G/MOL, GRAU",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 12944,
+"codigo_catmat": "BR0296742-INATIVO",
+"descricao_catmat": "OLMESARTANA 40 MG COMPRIMIDO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 13281,
+"codigo_catmat": "BR0416733 - INATIVO",
+"descricao_catmat": "ESPÁTULA ODONTOLÓGICA, PLÁSTICO, DUPLO, MANIPULAÇÃO RESINAS E CIMENTOS",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 14555,
+"codigo_catmat": "BR0313571 INATIVO",
+"descricao_catmat": "LÂMINA BISTURI Nº 11, AÇO CARBONO, DESCARTÁVEL, ESTÉRIL INATIVO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 88,
+"codigo_catmat": "BR0270621",
+"descricao_catmat": "ESCOPOLAMINA BUTILBROMETO, APRESENTAÇÃO:ASSOCIADA COM DIPIRONA SÓDICA, DOSAGEM:4MG + 500MG/ML, INDICAÇÃO:SOLUÇÃO INJETÁVEL",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 19070,
+"codigo_catmat": "BROBR0267205U0063",
+"descricao_catmat": "DIPIRONA SÓDICA  500 MG/ML SOLUÇÃO ORAL 10 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 17377,
+"codigo_catmat": "BRINATIVO 27",
+"descricao_catmat": "INATIVO-OXIBUTININA, CLORIDRATO 1 MG/ML SOLUÇÃO ORAL  100 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 81,
+"codigo_catmat": "BR0267205",
+"descricao_catmat": "DIPIRONA SÓDICA, DOSAGEM:500 MG/ML, APRESENTAÇÃO:SOLUÇÃO ORAL (GOTAS)",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 2801,
+"codigo_catmat": "BR0486859",
+"descricao_catmat": "ÁCIDO FÓLICO, COMPOSIÇÃO:ASSOCIADO AO FERRO E VIT. B12, CONCENTRAÇÃO:5 MG + 41,66 MG + 15 MCG",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 11156,
+"codigo_catmat": "BR0267503U0042",
+"descricao_catmat": "ÁCIDO FÓLICO 5 MG COMPRIMIDO ELENCO ESTADUAL",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 18669,
+"codigo_catmat": "BROBR0272809U0042",
+"descricao_catmat": "LAMOTRIGINA 100 MG COMP GRUPO 2",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 19535,
+"codigo_catmat": "BRBBR0295040U0042",
+"descricao_catmat": "LAMOTRIGINA 25 MG COMP GRUPO 2",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 17381,
+"codigo_catmat": "BRINATIVO 36",
+"descricao_catmat": "INATIVO-CLORANFENICOL 4 MG/ML SOLUÇÃO OFTÁLMICA 10 ML INATIVO, USAR O BR0345638",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 18148,
+"codigo_catmat": "BRBBR0267205U0063",
+"descricao_catmat": "DIPIRONA SÓDICA  500 MG/ML SOLUÇÃO ORAL 10 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 12602,
+"codigo_catmat": "BR0281038INATIVO",
+"descricao_catmat": "FIO DE SUTURA, CATGUT SIMPLES 3-0, 70 CM, COM AGULHA 1/2 CÍRCULO CILÍNDRICA, 2,0 CM, ESTÉRIL",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 15782,
+"codigo_catmat": "BR0394023-5(INATIVO)",
+"descricao_catmat": "VASELINA (PETROLATO, PURO) POMADA 15 G",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 12473,
+"codigo_catmat": "BRINATIVO 21",
+"descricao_catmat": "INATIVO-CLORETO DE SÓDIO 0,9% SISTEMA FECHADO SOLUÇÃO INJETÁVEL  250 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 12986,
+"codigo_catmat": "BRNT01",
+"descricao_catmat": "FÓRMULA PARA LACTENTES EXTENSAMENTE HIDROLISADA, COM MÁ ABSORÇÃO INTESTINAL OU ALERGIA (AO LEITE DE VACA OU SOJA), ISENTO DE SACAROSE, LACTOSE E GLÚTEN 400G.",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 2972,
+"codigo_catmat": "BR0389957",
+"descricao_catmat": "DIPIRONA SÓDICA, APRESENTAÇÃO:ASSOCIADA À ESCOPOLAMINA BUTILBROMETO, COMPOSIÇÃO:HOMATROPINA BUTILBROMETO E HIOSCIAMINA BROMIDRATO, CONCENTRAÇÃO:300 MG + 6,5 MCG + 1 MG + 104 MCG",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 9430,
+"codigo_catmat": "BR0393800",
+"descricao_catmat": "ÁCIDO FÓLICO, CONCENTRAÇÃO:0,4 MG/ML, FORMA FARMACEUTICA:SOLUÇÃO ORAL",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 17480,
+"codigo_catmat": "BR0270633U0063",
+"descricao_catmat": "DIPIRONA + ISOMETEPTENO + CAFEÍNA 30 + 50 + 30 MG/ML SOLUÇÃO ORAL 10 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 17246,
+"codigo_catmat": "BRINATIVO 34",
+"descricao_catmat": "INATIVO-BECLOMETASONA, DIPROPIONATO 50 MCG/ML AEROSSOL ORAL INATIVO, USAR BR0346586-2 DOSES",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 5172,
+"codigo_catmat": "BR0425582",
+"descricao_catmat": "LAMOTRIGINA, CONCENTRAÇÃO:200 MG",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 17511,
+"codigo_catmat": "BRINATIVO 31",
+"descricao_catmat": "INATIVO-GLICOSE 5 % SOLUÇÃO INJETÁVEL  1000 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 1263,
+"codigo_catmat": "BR0606626",
+"descricao_catmat": "DIPIRONA SÓDICA, COMPOSIÇÃO:ASSOCIADA À CAFEÍNA, CONCENTRAÇÃO:500 MG + 65 MG",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 2408,
+"codigo_catmat": "BR0486367",
+"descricao_catmat": "MULTIVITAMINAS, COMPOSIÇÃO DE VITAMINAS:VITS: A, B1, B2, B6, B12, C, D, E, COMPOSIÇÃO DE SAIS MINERAIS:MINERAIS: FE, ZN, OUTROS COMPONENTES:ÁCIDO FÓLICO",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 5596,
+"codigo_catmat": "BR0458254",
+"descricao_catmat": "MULTIVITAMINAS, COMPOSIÇÃO DE VITAMINAS:VITS: A, B1, B2, B3, B5, B6, B12, C, D, E, OUTROS COMPONENTES:ÁCIDO FÓLICO, FORMA FARMACÊUTICA 1:SOLUÇÃO ORAL",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 13292,
+"codigo_catmat": "BR0281030 - INATIVO",
+"descricao_catmat": "FIO DE SUTURA, CATGUT SIMPLES 4-0, 70 CM, COM AGULHA 1/2 CÍRCULO CORTANTE, 1,5 CM, ESTÉRIL",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 13901,
+"codigo_catmat": "BRNT09",
+"descricao_catmat": "SUPLEMENTO INFANTIL HIPERCALÓRICO A PARTIR DE 1 ANO 100% CASEÍNA, 75% MALTODEXTRINA, ISENTO DE LACTOSE E GLÚTEN, POSSUI SACAROSE 400G",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 15134,
+"codigo_catmat": "BR0269883-1INATIVO",
+"descricao_catmat": "GLUTARAL, SOLUÇÃO A 2%, COM PÓ ATIVADOR PARA 28 DIAS, GALÃO 5 L",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 17852,
+"codigo_catmat": "BR0419386 - INATIVO",
+"descricao_catmat": "CONDENSADOR - USO ODONTOLÓGICO, MATERIAL AÇO INOXIDÁVEL, TIPO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 20221,
+"codigo_catmat": "BROBR0283156",
+"descricao_catmat": "DIPIRONA + CAFEÍNA + ORFENADRINA 300 + 50 + 35 MG COMPRIMIDO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 11152,
+"codigo_catmat": "BR0267205U0086",
+"descricao_catmat": "DIPIRONA SÓDICA  500 MG/ML SOLUÇÃO ORAL 20 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 12985,
+"codigo_catmat": "BRINATIVO 28",
+"descricao_catmat": "INATIVO- OXIBUTININA, CLORIDRATO 1 MG/ML SOLUÇÃO ORAL 120 (INATIVO) ML ELENCO ESTADUAL",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 14650,
+"codigo_catmat": "BR0368310 - INATIVO",
+"descricao_catmat": "CATETER INTRAVENOSO, PUNÇÃO VENOSA CENTRAL, VIALON, 19 G, 20,3 CM, C/ AGULHA 17G X 5,1CM, DESCARTÁVEL, ESTÉRIL, RADIOPACO, EMBALAGEM ABERTURA ASSÉPTICA",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 16959,
+"codigo_catmat": "BR0340758",
+"descricao_catmat": "DIPIRONA + CAFEINA 500 + 65 MG COMPRIMIDO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 12096,
+"codigo_catmat": "BR0438397 - INATIVO",
+"descricao_catmat": "SONDA TRATO DIGESTIVO, ORO OU NASOGÁSTRICA, LEVINE, PVC, Nº 12, CURTA, CERCA 50 CM, CONECTOR PADRÃO C/ TAMPA , PONTA DISTAL FECHADA, C/ ORIFÍCIOS LATERAIS, ESTÉRIL, DESCARTÁVEL, EMBALAGEM INDIVIDUAL",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 85,
+"codigo_catmat": "BR0268252",
+"descricao_catmat": "DIPIRONA SÓDICA, DOSAGEM:500 MG/ML, APRESENTAÇÃO:SOLUÇÃO INJETÁVEL",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 1606,
+"codigo_catmat": "BR0409123",
+"descricao_catmat": "DIPIRONA SÓDICA, CONCENTRAÇÃO:500 MG/ML, FORMA FÍSICA:SOLUÇÃO INJETÁVEL, USO:USO VETERINÁRIO",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 8615,
+"codigo_catmat": "BR0421665",
+"descricao_catmat": "ÁCIDO FÓLICO, COMPOSIÇÃO:ASSOCIADO AO FERRO AMINOÁCIDO QUELATO, CONCENTRAÇÃO:0,2MG + 30 MG/ML, FORMA FARMACEUTICA:SOLUÇÃO ORA",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 5176,
+"codigo_catmat": "BR0278650",
+"descricao_catmat": "CARISOPRODOL, APRESENTAÇÃO:C/DIPIRONA + PIRIDOXINA+ TIAMINA + CIANOCOBALAMINA, DOSAGEM:250MG + 250MG + 100MG + 50MG + 1MG",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 13974,
+"codigo_catmat": "BR0270622U0075",
+"descricao_catmat": "ESCOPOLAMINA, BUTILBROMETO + DIPIRONA SÓDICA 6,67 + 333,4 MG/ML SOLUÇÃO ORAL 15 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 12475,
+"codigo_catmat": "BRINATIVO 32",
+"descricao_catmat": "INATIVO-GLICOSE 5 % SOLUÇÃO INJETÁVEL  250 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 2038,
+"codigo_catmat": "BR0435720",
+"descricao_catmat": "ÁCIDO FÓLICO, COMPOSIÇÃO:ASSOCIADO AO ACETATO DE DEXTROALFATOCOFEROL, CONCENTRAÇÃO:400 MCG + 10 MG",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 14598,
+"codigo_catmat": "BRNT08-2",
+"descricao_catmat": "FÓRMULA NUTRICIONALMENTE COMPLETA NORMOCALÓRICA,NORMOLIPÍDICA,NORMOPROTÉICA,ACRESCIDA DE FIBRAS 1000ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 16425,
+"codigo_catmat": "BR0362059 - INATIVO",
+"descricao_catmat": "RIVASTIGMINA, HIDROGENOTARTARATO 27 MG ADESIVO TRANSDÉRMICO (13,3 MG/24H) ELENCO ESTADUAL",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 16741,
+"codigo_catmat": "BR0275475-1",
+"descricao_catmat": "DIPIRONA + PROMETAZINA + ADIFENINA 500 + 5 + 10 MG SOLUÇÃO ORAL 15 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 16940,
+"codigo_catmat": "BRNT08-4",
+"descricao_catmat": "FÓRMULA NUTRICIONAL, NORMOCALÓRICA E NORMOPROTEICA, DE BAIXA OSMOLARIDADE, ACRESCIDA DE 49% DE FIBRAS SOLUVEIS E 51% DE FIBRAS INSOLUVEIS, ISENTA DE SACAROSE, LACTOSE E GLUTÉN 200 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 13540,
+"codigo_catmat": "BR0273178 - INATIVO",
+"descricao_catmat": "LÂMINA BISTURI Nº 15, AÇO CARBONO, DESCARTÁVEL, ESTÉRIL - INATIVO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 1208,
+"codigo_catmat": "BR0410023",
+"descricao_catmat": "DIPIRONA SÓDICA, CONCENTRAÇÃO:1 G",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 1689,
+"codigo_catmat": "BR0295040",
+"descricao_catmat": "LAMOTRIGINA, DOSAGEM:25 MG",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 12229,
+"codigo_catmat": "BR0324414U0042",
+"descricao_catmat": "LAMOTRIGINA 50 MG COMP GRUPO 2",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 12588,
+"codigo_catmat": "BRNT09-1",
+"descricao_catmat": "ALIMENTO NUTRICIONALMENTE COMPLETO 1-10 ANOS, PROTEÍNA DO SORO DO LEITE, VITAMINAS, MINERAIS.ISENTO DE GLÚTEN 400G",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 17904,
+"codigo_catmat": "BR0331757 - INATIVO",
+"descricao_catmat": "REAGENTE PARA DIAGNÓSTICO CLÍNICO, CONJUNTO COMPLETO PARA AUTOMAÇÃO, PREPARO DE SOLUÇÃO PADRÃO DE BILIRRUBINA, COLORIMÉTRICO DE PONTO FINAL, COM DILUENTE, TESTE   ,",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 13087,
+"codigo_catmat": "BR0367012 - INATIVO",
+"descricao_catmat": "FIO DE SUTURA, POLIGLACTINA C/ COBERTURA DE TRICLOSAN, 2-0, VIOLETA TRANÇADA, 70 CM, COM AGULHA, 1/2 CÍRCULO CILÍNDRICA, 4 CM, ESTÉRIL",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 3157,
+"codigo_catmat": "BR0602451",
+"descricao_catmat": "LAMOTRIGINA, CONCENTRAÇÃO:50 MG, FORMA FARMACÊUTICA:COMPRIMIDO DISPERSÍVEL",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 2433,
+"codigo_catmat": "BR0270633",
+"descricao_catmat": "DIPIRONA SÓDICA, COMPOSIÇÃO:ASSOCIADA À CAFEÍNA E ISOMETEPTENO, CONCENTRAÇÃO:300MG + 30MG + 30MG",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 2117,
+"codigo_catmat": "BR0449103",
+"descricao_catmat": "MULTIVITAMINAS, COMPOSIÇÃO DE VITAMINAS:VITS: B1, B2, B3, B5, B6, B12, COMPOSIÇÃO DE SAIS MINERAIS:MINERAL: FE, OUTROS COMPONENTES:ÁCIDO FÓLICO",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 13789,
+"codigo_catmat": "BR0297746INATIVO",
+"descricao_catmat": "INATIVO -DISPOSITIVO INTRA-UTERINO (DIU) MODELO T",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 12494,
+"codigo_catmat": "BR0272809-1",
+"descricao_catmat": "LAMOTRIGINA 100 MG COMPRIMIDO DISPERSÍVEL",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 17084,
+"codigo_catmat": "BRNT08-5",
+"descricao_catmat": "FÓRMULA NUTRICIONALMENTE COMPLETA NORMOCALÓRICA, NORMOLIPÍDICA, NORMOPROTÉICA, ACRESCIDA DE FIBRAS, 800G",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 857,
+"codigo_catmat": "BR0270620",
+"descricao_catmat": "ESCOPOLAMINA BUTILBROMETO, APRESENTAÇÃO:ASSOCIADA COM DIPIRONA SÓDICA, DOSAGEM:10MG + 250MG",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 2964,
+"codigo_catmat": "BR0389956",
+"descricao_catmat": "DIPIRONA SÓDICA, APRESENTAÇÃO:ASSOCIADA À ESCOPOLAMINA BUTILBROMETO, COMPOSIÇÃO:HOMATROPINA BUTILBROMETO E HIOSCIAMINA BROMIDRATO, CONCENTRAÇÃO:300 MG + 6,5 MCG + 1 MG + 104 MCG/ML, FORMA FARMACÊUTICA:SOLUÇÃO ORAL - GOTAS",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 12298,
+"codigo_catmat": "BR0350857 - INATIVO",
+"descricao_catmat": "COLCHÃO  USO HOSPITALAR, ESPUMA, D-3, 190 CM, 7 CM, 90 CM, TIPO CAIXA DE OVO, FORRADO CAPA SILICONE, ZIPPER, COSTURA 100%POLIESTER",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 15211,
+"codigo_catmat": "BR0104469-4",
+"descricao_catmat": "LOÇÃO HIDRATANTE FRASCO 295 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 15066,
+"codigo_catmat": "BRNT07-4",
+"descricao_catmat": "MÓDULO DE FIBRAS SOLÚVEIS PARA EQUILÍBRIO DA MICROBIOTA INTESTINAL, CONTENDO INULINA, GOMA GUAR E/OU OUTRAS FIBRAS PREBIÓTICAS, 400G",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 12472,
+"codigo_catmat": "BRINATIVO 20",
+"descricao_catmat": "INATIVO-CLORETO DE SÓDIO 0,9% SISTEMA FECHADO SOLUÇÃO INJETÁVEL  500  ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 13121,
+"codigo_catmat": "BR0395538INATIVO",
+"descricao_catmat": "RECIPIENTE NUTRIÇÃO ENTERAL, PLÁSTICO TRANSPARENTE, 300 ML, COM TAMPA ROSQUEADA, ALÇA, ETIQUETA, BICO CONECTOR, GRADUADO, NÃO ESTÉRIL, ATÓXICO, DESCARTÁVEL, EMBALAGEM INDIVIDUAL (INATIVO)",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 12556,
+"codigo_catmat": "BR0410023U0009",
+"descricao_catmat": "DIPIRONA SÓDICA 1 G SOLUÇÃO INJETÁVEL 2 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 15632,
+"codigo_catmat": "BRNT03-2",
+"descricao_catmat": "FÓRMULA INFANTIL DE SEGUIMENTO A PARTIR DE 6 MESES, ISENTO DE GLÚTEN 800G",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 15889,
+"codigo_catmat": "BR0292240 - INATIVO",
+"descricao_catmat": "MESALAZINA 1000 MG SUPOSITÓRIO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 12180,
+"codigo_catmat": "BR0272809U0042",
+"descricao_catmat": "LAMOTRIGINA 100 MG COMP GRUPO 2",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 13497,
+"codigo_catmat": "BR0434568",
+"descricao_catmat": "RETINOL+COLECALCIFEROL+ACETATO DE TOCOFEROL+ACIDO ASCORBICO+TIAMINA+RIBOFLAVINA+NICOTINAMIDA+CLORIDRATO DE PIRIDOXINA+ACIDO FOLICO+CIANOCOBALAMINA+FERRO+ZINCO+CALCIO 2664+400+10UI+70+3+3,4+17+4+0,6MG+2,2MCG+30+15+125 MG CÁPSULA",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 16075,
+"codigo_catmat": "BR0433453-INATIVO",
+"descricao_catmat": "ACESSÓRIO BOMBA INSULINA, CÂNULA INFUSÃO CERCA 10 MM, POLÍMERO, C/ AGULHA INTRODUTORA",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 11872,
+"codigo_catmat": "BR0278489U0097",
+"descricao_catmat": "ÁCIDO FÓLICO 0,2 MG/ML SOLUÇÃO ORAL 30 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 19748,
+"codigo_catmat": "BRBBR0324414U0042",
+"descricao_catmat": "LAMOTRIGINA 50 MG COMP GRUPO 2",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 77,
+"codigo_catmat": "BR0267203",
+"descricao_catmat": "DIPIRONA SÓDICA, DOSAGEM:500 MG",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 20578,
+"codigo_catmat": "BRSBR0267205U0086",
+"descricao_catmat": "DIPIRONA SÓDICA  500 MG/ML SOLUÇÃO ORAL 20 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 4459,
+"codigo_catmat": "BR0363561",
+"descricao_catmat": "DEXAMETASONA, COMPOSIÇÃO:ASSOCIADA À DIPIRONA SÓDICA E HIDROXICOBALAMINA, CONCENTRAÇAO:AMPOLA 1: 1,5 MG + 500 MG/ML, AMPOLA 2: 5 MG/ML, FORMA FARMACEUTICA:SOLUÇÃO INJETÁVEL",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 13975,
+"codigo_catmat": "BR0273824",
+"descricao_catmat": "ÁCIDO FÓLICO 2 MG COMPRIMIDO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 16471,
+"codigo_catmat": "BR0269882-2INATIVO",
+"descricao_catmat": "GLUTARAL SOLUÇÃO 2% COM PÓ ATIVADOR PARA 14 DIAS 5L",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 17140,
+"codigo_catmat": "BR0444596 -INATIVO",
+"descricao_catmat": "POLIVITAMINICO AMINOÁCIDO REAGENTE PARA DIAGNÓSTICO CLÍNICO¿, CONJUNTO COMPLETO, QUALITATIVO DE ANTI CHIKUNGUNYA VÍRUS IGM, IMUNOCROMA TOGRAFIA, TESTE",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 13534,
+"codigo_catmat": "BR0000000INATIVO",
+"descricao_catmat": "ESPELHO BUCAL, AÇO INOXIDÁVEL E ESPELHO, CÔNCAVO, Nº 5, ENCAIXE UNIVERSAL, CABO PADÃO, AUTOCLAVÁVEL, EMBALAGEM INDIVIDUAL",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 8351,
+"codigo_catmat": "BR0442743",
+"descricao_catmat": "DIPIRONA SÓDICA, COMPOSIÇÃO:ASSOCIADA À ADIFENINA E PROMETAZINA, CONCENTRAÇÃO:333 MG/ML + 6,66 MG/ML + 3,33 MG/ML, FORMA FARM",
+"tem_compras": true,
+"tem_estoque": false
+},
+{
+"catmat_id": 21398,
+"codigo_catmat": "BREBR0272809",
+"descricao_catmat": "LAMOTRIGINA 100 MG COMPRIMIDO ELENCO ESTADUAL",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 10069,
+"codigo_catmat": "BR0434128",
+"descricao_catmat": "ÁCIDO FÓLICO, COMPOSIÇÃO:ASSOCIADO AO ACETATO DE RACEALFATOCOFEROL, CONCENTRAÇÃO:800 MCG + 20 MG",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 8595,
+"codigo_catmat": "BR0602452",
+"descricao_catmat": "LAMOTRIGINA, CONCENTRAÇÃO:25 MG, FORMA FARMACÊUTICA:COMPRIMIDO DISPERSÍVEL",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 13523,
+"codigo_catmat": "BR0341921 - INATIVO",
+"descricao_catmat": "CURETA PERIODONTAL, AÇO INOXIDÁVEL, GRACEY, 17-18",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 15555,
+"codigo_catmat": "BR0334139-INATIVO",
+"descricao_catmat": "FIO DE SUTURA, NYLON MONOFILAMENTO, 5-0, INCOLOR, 45 CM, COM AGULHA 3/8 CÍRCULO CORTANTE, 2 CM, ESTÉRIL",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 14921,
+"codigo_catmat": "BR0104469",
+"descricao_catmat": "HIDRATANTE HIPOALERGÊNICO LOÇÃO CREMOSA 60ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 11150,
+"codigo_catmat": "BR0267203U0042",
+"descricao_catmat": "DIPIRONA SÓDICA  500 MG COMPRIMIDO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 14150,
+"codigo_catmat": "BR0279642 - INATIVO",
+"descricao_catmat": "AGULHA, GENGIVAL,30G LONGA,CORPO EM AÇO INÓX SILICONIZADO,BISEL TRIFACETADO,ADAPTÁVEL À SERINGA CARPULE, PROTETOR PLÁSTICO,ESTÉRIL,DESCART.",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 16460,
+"codigo_catmat": "BRNT08-6",
+"descricao_catmat": "FÓRMULA NUTRICIONALMENTE COMPLETA NORMOCALÓRICA, NORMOLIPÍDICA, NORMOPROTÉICA, ISENTA DE FIBRAS, 800G",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 19766,
+"codigo_catmat": "BROBR0270622-1",
+"descricao_catmat": "ESCOPOLAMINA, BUTILBROMETO + DIPIRONA SÓDICA 6,67 + 333,4 MG/ML SOLUÇÃO ORAL 10 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 5617,
+"codigo_catmat": "BR0393803",
+"descricao_catmat": "ÁCIDO FÓLICO, CONCENTRAÇÃO:5 MG/ML, FORMA FARMACEUTICA:SOLUÇÃO ORAL - GOTAS",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 12474,
+"codigo_catmat": "BRINATIVO 25",
+"descricao_catmat": "INATIVO-CLORETO DE SÓDIO 0,9 % SOLUÇÃO INJETÁVEL  250 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 16750,
+"codigo_catmat": "BR0269882-INATIVO",
+"descricao_catmat": "GLUTARAL SOLUÇÃO 2% COM PÓ ATIVADOR PARA 14 DIAS 1 L",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 14753,
+"codigo_catmat": "BR0449569INATIVO",
+"descricao_catmat": "VELPATASVIR + SOFOSBUVIR 100 + 400 MG COMPRIMIDO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 16461,
+"codigo_catmat": "BRNT136",
+"descricao_catmat": "FÓRMULA MODIFICADA PARA NUTRIÇÃO ENTERAL E ORAL, 100% DE PROTEÍNA DO SORO DE LEITE HIDROLISADA, ALTO TEOR DE ÁCIDO PANTOTÊNICO E ÁCIDO FÓLICO 400G",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 14317,
+"codigo_catmat": "BR0351305 - INATIVO",
+"descricao_catmat": "TUBO ENDOTRAQUEAL 9 MM, PVC, SEM BALÃO, DESCARTÁVEL, ESTÉRIL",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 6637,
+"codigo_catmat": "BR0399988",
+"descricao_catmat": "HIDRÓXIDO DE FERRO III, COMPOSIÇÃO:COMPLEXO POLIMALTOSADO, ASSOCIADO AO ÁCIDO FÓLICO, CONCENTRAÇÃO:100 MG + 0,35 MG, FORMA FA",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 11796,
+"codigo_catmat": "BR0314517-5 INATIVO",
+"descricao_catmat": "AZITROMICINA 40MG/ML 600MG PÓ PARA SOLUÇÃO 15 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 15554,
+"codigo_catmat": "BR0278705 (INATIVO)",
+"descricao_catmat": "CLAMP, PVC RÍGIDO, UMBILICAL, ATÓXICO, HIPOALERGÊNICO, DESCARTÁVEL, EMBALAGEM INDIVIDUAL (INATIVO)",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 12652,
+"codigo_catmat": "BR0452410U0042",
+"descricao_catmat": "MULTIVITAMINAS COMPOSIÇÃO VIT A, B1, B2, B5, B6, B12, C, D, E, K ASSOCIADO A SAIS MINERAIS (CA, CR, CU, FE, I, MG, MN, MO, SE, ZN), BIOTINA, NIACINA, ÁCIDO FÓLICO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 18465,
+"codigo_catmat": "BREBR0272809U0042",
+"descricao_catmat": "LAMOTRIGINA 100 MG COMP GRUPO 2",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 13120,
+"codigo_catmat": "BR0390708 - INATIVO",
+"descricao_catmat": "EQUIPO, DE INFUSÃO, PVC CRISTAL, MÍN  140 CM, CÂMARA FLEXÍVEL C/FILTRO AR, MICROGOTAS, REGULADOR DE FLUXO,  UER C/ TAMPA, ESTÉRIL,DESCARTÁVEL",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 19506,
+"codigo_catmat": "BR0000000",
+"descricao_catmat": null,
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 2450,
+"codigo_catmat": "BR0275475",
+"descricao_catmat": "DIPIRONA SÓDICA, COMPOSIÇÃO:ASSOCIADA À ADIFENINA E PROMETAZINA, CONCENTRAÇÃO:500MG + 10MG + 5MG",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 7321,
+"codigo_catmat": "BR0268000",
+"descricao_catmat": "DIPIRONA SÓDICA, DOSAGEM:300 MG, APRESENTAÇÃO:SUPOSITÓRIO INFANTIL",
+"tem_compras": true,
+"tem_estoque": true
+},
+{
+"catmat_id": 15237,
+"codigo_catmat": "BR0412786",
+"descricao_catmat": "PIRIDOXINA + ÁCIDO FÓLICO + CIANOCOBALAMINA 4 + 0,8 + 0,4 MG COMPRIMIDO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 15675,
+"codigo_catmat": "BRNT09-3",
+"descricao_catmat": "ALIMENTO NUTRICIONALMENTE COMPLETO 1-10 ANOS, PROTEÍNA DO SORO DO LEITE, VITAMINAS, MINERAIS.ISENTO DE GLÚTEN E LACTOSE 250ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 20857,
+"codigo_catmat": "BROBR0340758",
+"descricao_catmat": "DIPIRONA + CAFEINA 500 + 65 MG COMPRIMIDO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 18147,
+"codigo_catmat": "BRBBR0267203U0042",
+"descricao_catmat": "DIPIRONA SÓDICA  500 MG COMPRIMIDO",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 16306,
+"codigo_catmat": "BRNT04.1",
+"descricao_catmat": "FÓRMULA INFANTIL ISENTO DE LACTOSE 800G",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 14080,
+"codigo_catmat": "BR0267205U0075",
+"descricao_catmat": "DIPIRONA SÓDICA  500 MG/ML SOLUÇÃO ORAL 15 ML",
+"tem_compras": false,
+"tem_estoque": true
+},
+{
+"catmat_id": 15300,
+"codigo_catmat": "BRINATIVO II",
+"descricao_catmat": "INATIVO-ADRENALINA 1 MG/ML SOLUÇÃO INJETÁVEL  1 ML",
+"tem_compras": false,
+"tem_estoque": true
+}
+]

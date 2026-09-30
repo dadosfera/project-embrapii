@@ -79,44 +79,84 @@ export interface HistoricoCompras {
   items: CompraMedicamento[];
 }
 
+/** item = só o catmat_id; grupo = todas as variantes do item-base (backend/catmat_index.py). */
+export type Escopo = "item" | "grupo";
+
+export interface VarianteCatmat {
+  catmat_id: number;
+  codigo: string;
+  descricao: string;
+  rotulo: string;
+  componente: string | null;
+  apresentacao: string | null;
+  tem_compras: boolean;
+  tem_estoque: boolean | null;
+}
+
+/** Item-base CATMAT: código BR + 7 dígitos com as apresentações e os componentes BNAFAR. */
+export interface GrupoCatmat {
+  base: string;
+  nome: string;
+  composicao: string;
+  catmat_id: number;
+  catmat_ids: number[];
+  tem_compras: boolean;
+  tem_estoque: boolean | null;
+  variantes: VarianteCatmat[];
+}
+
+export interface BlocoBuscaCatmat {
+  composicao: string;
+  itens: GrupoCatmat[];
+}
+
+export function buscarCatmatAgrupado(q: string, limite = 30): Promise<BlocoBuscaCatmat[]> {
+  return request<BlocoBuscaCatmat[]>("/api/medicamentos/busca-agrupada", { q, limite });
+}
+
+export function buscarGrupoCatmat(chave: string): Promise<GrupoCatmat> {
+  return request<GrupoCatmat>(`/api/medicamentos/grupo/${encodeURIComponent(chave)}`);
+}
+
 export function buscarMedicamentos(q: string, limite?: number): Promise<CatmatItem[]> {
   return request<CatmatItem[]>("/api/medicamentos/busca", { q, limite });
 }
 
-export function listarProdutos(catmatId: number): Promise<Produto[]> {
-  return request<Produto[]>(`/api/medicamentos/${catmatId}/produtos`);
+export function listarProdutos(catmatId: number, escopo: Escopo = "item"): Promise<Produto[]> {
+  return request<Produto[]>(`/api/medicamentos/${catmatId}/produtos`, { escopo });
 }
 
-export function buscarResumoMedicamento(catmatId: number): Promise<ResumoMedicamento> {
-  return request<ResumoMedicamento>(`/api/medicamentos/${catmatId}/resumo`);
+export function buscarResumoMedicamento(catmatId: number, escopo: Escopo = "item"): Promise<ResumoMedicamento> {
+  return request<ResumoMedicamento>(`/api/medicamentos/${catmatId}/resumo`, { escopo });
 }
 
-export function buscarLotesVencendo(catmatId: number, dias: number): Promise<LotesVencendo> {
-  return request<LotesVencendo>(`/api/medicamentos/${catmatId}/lotes-vencendo`, { dias });
+export function buscarLotesVencendo(catmatId: number, dias: number, escopo: Escopo = "item"): Promise<LotesVencendo> {
+  return request<LotesVencendo>(`/api/medicamentos/${catmatId}/lotes-vencendo`, { dias, escopo });
 }
 
-export function buscarEstoquePorUf(catmatId: number): Promise<EstoqueUf[]> {
-  return request<EstoqueUf[]>(`/api/medicamentos/${catmatId}/estoque-por-uf`);
+export function buscarEstoquePorUf(catmatId: number, escopo: Escopo = "item"): Promise<EstoqueUf[]> {
+  return request<EstoqueUf[]>(`/api/medicamentos/${catmatId}/estoque-por-uf`, { escopo });
 }
 
-export function buscarEvolucaoPreco(catmatId: number): Promise<EvolucaoPreco[]> {
-  return request<EvolucaoPreco[]>(`/api/medicamentos/${catmatId}/compras/evolucao-preco`);
+export function buscarEvolucaoPreco(catmatId: number, escopo: Escopo = "item"): Promise<EvolucaoPreco[]> {
+  return request<EvolucaoPreco[]>(`/api/medicamentos/${catmatId}/compras/evolucao-preco`, { escopo });
 }
 
-export function buscarFornecedores(catmatId: number, limite: number): Promise<FornecedorCompra[]> {
-  return request<FornecedorCompra[]>(`/api/medicamentos/${catmatId}/compras/fornecedores`, { limite });
+export function buscarFornecedores(catmatId: number, limite: number, escopo: Escopo = "item"): Promise<FornecedorCompra[]> {
+  return request<FornecedorCompra[]>(`/api/medicamentos/${catmatId}/compras/fornecedores`, { limite, escopo });
 }
 
-export function buscarFabricantes(catmatId: number, limite: number): Promise<FabricanteCompra[]> {
-  return request<FabricanteCompra[]>(`/api/medicamentos/${catmatId}/compras/fabricantes`, { limite });
+export function buscarFabricantes(catmatId: number, limite: number, escopo: Escopo = "item"): Promise<FabricanteCompra[]> {
+  return request<FabricanteCompra[]>(`/api/medicamentos/${catmatId}/compras/fabricantes`, { limite, escopo });
 }
 
 export function buscarHistoricoCompras(
   catmatId: number,
   limite: number,
   offset: number,
+  escopo: Escopo = "item",
 ): Promise<HistoricoCompras> {
-  return request<HistoricoCompras>(`/api/medicamentos/${catmatId}/compras`, { limite, offset });
+  return request<HistoricoCompras>(`/api/medicamentos/${catmatId}/compras`, { limite, offset, escopo });
 }
 
 // ---------------------------------------------------------------------------
@@ -137,13 +177,6 @@ export interface KpisCompras {
   numero_fornecedores: number;
   numero_fabricantes: number;
   numero_mantenedoras: number;
-}
-
-export interface CompraPorMes {
-  mes: string;
-  valor_total: number;
-  numero_compras: number;
-  quantidade_itens: number;
 }
 
 export interface RankingFornecedorCompra {
@@ -188,6 +221,22 @@ export interface CompraRecente {
   nome_mantenedora: string | null;
 }
 
+export interface IntervaloCompras {
+  data_minima: string | null;
+  data_maxima: string | null;
+  ano_minimo: number | null;
+  ano_maximo: number | null;
+}
+
+export interface CompraPorAno {
+  ano: number;
+  valor_total: number;
+  numero_compras: number;
+  quantidade_itens: number;
+  maior_registro: number | null;
+  maior_registro_fornecedor: string | null;
+}
+
 function paramsCompras(f: FiltrosCompras) {
   return {
     data_inicio: f.data_inicio,
@@ -201,8 +250,12 @@ export function buscarKpisCompras(filtros: FiltrosCompras): Promise<KpisCompras>
   return request<KpisCompras>("/api/compras/kpis", paramsCompras(filtros));
 }
 
-export function buscarComprasPorMes(filtros: FiltrosCompras): Promise<CompraPorMes[]> {
-  return request<CompraPorMes[]>("/api/compras/por-mes", paramsCompras(filtros));
+export function buscarIntervaloCompras(): Promise<IntervaloCompras> {
+  return request<IntervaloCompras>("/api/compras/intervalo");
+}
+
+export function buscarComprasPorAno(filtros: FiltrosCompras): Promise<CompraPorAno[]> {
+  return request<CompraPorAno[]>("/api/compras/por-ano", paramsCompras(filtros));
 }
 
 export function buscarRankingFornecedores(
@@ -340,5 +393,17 @@ export function buscarLeitosPorUf(filtros: FiltrosLeitos): Promise<LeitosPorUf[]
   return request<LeitosPorUf[]>("/api/leitos/por-uf", {
     modo: filtros.modo,
     uf: filtros.uf,
+  });
+}
+
+export function buscarEvolucaoLeitos(
+  uf: string,
+  dataInicio: string,
+  dataFim: string,
+): Promise<EvolucaoLeitos[]> {
+  return request<EvolucaoLeitos[]>("/api/leitos/evolucao", {
+    data_inicio: dataInicio,
+    data_fim: dataFim,
+    uf,
   });
 }

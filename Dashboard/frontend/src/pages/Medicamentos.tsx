@@ -1,8 +1,11 @@
 import {
-  type FormEvent,
+  type ReactNode,
+  useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
+import { useSearchParams } from "react-router";
 
 import type { ColumnDef } from "@tanstack/react-table";
 
@@ -18,9 +21,9 @@ import {
   YAxis,
 } from "recharts";
 
+import { CatmatPicker, SelosDados } from "../components/CatmatPicker";
 import { DataTable } from "../components/DataTable";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { cn } from "../lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChartFrame } from "@/ui/ChartFrame";
@@ -47,10 +50,13 @@ import {
   buscarFornecedores,
   buscarHistoricoCompras,
   buscarLotesVencendo,
-  buscarMedicamentos,
+  buscarGrupoCatmat,
   buscarResumoMedicamento,
   listarProdutos,
   type CatmatItem,
+  type Escopo,
+  type GrupoCatmat,
+  type VarianteCatmat,
   type CompraMedicamento,
   type EstoqueUf,
   type EvolucaoPreco,
@@ -253,7 +259,8 @@ function contextoMedicamento(
   dados: DadosMedicamento,
   item: CatmatItem,
   abaCompras: AbaCompras,
-  busca: string | null,
+  escopo: string | null,
+  grupo: GrupoCatmat | null,
 ) {
   const evolucao = dados.evolucaoPreco.map((e) => ({
     data: String(e.data_de_compra).slice(0, 10),
@@ -286,12 +293,14 @@ function contextoMedicamento(
     description:
       "Detalhe de um medicamento CATMAT: KPIs de estoque (última posição por instituição), lotes vencendo em 90 dias, "
       + "estoque por UF e compras públicas (preço, fornecedores, fabricantes, histórico).",
-    filters: { busca, aba_compras: abaCompras, janela_lotes_dias: dados.lotes.dias },
+    filters: { escopo, aba_compras: abaCompras, janela_lotes_dias: dados.lotes.dias },
     selection: {
       catmat_id: item.catmat_id,
       codigo_catmat: item.codigo_catmat,
       descricao: item.descricao_catmat,
       produtos_vinculados: dados.produtos.length,
+      item_base: grupo?.base ?? null,
+      codigos_reunidos: grupo?.variantes.map((v) => ({ codigo: v.codigo, rotulo: v.rotulo, tem_compras: v.tem_compras, tem_estoque: v.tem_estoque })) ?? [],
     },
     visible_kpis: {
       estoque_total: numero(dados.resumo.estoque_total),
@@ -337,263 +346,148 @@ function contextoMedicamento(
 }
 
 
+function notaCobertura(g: GrupoCatmat): string {
+  const compras = g.variantes.filter((v) => v.tem_compras).length;
+  const estoque = g.variantes.filter((v) => v.tem_estoque).length;
+  const partes = [
+    compras ? `compras em ${compras} ${compras === 1 ? "código" : "códigos"}` : "nenhum código com compras",
+    estoque ? `estoque em ${estoque}` : "nenhum com estoque",
+  ];
+  return `Na base, ${partes.join(" e ")}. Em “Todos”, os números abaixo somam os códigos; escolha um código para ver só ele.`;
+}
+
+
+function ChipVariante({
+  ativo,
+  onClick,
+  title,
+  children,
+}: {
+  ativo: boolean;
+  onClick: () => void;
+  title?: string;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      data-slot="chip"
+      aria-checked={ativo}
+      onClick={onClick}
+      title={title}
+      className={cn(
+        "inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1 text-left font-medium transition-colors",
+        ativo
+          ? "border-primary bg-primary-soft text-primary"
+          : "border-line bg-panel text-[var(--text)] hover:bg-subtle",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+
 export function Medicamentos() {
-  const [
-    busca,
-    setBusca,
-  ] = useState("");
+  // A seleção vive na URL (?catmat=<código-base>&variante=<código>): voltar, recarregar e compartilhar mantêm o item.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const chaveUrl = searchParams.get("catmat");
+  const varianteUrl = searchParams.get("variante");
 
-  const [
-    resultados,
-    setResultados,
-  ] =
-    useState<
-      CatmatItem[]
-    >([]);
-
-  const [
-    selecionado,
-    setSelecionado,
-  ] = useState("");
-
-  const [
-    buscando,
-    setBuscando,
-  ] = useState(false);
-
-  const [
-    carregando,
-    setCarregando,
-  ] = useState(false);
-
-  const [
-    erroBusca,
-    setErroBusca,
-  ] =
-    useState<
-      string | null
-    >(null);
-
-  const [
-    erroDados,
-    setErroDados,
-  ] =
-    useState<
-      string | null
-    >(null);
-
+  const [grupo, setGrupo] = useState<GrupoCatmat | null>(null);
+  const [carregando, setCarregando] = useState(false);
+  const [erroDados, setErroDados] = useState<string | null>(null);
   // Falha de requisição: guarda o erro real para o ErrorState (erroDados fica para mensagens da página).
-  const [
-    falhaDados,
-    setFalhaDados,
-  ] =
-    useState<unknown>(null);
+  const [falhaDados, setFalhaDados] = useState<unknown>(null);
+  const [medicamentoCarregado, setMedicamentoCarregado] = useState<CatmatItem | null>(null);
+  const [dados, setDados] = useState<DadosMedicamento | null>(null);
+  const [abaCompras, setAbaCompras] = useState<AbaCompras>("preco");
+  const pedido = useRef(0);
 
-  const [
-    buscaConfirmada,
-    setBuscaConfirmada,
-  ] =
-    useState<
-      string | null
-    >(null);
+  // null = todas as variantes do item-base (escopo grupo)
+  const variante = useMemo(
+    () => grupo?.variantes.find((v) => v.codigo === varianteUrl) ?? null,
+    [grupo, varianteUrl],
+  );
 
-  const [
-    medicamentoCarregado,
-    setMedicamentoCarregado,
-  ] =
-    useState<
-      CatmatItem | null
-    >(null);
-
-  const [
-    dados,
-    setDados,
-  ] =
-    useState<
-      DadosMedicamento | null
-    >(null);
-
-  const [
-    abaCompras,
-    setAbaCompras,
-  ] =
-    useState<AbaCompras>(
-      "preco",
-    );
-
-
-  const itemSelecionado =
-    resultados.find(
-      (item) =>
-        String(
-          item.catmat_id,
-        )
-        === selecionado,
-    );
-
-
-  function alterarBusca(
-    valor: string,
-  ) {
-    setBusca(valor);
-
-    if (
-      medicamentoCarregado
-      || dados
-    ) {
-      setMedicamentoCarregado(
-        null,
-      );
-      setDados(null);
-      setErroDados(null);
-      setFalhaDados(null);
-    }
+  function selecionarGrupo(novo: GrupoCatmat | null) {
+    if (novo) setGrupo(novo);
+    setSearchParams(novo ? { catmat: novo.base } : {});
   }
 
+  function selecionarVariante(v: VarianteCatmat | null) {
+    if (!grupo) return;
+    setSearchParams(v ? { catmat: grupo.base, variante: v.codigo } : { catmat: grupo.base });
+  }
 
-  async function handleBuscar(
-    event:
-      FormEvent<HTMLFormElement>,
-  ) {
-    event.preventDefault();
-
-    const termo =
-      busca.trim();
-
-    if (!termo) {
-      setErroBusca(
-        "Digite algo para buscar um medicamento no catálogo CATMAT.",
-      );
+  // URL → item-base (entrada direta, voltar/avançar, link compartilhado).
+  useEffect(() => {
+    if (!chaveUrl) {
+      setGrupo(null);
       return;
     }
-
-    setBuscando(true);
-    setErroBusca(null);
+    if (grupo?.base === chaveUrl) return;
+    let vivo = true;
     setErroDados(null);
-    setFalhaDados(null);
-    setResultados([]);
-    setSelecionado("");
-    setBuscaConfirmada(null);
-    setMedicamentoCarregado(
-      null,
-    );
-    setDados(null);
+    buscarGrupoCatmat(chaveUrl)
+      .then((g) => vivo && setGrupo(g))
+      .catch(() => vivo && setErroDados(`O código CATMAT ${chaveUrl} não existe no catálogo.`));
+    return () => {
+      vivo = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chaveUrl]);
 
-    try {
-      const itens =
-        await buscarMedicamentos(
-          termo,
-        );
-
-      setResultados(
-        itens,
-      );
-
-      if (
-        itens.length === 0
-      ) {
-        setErroBusca(
-          "Nenhum item encontrado para essa busca.",
-        );
-      }
-    } catch (error) {
-      setErroBusca(
-        error
-          instanceof Error
-          ? error.message
-          : "Não foi possível consultar a API.",
-      );
-    } finally {
-      setBuscando(false);
+  useEffect(() => {
+    if (grupo) {
+      void carregarDados(grupo, variante);
+    } else {
+      pedido.current++;
+      setDados(null);
+      setMedicamentoCarregado(null);
+      setCarregando(false);
     }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [grupo, variante]);
 
 
-  async function carregarDados() {
-    if (
-      !itemSelecionado
-    ) {
-      setErroDados(
-        "Selecione um medicamento antes de carregar os dados.",
-      );
-      return;
-    }
-
-    const catmatId =
-      itemSelecionado
-        .catmat_id;
+  async function carregarDados(g: GrupoCatmat, v: VarianteCatmat | null) {
+    const meu = ++pedido.current;
+    const catmatId = v?.catmat_id ?? g.catmat_id;
+    const escopo: Escopo = v ? "item" : "grupo";
 
     setCarregando(true);
     setErroDados(null);
     setFalhaDados(null);
     setDados(null);
-    setAbaCompras(
-      "preco",
-    );
+    setAbaCompras("preco");
 
     try {
-      const [
-        produtos,
-        resumo,
-        lotes,
-        estoqueUf,
-        evolucaoPreco,
-        fornecedores,
-        fabricantes,
-        historico,
-      ] =
+      const [produtos, resumo, lotes, estoqueUf, evolucaoPreco, fornecedores, fabricantes, historico] =
         await Promise.all([
-          listarProdutos(
-            catmatId,
-          ),
-          buscarResumoMedicamento(
-            catmatId,
-          ),
-          buscarLotesVencendo(
-            catmatId,
-            90,
-          ),
-          buscarEstoquePorUf(
-            catmatId,
-          ),
-          buscarEvolucaoPreco(
-            catmatId,
-          ),
-          buscarFornecedores(
-            catmatId,
-            15,
-          ),
-          buscarFabricantes(
-            catmatId,
-            15,
-          ),
-          buscarHistoricoCompras(
-            catmatId,
-            500,
-            0,
-          ),
+          listarProdutos(catmatId, escopo),
+          buscarResumoMedicamento(catmatId, escopo),
+          buscarLotesVencendo(catmatId, 90, escopo),
+          buscarEstoquePorUf(catmatId, escopo),
+          buscarEvolucaoPreco(catmatId, escopo),
+          buscarFornecedores(catmatId, 15, escopo),
+          buscarFabricantes(catmatId, 15, escopo),
+          buscarHistoricoCompras(catmatId, 500, 0, escopo),
         ]);
+      if (meu !== pedido.current) return;
 
-      if (
-        produtos.length === 0
-      ) {
-        setMedicamentoCarregado(
-          null,
-        );
-        setErroDados(
-          "Esse item do CATMAT não tem produto vinculado na base.",
-        );
+      if (produtos.length === 0) {
+        setMedicamentoCarregado(null);
+        setErroDados("Esse item do CATMAT não tem produto vinculado na base.");
         return;
       }
 
-      setBuscaConfirmada(
-        busca.trim(),
-      );
-
-      setMedicamentoCarregado(
-        itemSelecionado,
-      );
-
+      setMedicamentoCarregado({
+        catmat_id: catmatId,
+        codigo_catmat: v?.codigo ?? g.base,
+        descricao_catmat: v?.descricao ?? g.nome,
+      });
       setDados({
         produtos,
         resumo,
@@ -602,19 +496,31 @@ export function Medicamentos() {
         evolucaoPreco,
         fornecedores,
         fabricantes,
-        compras:
-          historico.items,
+        compras: historico.items,
       });
     } catch (error) {
-      setMedicamentoCarregado(
-        null,
-      );
-
+      if (meu !== pedido.current) return;
+      setMedicamentoCarregado(null);
       setFalhaDados(error);
     } finally {
-      setCarregando(false);
+      if (meu === pedido.current) setCarregando(false);
     }
   }
+
+
+  const escopoDescricao = grupo
+    ? variante
+      ? `Só o código ${variante.codigo} (${variante.rotulo})`
+      : grupo.variantes.length > 1
+        ? `Todos os ${grupo.variantes.length} códigos do item-base ${grupo.base}`
+        : `Código ${grupo.base}`
+    : null;
+
+  // Dica para os estados vazios quando o usuário está olhando uma variante só.
+  const dicaVariante =
+    variante && grupo && grupo.variantes.length > 1
+      ? " Você está vendo só uma variante; escolha “Todos” acima para somar os códigos deste item."
+      : "";
 
 
   const estoqueUfGrafico =
@@ -954,16 +860,15 @@ export function Medicamentos() {
 
   useUiContext(
     dados && medicamentoCarregado
-      ? contextoMedicamento(dados, medicamentoCarregado, abaCompras, buscaConfirmada)
+      ? contextoMedicamento(dados, medicamentoCarregado, abaCompras, escopoDescricao, grupo)
       : {
           screen: "Medicamentos",
           description: carregando
             ? "Carregando os dados do medicamento selecionado."
             : "Nenhum medicamento carregado: o usuário ainda está buscando no catálogo CATMAT.",
-          filters: { busca: busca || null, resultados_da_busca: resultados.length },
           selection: null,
         },
-    [dados, medicamentoCarregado, abaCompras, buscaConfirmada, carregando, busca, resultados.length],
+    [dados, medicamentoCarregado, abaCompras, escopoDescricao, carregando, grupo],
   );
 
   // Resolve a paleta uma vez por montagem (lê as variáveis CSS do documento).
@@ -979,106 +884,52 @@ export function Medicamentos() {
       />
 
 
-      <section className="mt-7">
-        <form
-          onSubmit={handleBuscar}
-          className="space-y-2"
-        >
-          <label
-            htmlFor="busca-medicamento"
-            className="block text-sm font-semibold text-[var(--text)]"
-          >
-            Buscar medicamento (CATMAT)
-          </label>
+      <section className="mt-7 space-y-4">
+        <CatmatPicker
+          id="busca-medicamento"
+          label="Medicamento (CATMAT)"
+          value={grupo}
+          onSelect={selecionarGrupo}
+        />
 
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Input
-              id="busca-medicamento"
-              value={busca}
-              onChange={(event) => alterarBusca(event.target.value)}
-              placeholder="ex: dipirona, insulina, seringa..."
-              className="h-10 bg-panel sm:flex-1"
-            />
-
-            <Button
-              type="submit"
-              disabled={buscando}
-              className="h-10 w-full px-6 sm:w-auto"
-            >
-              <Icon name="search" size={16} />
-              {buscando
-                ? "Buscando..."
-                : "Buscar"}
-            </Button>
-          </div>
-        </form>
-
-
-        {!busca.trim()
-          && !erroBusca
-          && (
-            <p className="mt-3 flex items-center gap-2 text-sm leading-6 text-muted">
-              <Icon name="info" size={16} />
-              Digite algo acima para buscar um medicamento no catálogo CATMAT.
-            </p>
-          )}
-
-
-        {erroBusca && (
-          <div
-            role="status"
-            className="mt-4 flex items-start gap-2 rounded-[var(--radius-md)] border border-warning-border bg-[var(--warning-soft)] px-4 py-3 text-sm leading-6 text-warning-text"
-          >
-            <Icon name="alert" size={18} className="mt-0.5" />
-            {erroBusca}
-          </div>
+        {!grupo && !erroDados && (
+          <p className="flex items-start gap-2 text-sm leading-6 text-muted">
+            <Icon name="info" size={16} className="mt-1" />
+            Digite ao menos 2 letras do princípio ativo ou o código CATMAT. As apresentações e os componentes do BNAFAR
+            de um mesmo item aparecem reunidos numa linha só, com selos de onde há compras e estoque.
+          </p>
         )}
 
-
-        {resultados.length
-          > 0
-          && (
-            <div className="mt-5 rounded-[var(--radius-md)] border border-line bg-panel p-4 shadow-[var(--shadow-card)] sm:p-5">
-              <label
-                htmlFor="catmat"
-                className="block text-sm font-semibold text-[var(--text)]"
-              >
-                Selecione o item
-              </label>
-
-              {/* Continua <select> nativo: o smoke e o e2e do chat usam selectOption() em #catmat. */}
-              <select
-                id="catmat"
-                value={selecionado}
-                onChange={(event) => setSelecionado(event.target.value)}
-                className="mt-2 h-10 w-full rounded-[var(--radius-md)] border border-line bg-panel px-3 text-sm text-[var(--text)] shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-              >
-                <option value="">
-                  — Selecione um medicamento —
-                </option>
-
-                {resultados.map((item) => (
-                  <option
-                    key={item.catmat_id}
-                    value={item.catmat_id}
-                  >
-                    {rotuloMedicamento(item)}
-                  </option>
-                ))}
-              </select>
-
-              <Button
-                type="button"
-                onClick={carregarDados}
-                disabled={!itemSelecionado || carregando}
-                className="mx-auto mt-4 flex h-10 w-full sm:w-1/2 lg:w-1/4"
-              >
-                {carregando
-                  ? "Carregando dados..."
-                  : "Pesquisar"}
-              </Button>
+        {grupo && grupo.variantes.length > 1 && (
+          <div
+            data-chat-context="variantes"
+            className="rounded-[var(--radius-md)] border border-line bg-panel p-4 shadow-[var(--shadow-card)]"
+          >
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+              Códigos reunidos neste item
+            </p>
+            {/* text-xs aqui: o index.css aplica `font: inherit` em button fora de @layer e venceria no chip */}
+            <div role="radiogroup" aria-label="Códigos do item" className="mt-2 flex flex-wrap gap-2 text-xs leading-5">
+              <ChipVariante ativo={!variante} onClick={() => selecionarVariante(null)}>
+                Todos ({grupo.variantes.length})
+              </ChipVariante>
+              {grupo.variantes.map((v) => (
+                <ChipVariante
+                  key={v.codigo}
+                  ativo={variante?.codigo === v.codigo}
+                  onClick={() => selecionarVariante(v)}
+                  title={`${v.codigo} — ${v.descricao}`}
+                >
+                  {v.rotulo}
+                  <SelosDados temCompras={v.tem_compras} temEstoque={v.tem_estoque} />
+                </ChipVariante>
+              ))}
             </div>
-          )}
+            <p className="mt-3 text-xs leading-5 text-muted">
+              {notaCobertura(grupo)}
+            </p>
+          </div>
+        )}
       </section>
 
 
@@ -1097,7 +948,7 @@ export function Medicamentos() {
         <div className="mt-5">
           <ErrorState
             error={falhaDados}
-            onRetry={itemSelecionado ? carregarDados : undefined}
+            onRetry={grupo ? () => void carregarDados(grupo, variante) : undefined}
           />
         </div>
       )}
@@ -1136,9 +987,9 @@ export function Medicamentos() {
                 {rotuloMedicamento(medicamentoCarregado)}
               </p>
 
-              {buscaConfirmada && (
+              {escopoDescricao && (
                 <p className="mt-1 text-xs text-muted">
-                  Busca confirmada: “{buscaConfirmada}”
+                  {escopoDescricao}
                 </p>
               )}
             </div>
@@ -1291,7 +1142,7 @@ export function Medicamentos() {
                 <div className="mt-4">
                   <EmptyState
                     title="Sem estoque por UF"
-                    cause="Nenhuma instituição registrou estoque deste medicamento."
+                    cause={`Nenhuma instituição registrou estoque deste medicamento.${dicaVariante}`}
                   />
                 </div>
               )}
@@ -1311,7 +1162,7 @@ export function Medicamentos() {
                 <div className="mt-4">
                   <EmptyState
                     title="Sem compras registradas"
-                    cause="Nenhuma compra pública deste item aparece na base."
+                    cause={`Nenhuma compra pública deste item aparece na base.${dicaVariante}`}
                   />
                 </div>
               ) : (

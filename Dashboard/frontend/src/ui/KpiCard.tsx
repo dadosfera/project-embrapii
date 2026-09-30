@@ -1,5 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import { SEM_DADO, numeroExato } from "./format";
 
 type Props = {
@@ -9,13 +10,19 @@ type Props = {
   exact?: (v: number | null | undefined) => string;
   hint?: string;
   loading?: boolean;
+  destaque?: boolean;
 };
 
-export function KpiCard({ label, value, format, exact = numeroExato, hint, loading }: Props) {
+export function KpiCard({ label, value, format, exact = numeroExato, hint, loading, destaque }: Props) {
   const texto = format(value);
   const vazio = value == null || Number.isNaN(value);
   return (
-    <article className="rounded-[var(--radius-md)] border border-line bg-panel p-4 shadow-[var(--shadow-card)] sm:p-5">
+    <article
+      className={cn(
+        "rounded-[var(--radius-md)] border border-line bg-panel p-4 shadow-[var(--shadow-card)] sm:p-5",
+        destaque && "border-primary bg-primary-tint",
+      )}
+    >
       <p className="text-sm font-medium text-muted">{label}</p>
       {loading ? (
         <Skeleton className="mt-3 h-8 w-32" />
@@ -30,7 +37,10 @@ export function KpiCard({ label, value, format, exact = numeroExato, hint, loadi
             <p
               tabIndex={0}
               aria-describedby={undefined}
-              className="mt-3 w-fit cursor-default text-2xl font-bold tabular-nums text-[var(--text)] sm:text-3xl"
+              className={cn(
+                "mt-3 w-fit cursor-default font-bold tabular-nums text-[var(--text)]",
+                destaque ? "text-3xl sm:text-4xl" : "text-2xl sm:text-3xl",
+              )}
             >
               <span aria-hidden="true">{texto}</span>
               <span className="sr-only">{exact(value)}</span>

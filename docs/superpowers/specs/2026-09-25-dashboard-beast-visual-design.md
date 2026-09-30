@@ -6,11 +6,11 @@ Data: 25/09/2026 · Autor: Allan Sene · Branch: `feat/dadosfera-dataapp`
 
 O data app está no ar no Mod. de Inteligência demo2, lendo do Snowflake, com paridade 47/47 (spec `2026-09-24-dashboard-dataapp-dadosferademo-design.md`). O report de UX (`Dashboard/docs/ux-review/index.html`) levantou 41 achados e 20 decisões. O trabalho seguinte foi dividido em três subprojetos, cada um com spec, plano e execução próprios, nesta ordem:
 
-| Subprojeto | Escopo | Decisões do report |
-|---|---|---|
-| **A. Visual Beast** (este spec) | Tokens, tipografia, shell, componentes base, estados, números, tema de gráficos, correções pontuais, acessibilidade e code-split | 1, 2, 3, 4, 5, 9, 15, 16 (só os bugs de data), 18, 19, 20 |
-| B. Busca | Autocomplete, busca sem acento e agrupamento de CATMAT (composição → item-base → variantes) | 7, 8 |
-| C. Páginas e visualizações | Carregar ao abrir, períodos padrão, barras anuais, outliers, mapas, destino da página Mapa, visualizações novas | 6, 10, 11, 12, 13, 14, 16 (períodos), 17 |
+| Subprojeto | Escopo | Decisões do report | Status (29/09/2026) |
+|---|---|---|---|
+| **A. Visual Beast** (este spec) | Tokens, tipografia, shell, componentes base, estados, números, tema de gráficos, correções pontuais, acessibilidade e code-split | 1, 2, 3, 4, 5, 9, 15, 16 (só os bugs de data), 18, 19, 20 | Concluído e publicado no demo2 em 28/09 (branch `feat/dashboard-beast`); PR não aberto |
+| B. Busca | Autocomplete, busca sem acento e agrupamento de CATMAT (composição → item-base → variantes) | 7, 8 | Implementado e publicado no demo2 em 29/09 (branch `feat/dashboard-busca`, spec `2026-09-29-dashboard-busca-catmat-design.md`); falta o smoke no publicado; PR não aberto |
+| C. Páginas e visualizações | Carregar ao abrir, períodos padrão, barras anuais, outliers, mapas, destino da página Mapa, visualizações novas | 6, 10, 11, 12, 13, 14, 16 (períodos), 17 | Implementado e publicado em 30/09 (branch `feat/dashboard-busca`). Paridade com o Postgres descontinuada: Snowflake é a base operacional e o Postgres ficou legado (tag `dashboard-postgres-estavel-v1`) |
 
 O A não muda layout, filtros nem fluxo das páginas, e não mexe no backend.
 

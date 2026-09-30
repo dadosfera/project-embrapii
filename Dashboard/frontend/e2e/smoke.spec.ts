@@ -91,91 +91,198 @@ for (const { rota, titulo } of ROTAS) {
 
     if (rota === "fornecedores") {
       // Fornecedores carrega o mapa por UF já no useEffect de montagem.
-      await expect(page.getByRole("img", { name: /Mapa do Brasil/ })).toBeVisible();
+      // O mapa é um <svg role="group">, não uma <img> (ver MapaBrasil.tsx).
+      await expect(page.getByRole("group", { name: /Mapa do Brasil/ })).toBeVisible();
     }
 
     expect(erros).toEqual([]);
   });
 }
 
-test("Medicamentos: busca dipirona, seleciona o primeiro item e carrega o resumo", async ({
+/** Digita no seletor CATMAT e escolhe a opção cujo texto contém `opcao` (cmdk: role="option"). */
+async function escolherCatmat(page: Page, campo: string, termo: string, opcao: string | RegExp) {
+  await page.locator(campo).fill(termo);
+  const item = page.getByRole("option").filter({ hasText: opcao }).first();
+  await item.waitFor({ state: "visible", timeout: 60_000 });
+  await item.click();
+}
+
+test("Medicamentos: seletor agrupado soma as variantes, troca de código e mantém a seleção na URL", async ({
   page,
   baseURL,
 }) => {
   const erros = coletarErros(page, baseURL!, []);
 
   await page.goto("medicamentos");
-  await page.getByPlaceholder("ex: dipirona, insulina, seringa...").fill("dipirona");
-  await page.getByRole("button", { name: "Buscar", exact: true }).click();
-
-  const select = page.getByLabel("Selecione o item");
-  await select.waitFor({ state: "visible" });
-  await select.selectOption({ index: 1 });
-
-  const resumo = page.waitForResponse((r) => r.url().includes("/api/medicamentos/") && r.url().includes("/resumo"));
-  await page.getByRole("button", { name: "Pesquisar" }).click();
+  const resumo = page.waitForResponse((r) => r.url().includes("/resumo") && r.url().includes("escopo=grupo"));
+  await escolherCatmat(page, "#busca-medicamento", "dipirona 500", "DIPIRONA SÓDICA, DOSAGEM:500 MG");
   await resumo;
   await page.waitForLoadState("networkidle");
 
+  await expect(page).toHaveURL(/catmat=BR0267203/);
   await expect(page.locator("body")).not.toContainText("Não foi possível");
-  // Confirma que o resumo trazido pela API chegou até a tela (KPI "Preço médio de compra").
-  const kpiPreco = page
-    .locator("article")
-    .filter({ has: page.getByText("Preço médio de compra", { exact: true }) });
+  // Com as variantes somadas o item tem estoque (o código-base sozinho não tem nenhum).
+  const kpiInst = page.locator("article").filter({ has: page.getByText("Instituições com registro", { exact: true }) });
+  await expect(kpiInst.locator("p").last()).not.toHaveText(/^(0|sem dado)$/);
+  const kpiPreco = page.locator("article").filter({ has: page.getByText("Preço médio de compra", { exact: true }) });
   await expect(kpiPreco.locator("p").last()).toContainText("R$");
+
+  const todos = page.getByRole("radio", { name: /^Todos \(\d+\)/ });
+  await expect(todos).toHaveAttribute("aria-checked", "true");
+  await page.getByRole("radio", { name: /Componente Básico/ }).click();
+  await expect(page).toHaveURL(/variante=BRBBR0267203U0042/);
+  await page.waitForLoadState("networkidle");
+
+  await page.reload();
+  await expect(page.getByRole("radio", { name: /Componente Básico/ })).toHaveAttribute("aria-checked", "true");
+  await page.goBack();
+  await expect(page.getByRole("radio", { name: /^Todos/ })).toHaveAttribute("aria-checked", "true");
 
   expect(erros).toEqual([]);
 });
 
-test("Mapa: busca dipirona, seleciona um item com estoque e carrega a tabela por UF", async ({
+test("Medicamentos: busca ignora acento e põe o princípio ativo antes das associações", async ({ page }) => {
+  await page.goto("medicamentos");
+  await page.locator("#busca-medicamento").fill("acido folico");
+  const primeira = page.getByRole("option").first();
+  await expect(primeira).toContainText(/ÁCIDO FÓLICO/, { timeout: 60_000 });
+  await expect(page.getByRole("group", { name: "ÁCIDO FÓLICO", exact: true })).toBeVisible();
+});
+
+test("Medicamentos: link direto com ?catmat= abre o item", async ({ page }) => {
+  await page.goto("medicamentos?catmat=BR0272809");
+  await expect(page.locator("#busca-medicamento")).toHaveValue(/LAMOTRIGINA, DOSAGEM:100 MG/, { timeout: 60_000 });
+  await expect(page.locator('[data-chat-context="KPIs"]')).toBeVisible({ timeout: 90_000 });
+});
+
+test("Mapa: escolhe dipirona 500 no seletor e carrega a tabela por UF", async ({
   page,
   baseURL,
 }) => {
   const erros = coletarErros(page, baseURL!, []);
 
   await page.goto("mapa");
-  await page.getByPlaceholder("Ex.: dipirona, insulina, seringa...").fill("dipirona");
-  await page.getByRole("button", { name: "Localizar itens" }).click();
-
-  const select = page.getByLabel("Item", { exact: true });
-  await select.waitFor({ state: "visible" });
-  // O 1º resultado da busca não tem estoque para nenhuma UF; o 2º tem.
-  await select.selectOption({ index: 1 });
-
-  const estoque = page.waitForResponse((r) => r.url().includes("/api/medicamentos/") && r.url().includes("/estoque-por-uf"));
-  await page.getByRole("button", { name: "Buscar", exact: true }).click();
+  const estoque = page.waitForResponse((r) => r.url().includes("/estoque-por-uf") && r.url().includes("escopo=grupo"));
+  await escolherCatmat(page, "#mapa-busca-catmat", "dipirona 500", "DIPIRONA SÓDICA, DOSAGEM:500 MG");
   await estoque;
   await page.waitForLoadState("networkidle");
 
   await expect(page.locator("body")).not.toContainText("Não foi possível");
-  // Confirma que a resposta virou linhas reais na tabela de estoque por UF.
   await expect(page.locator("tbody tr").first()).toBeVisible();
 
   expect(erros).toEqual([]);
 });
 
-test("Compras: aplica filtros com dados conhecidos e carrega os KPIs", async ({ page, baseURL }) => {
+test("Leitos: abre carregado com o KPI e mostra 27 UFs e a evolução", async ({ page, baseURL }) => {
   const erros = coletarErros(page, baseURL!, []);
 
+  await page.goto("leitos");
+  await page.waitForLoadState("networkidle");
+
+  await expect(page.locator("body")).not.toContainText("Não foi possível");
+  const kpiLeitosGerais = page
+    .locator("article")
+    .filter({ has: page.getByText("Leitos gerais", { exact: true }) });
+  await expect(kpiLeitosGerais.locator("p").last()).not.toHaveText(/^(0|sem dado)$/);
+
+  // Aba "Distribuição por UF" já vem selecionada: 27 UFs no eixo Y.
+  await expect(page.locator(".recharts-yAxis .recharts-cartesian-axis-tick")).toHaveCount(27);
+
+  await page.getByRole("tab", { name: "Evolução histórica" }).dispatchEvent("mousedown");
+  await page.getByRole("tab", { name: "Evolução histórica" }).click();
+  await expect(page.locator("#inicio-evolucao")).toBeVisible();
+
+  expect(erros).toEqual([]);
+});
+
+test("Mapa: aba Leitos por estado carrega sem clique, foco e Enter fixam MG", async ({ page, baseURL }) => {
+  const erros = coletarErros(page, baseURL!, []);
+
+  await page.goto("mapa");
+  await page.waitForLoadState("networkidle");
+
+  await page.getByRole("tab", { name: "Leitos por estado" }).dispatchEvent("mousedown");
+  const leitosPorUf = page.waitForResponse((r) => r.url().includes("/api/leitos/por-uf"));
+  await page.getByRole("tab", { name: "Leitos por estado" }).click();
+  await leitosPorUf;
+  await page.waitForLoadState("networkidle");
+
+  await expect(page.locator("body")).not.toContainText("Não foi possível");
+
+  const mg = page.getByRole("button", { name: /\(MG\):/ });
+  await mg.focus();
+  await page.keyboard.press("Enter");
+
+  await expect(page.locator("aside")).toContainText("Minas Gerais");
+
+  // A legenda traz a unidade da métrica exibida (padrão: "Participação do SUS (%)").
+  await expect(page.getByText(/Legenda \(.*\)/)).toBeVisible();
+
+  expect(erros).toEqual([]);
+});
+
+test("Fornecedores: clicar em SP no mapa filtra o ranking", async ({ page, baseURL }) => {
+  const erros = coletarErros(page, baseURL!, []);
+
+  await page.goto("fornecedores");
+  await page.waitForLoadState("networkidle");
+
+  await expect(page.getByRole("group", { name: /Mapa do Brasil/ })).toBeVisible();
+
+  const ranking = page.waitForResponse(
+    (r) => r.url().includes("/api/fornecedores/ranking") && r.url().includes("uf=SP"),
+  );
+  const sp = page.getByRole("button", { name: /\(SP\):/ });
+  await sp.click();
+  await ranking;
+  await page.waitForLoadState("networkidle");
+
+  await expect(page.locator("body")).toContainText("Tabela filtrada por SP");
+
+  expect(erros).toEqual([]);
+});
+
+test("Compras abre carregada em 2020–2025", async ({ page, baseURL }) => {
+  const erros = coletarErros(page, baseURL!, []);
+
+  const kpis = page.waitForResponse(
+    (r) => r.url().includes("/api/compras/kpis") && r.url().includes("data_inicio=2020-01-01") && r.url().includes("data_fim=2025-12-31"),
+  );
   await page.goto("compras");
-
-  // O padrão da página (último ano até hoje) cai num vazio da base histórica;
-  // usa uma janela com compras conhecidas para exercitar o pipeline de verdade.
-  await page.getByLabel("Data inicial").fill("2015-01-01");
-  await page.getByLabel("Data final").fill("2024-12-31");
-
-  const kpis = page.waitForResponse((r) => r.url().includes("/api/compras/kpis"));
-  await page.getByRole("button", { name: "Pesquisar" }).click();
   await kpis;
   await page.waitForLoadState("networkidle");
 
   await expect(page.locator("body")).not.toContainText("Não foi possível");
-  // Confirma que o KPI de valor total, alimentado pela resposta da API, renderizou.
-  // (o texto exato evita casar com o card do gráfico "Valor total comprado por mês".)
   const kpiValorTotal = page
     .locator("article")
     .filter({ has: page.getByText("Valor total comprado", { exact: true }) });
   await expect(kpiValorTotal.locator("p").last()).toContainText("R$");
+
+  // Nota do outlier de 2025 (um único registro responde por >20% do valor do ano).
+  await expect(page.locator("body")).toContainText("1 registro");
+
+  expect(erros).toEqual([]);
+});
+
+test("Compras aplica ano e medicamento", async ({ page, baseURL }) => {
+  const erros = coletarErros(page, baseURL!, []);
+
+  await page.goto("compras");
+  await page.waitForLoadState("networkidle");
+
+  await page.locator("#compras-periodo-de").click();
+  await page.getByRole("option", { name: "2021", exact: true }).click();
+
+  await escolherCatmat(page, "#produto-compras", "lamotrigina 100", "LAMOTRIGINA, DOSAGEM:100 MG");
+
+  const kpis = page.waitForResponse(
+    (r) => r.url().includes("/api/compras/kpis") && r.url().includes("data_inicio=2021-01-01"),
+  );
+  await page.getByRole("button", { name: "Aplicar", exact: true }).click();
+  await kpis;
+  await page.waitForLoadState("networkidle");
+
+  await expect(page.locator("body")).not.toContainText("Não foi possível");
 
   expect(erros).toEqual([]);
 });

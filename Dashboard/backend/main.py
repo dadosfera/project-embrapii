@@ -44,6 +44,14 @@ app.include_router(fornecedores_router)
 app.include_router(autodrive_router)
 
 
+@app.on_event("startup")
+def aquecer_indice_catmat() -> None:
+    if os.getenv("CATMAT_INDEX_WARMUP", "1") != "0":
+        from backend import catmat_index
+
+        catmat_index.aquecer()
+
+
 @app.get("/api")
 def root():
     return {

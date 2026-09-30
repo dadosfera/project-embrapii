@@ -1,9 +1,10 @@
 import {
-  type FormEvent,
+  useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
+import { useSearchParams } from "react-router";
 
 import type {
   ColumnDef,
@@ -13,8 +14,8 @@ import {
   DataTable,
 } from "../components/DataTable";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { CatmatPicker } from "../components/CatmatPicker";
+import { BotaoAplicar } from "@/ui/BotaoAplicar";
 import {
   Select,
   SelectContent,
@@ -28,7 +29,7 @@ import { EmptyState } from "@/ui/EmptyState";
 import { ErrorState } from "@/ui/ErrorState";
 import { Icon } from "@/ui/Icon";
 import { PageHeader } from "@/ui/PageHeader";
-import { numeroExato, quantidade } from "@/ui/format";
+import { numeroExato, numeroUmaCasa, percentual, quantidade } from "@/ui/format";
 
 import {
   MapaBrasilUf,
@@ -38,12 +39,21 @@ import {
 import {
   buscarEstoquePorUf,
   buscarLeitosPorUf,
-  buscarMedicamentos,
+  buscarGrupoCatmat,
   type CatmatItem,
+  type GrupoCatmat,
   type EstoqueUf,
   type LeitosPorUf,
   type ModoLeitos,
 } from "../lib/api";
+
+import {
+  normalizarEstoque,
+  normalizarLeitos,
+  ordenarNulosPorUltimo,
+  type LinhaEstoque,
+  type LinhaLeitos,
+} from "./mapaDados";
 
 
 type AbaMapa =
@@ -52,58 +62,25 @@ type AbaMapa =
 
 
 type MetricaLeitos =
+  | "percentual_sus"
   | "leitos_gerais"
   | "leitos_sus"
   | "leitos_uti"
   | "leitos_uti_sus";
 
 
-type LinhaEstoque = {
-  uf: string;
-  estoque_total: number;
-  num_instituicoes: number;
-};
+/** "sem registro" (não "sem dado"): mesma linguagem do mapa para UF ausente. */
+function numeroExatoCel(v: number | null): string {
+  return v == null ? "sem registro" : numeroExato(v);
+}
 
+function quantidadeCel(v: number | null): string {
+  return v == null ? "sem registro" : quantidade(v);
+}
 
-type LinhaLeitos = {
-  uf: string;
-  leitos_gerais: number;
-  leitos_sus: number;
-  leitos_uti: number;
-  leitos_uti_sus: number;
-  instituicoes: number;
-};
-
-
-const TODAS_UFS = [
-  "AC",
-  "AL",
-  "AP",
-  "AM",
-  "BA",
-  "CE",
-  "DF",
-  "ES",
-  "GO",
-  "MA",
-  "MT",
-  "MS",
-  "MG",
-  "PA",
-  "PB",
-  "PR",
-  "PE",
-  "PI",
-  "RJ",
-  "RN",
-  "RS",
-  "RO",
-  "RR",
-  "SC",
-  "SP",
-  "SE",
-  "TO",
-];
+function percentualCel(v: number | null): string {
+  return v == null ? "sem registro" : percentual(v);
+}
 
 
 const ROTULOS_METRICA:
@@ -111,6 +88,9 @@ const ROTULOS_METRICA:
     MetricaLeitos,
     string
   > = {
+    percentual_sus:
+      "Participação do SUS (%)",
+
     leitos_gerais:
       "Leitos gerais",
 
@@ -142,145 +122,6 @@ const AVISO =
   "flex items-start gap-2 rounded-[var(--radius-md)] border border-warning-border bg-[var(--warning-soft)] px-4 py-3 text-sm leading-6 text-warning-text";
 
 
-function numero(
-  valor: unknown,
-) {
-  const convertido =
-    Number(valor);
-
-  return Number.isFinite(
-    convertido,
-  )
-    ? convertido
-    : 0;
-}
-
-
-function normalizarEstoque(
-  dados: EstoqueUf[],
-): LinhaEstoque[] {
-  const porUf =
-    new Map<
-      string,
-      LinhaEstoque
-    >();
-
-  dados.forEach(
-    (item) => {
-      if (!item.uf) {
-        return;
-      }
-
-      const uf =
-        item.uf
-          .trim()
-          .toUpperCase();
-
-      porUf.set(
-        uf,
-        {
-          uf,
-          estoque_total:
-            numero(
-              item.estoque_total,
-            ),
-          num_instituicoes:
-            numero(
-              item.num_instituicoes,
-            ),
-        },
-      );
-    },
-  );
-
-  return TODAS_UFS.map(
-    (uf) =>
-      porUf.get(
-        uf,
-      )
-      ?? {
-        uf,
-        estoque_total: 0,
-        num_instituicoes: 0,
-      },
-  );
-}
-
-
-function normalizarLeitos(
-  dados: LeitosPorUf[],
-): LinhaLeitos[] {
-  const porUf =
-    new Map<
-      string,
-      LinhaLeitos
-    >();
-
-  dados.forEach(
-    (item) => {
-      if (!item.uf) {
-        return;
-      }
-
-      const uf =
-        item.uf
-          .trim()
-          .toUpperCase();
-
-      if (
-        !TODAS_UFS.includes(
-          uf,
-        )
-      ) {
-        return;
-      }
-
-      porUf.set(
-        uf,
-        {
-          uf,
-          leitos_gerais:
-            numero(
-              item.leitos_gerais,
-            ),
-          leitos_sus:
-            numero(
-              item.leitos_sus,
-            ),
-          leitos_uti:
-            numero(
-              item.leitos_uti,
-            ),
-          leitos_uti_sus:
-            numero(
-              item.leitos_uti_sus,
-            ),
-          instituicoes:
-            numero(
-              item.instituicoes,
-            ),
-        },
-      );
-    },
-  );
-
-  return TODAS_UFS.map(
-    (uf) =>
-      porUf.get(
-        uf,
-      )
-      ?? {
-        uf,
-        leitos_gerais: 0,
-        leitos_sus: 0,
-        leitos_uti: 0,
-        leitos_uti_sus: 0,
-        instituicoes: 0,
-      },
-  );
-}
-
-
 export function Mapa() {
   const [aba, setAba] = useState<AbaMapa>("estoque");
 
@@ -289,17 +130,16 @@ export function Mapa() {
   // ESTOQUE
   // =========================================
 
-  const [termoMedicamento, setTermoMedicamento] = useState("");
-  const [buscandoCatmat, setBuscandoCatmat] = useState(false);
-  const [opcoesCatmat, setOpcoesCatmat] = useState<CatmatItem[]>([]);
-  const [catmatSelecionado, setCatmatSelecionado] = useState("");
+  // Medicamento na URL (?catmat=<código-base>), igual à página Medicamentos.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const chaveUrl = searchParams.get("catmat");
+  const [grupo, setGrupo] = useState<GrupoCatmat | null>(null);
   const [carregandoEstoque, setCarregandoEstoque] = useState(false);
   const [estoqueBruto, setEstoqueBruto] = useState<EstoqueUf[] | null>(null);
   const [catmatAplicado, setCatmatAplicado] = useState<CatmatItem | null>(null);
   // Mensagens da página (validação, busca sem resultado): aviso inline.
   const [erroEstoque, setErroEstoque] = useState<string | null>(null);
   // Falhas de requisição: guardam o erro real para o ErrorState.
-  const [falhaBusca, setFalhaBusca] = useState<unknown>(null);
   const [falhaEstoque, setFalhaEstoque] = useState<unknown>(null);
 
 
@@ -309,98 +149,92 @@ export function Mapa() {
 
   const [modoLeitos, setModoLeitos] = useState<ModoLeitos>("ultima_competencia");
   const [modoLeitosAplicado, setModoLeitosAplicado] = useState<ModoLeitos | null>(null);
-  const [metricaLeitos, setMetricaLeitos] = useState<MetricaLeitos>("leitos_gerais");
+  const [metricaLeitos, setMetricaLeitos] = useState<MetricaLeitos>("percentual_sus");
   const [carregandoLeitos, setCarregandoLeitos] = useState(false);
   const [leitosBruto, setLeitosBruto] = useState<LeitosPorUf[] | null>(null);
   const [falhaLeitos, setFalhaLeitos] = useState<unknown>(null);
 
 
   // Cache de consultas enquanto a rota permanecer aberta.
-  const cacheEstoque = useRef(new Map<number, EstoqueUf[]>());
+  const cacheEstoque = useRef(new Map<string, EstoqueUf[]>());
   const cacheLeitos = useRef(new Map<ModoLeitos, LeitosPorUf[]>());
 
-  const formBusca = useRef<HTMLFormElement>(null);
+  const pedidoEstoque = useRef(0);
+  // Descarta respostas de pedidos antigos: sem isto, dois cliques rápidos em "Aplicar" (ou
+  // um "Aplicar" seguido de troca de aba) podiam deixar uma resposta velha sobrescrever a nova.
+  const pedidoLeitos = useRef(0);
 
 
-  const itemCatmatSelecionado = useMemo(
-    () => opcoesCatmat.find((item) => String(item.catmat_id) === catmatSelecionado) ?? null,
-    [opcoesCatmat, catmatSelecionado],
-  );
-
-
-  async function localizarCatmat(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const termo = termoMedicamento.trim();
-
-    if (!termo) {
-      setErroEstoque("Digite um medicamento para localizar itens no CATMAT.");
-      return;
-    }
-
-    setBuscandoCatmat(true);
-    setErroEstoque(null);
-    setFalhaBusca(null);
-    setFalhaEstoque(null);
-    setOpcoesCatmat([]);
-    setCatmatSelecionado("");
-
-    try {
-      const resposta = await buscarMedicamentos(termo);
-
-      setOpcoesCatmat(resposta);
-
-      if (resposta.length === 0) {
-        setErroEstoque("Nenhum item do CATMAT foi encontrado para essa busca.");
-        return;
-      }
-
-      setCatmatSelecionado(String(resposta[0].catmat_id));
-    } catch (error) {
-      setFalhaBusca(error);
-    } finally {
-      setBuscandoCatmat(false);
-    }
+  function selecionarGrupo(novo: GrupoCatmat | null) {
+    if (novo) setGrupo(novo);
+    setSearchParams(novo ? { catmat: novo.base } : {});
   }
 
 
-  async function buscarMapaEstoque() {
-    if (!itemCatmatSelecionado) {
-      setErroEstoque("Selecione um item do CATMAT antes de buscar.");
+  useEffect(() => {
+    if (!chaveUrl) {
+      setGrupo(null);
       return;
     }
+    if (grupo?.base === chaveUrl) return;
+    let vivo = true;
+    buscarGrupoCatmat(chaveUrl)
+      .then((g) => vivo && setGrupo(g))
+      .catch(() => vivo && setErroEstoque(`O código CATMAT ${chaveUrl} não existe no catálogo.`));
+    return () => {
+      vivo = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chaveUrl]);
 
+
+  useEffect(() => {
+    if (grupo) {
+      void buscarMapaEstoque(grupo);
+    } else {
+      pedidoEstoque.current++;
+      setEstoqueBruto(null);
+      setCatmatAplicado(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [grupo]);
+
+
+  // Soma todas as variantes do item-base (escopo grupo), como em Medicamentos.
+  async function buscarMapaEstoque(g: GrupoCatmat) {
+    const meu = ++pedidoEstoque.current;
     setCarregandoEstoque(true);
     setErroEstoque(null);
     setFalhaEstoque(null);
 
-    const catmatId = itemCatmatSelecionado.catmat_id;
-
     try {
-      const armazenado = cacheEstoque.current.get(catmatId);
-      const resposta = armazenado ?? await buscarEstoquePorUf(catmatId);
+      const armazenado = cacheEstoque.current.get(g.base);
+      const resposta = armazenado ?? await buscarEstoquePorUf(g.catmat_id, "grupo");
+      if (meu !== pedidoEstoque.current) return;
 
       if (!armazenado) {
-        cacheEstoque.current.set(catmatId, resposta);
+        cacheEstoque.current.set(g.base, resposta);
       }
 
       setEstoqueBruto(resposta);
-      setCatmatAplicado(itemCatmatSelecionado);
+      setCatmatAplicado({ catmat_id: g.catmat_id, codigo_catmat: g.base, descricao_catmat: g.nome } as CatmatItem);
     } catch (error) {
-      setFalhaEstoque(error);
+      if (meu === pedidoEstoque.current) setFalhaEstoque(error);
     } finally {
-      setCarregandoEstoque(false);
+      if (meu === pedidoEstoque.current) setCarregandoEstoque(false);
     }
   }
 
 
   async function buscarMapaLeitos() {
+    const meu = ++pedidoLeitos.current;
     setCarregandoLeitos(true);
     setFalhaLeitos(null);
 
     try {
       const armazenado = cacheLeitos.current.get(modoLeitos);
       const resposta = armazenado ?? await buscarLeitosPorUf({ modo: modoLeitos, uf: "" });
+      if (meu !== pedidoLeitos.current) return;
 
       if (!armazenado) {
         cacheLeitos.current.set(modoLeitos, resposta);
@@ -409,11 +243,20 @@ export function Mapa() {
       setLeitosBruto(resposta);
       setModoLeitosAplicado(modoLeitos);
     } catch (error) {
-      setFalhaLeitos(error);
+      if (meu === pedidoLeitos.current) setFalhaLeitos(error);
     } finally {
-      setCarregandoLeitos(false);
+      if (meu === pedidoLeitos.current) setCarregandoLeitos(false);
     }
   }
+
+
+  // Aba Leitos: carrega ao abrir, com o modo padrão, sem exigir clique.
+  useEffect(() => {
+    if (aba === "leitos" && !leitosBruto && !carregandoLeitos && falhaLeitos == null) {
+      void buscarMapaLeitos();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aba, leitosBruto, carregandoLeitos, falhaLeitos]);
 
 
   const estoqueNormalizado = useMemo(
@@ -427,7 +270,7 @@ export function Mapa() {
   );
 
   const estoqueTabela = useMemo(
-    () => [...estoqueNormalizado].sort((a, b) => b.estoque_total - a.estoque_total),
+    () => ordenarNulosPorUltimo(estoqueNormalizado, (item) => item.estoque_total),
     [estoqueNormalizado],
   );
 
@@ -442,9 +285,12 @@ export function Mapa() {
   );
 
   const leitosTabela = useMemo(
-    () => [...leitosNormalizado].sort((a, b) => b[metricaLeitos] - a[metricaLeitos]),
+    () => ordenarNulosPorUltimo(leitosNormalizado, (item) => item[metricaLeitos]),
     [leitosNormalizado, metricaLeitos],
   );
+
+  const unidadeLeitos = metricaLeitos === "percentual_sus" ? "%" : "leitos";
+  const formatarLeitos = metricaLeitos === "percentual_sus" ? numeroUmaCasa : numeroExato;
 
 
   const colunasEstoque = useMemo<ColumnDef<LinhaEstoque, unknown>[]>(
@@ -453,13 +299,13 @@ export function Mapa() {
       {
         header: "Estoque",
         accessorKey: "estoque_total",
-        cell: ({ row }) => quantidade(row.original.estoque_total),
+        cell: ({ row }) => quantidadeCel(row.original.estoque_total),
         meta: { align: "right" },
       },
       {
         header: "Instituições",
         accessorKey: "num_instituicoes",
-        cell: ({ row }) => numeroExato(row.original.num_instituicoes),
+        cell: ({ row }) => numeroExatoCel(row.original.num_instituicoes),
         meta: { align: "right" },
       },
     ],
@@ -473,31 +319,37 @@ export function Mapa() {
       {
         header: "Leitos gerais",
         accessorKey: "leitos_gerais",
-        cell: ({ row }) => numeroExato(row.original.leitos_gerais),
+        cell: ({ row }) => numeroExatoCel(row.original.leitos_gerais),
         meta: { align: "right" },
       },
       {
         header: "Leitos SUS",
         accessorKey: "leitos_sus",
-        cell: ({ row }) => numeroExato(row.original.leitos_sus),
+        cell: ({ row }) => numeroExatoCel(row.original.leitos_sus),
+        meta: { align: "right" },
+      },
+      {
+        header: "Leitos SUS (%)",
+        accessorKey: "percentual_sus",
+        cell: ({ row }) => percentualCel(row.original.percentual_sus),
         meta: { align: "right" },
       },
       {
         header: "Leitos de UTI",
         accessorKey: "leitos_uti",
-        cell: ({ row }) => numeroExato(row.original.leitos_uti),
+        cell: ({ row }) => numeroExatoCel(row.original.leitos_uti),
         meta: { align: "right" },
       },
       {
         header: "Leitos de UTI SUS",
         accessorKey: "leitos_uti_sus",
-        cell: ({ row }) => numeroExato(row.original.leitos_uti_sus),
+        cell: ({ row }) => numeroExatoCel(row.original.leitos_uti_sus),
         meta: { align: "right" },
       },
       {
         header: "Instituições",
         accessorKey: "instituicoes",
-        cell: ({ row }) => numeroExato(row.original.instituicoes),
+        cell: ({ row }) => numeroExatoCel(row.original.instituicoes),
         meta: { align: "right" },
       },
     ],
@@ -541,86 +393,18 @@ export function Mapa() {
               </h2>
 
               <p className="mt-1 text-sm leading-6 text-muted">
-                Localize um item no CATMAT e carregue a distribuição de estoque das instituições.
+                Escolha um medicamento: o mapa soma o estoque de todos os códigos do item (apresentações e componentes do BNAFAR).
               </p>
             </div>
 
 
-            <form
-              ref={formBusca}
-              onSubmit={localizarCatmat}
+            <CatmatPicker
+              id="mapa-busca-catmat"
+              label="Medicamento / CATMAT"
+              value={grupo}
+              onSelect={selecionarGrupo}
               className="mt-5"
-            >
-              <label
-                htmlFor="mapa-busca-catmat"
-                className="block text-sm font-semibold text-[var(--text)]"
-              >
-                Medicamento / CATMAT
-              </label>
-
-              <div className="mt-2 flex flex-col gap-3 sm:flex-row">
-                <Input
-                  id="mapa-busca-catmat"
-                  type="search"
-                  value={termoMedicamento}
-                  onChange={(event) => setTermoMedicamento(event.target.value)}
-                  placeholder="Ex.: dipirona, insulina, seringa..."
-                  className="h-10 min-w-0 bg-panel sm:flex-1"
-                />
-
-                <Button
-                  type="submit"
-                  variant="outline"
-                  disabled={buscandoCatmat || !termoMedicamento.trim()}
-                  className="h-10 w-full px-5 sm:w-auto sm:min-w-36"
-                >
-                  <Icon name="search" size={16} />
-                  {buscandoCatmat
-                    ? "Localizando..."
-                    : "Localizar itens"}
-                </Button>
-              </div>
-            </form>
-
-
-            {opcoesCatmat.length > 0 && (
-              <div className="mt-5">
-                <label
-                  htmlFor="mapa-catmat-selecionado"
-                  className="block text-sm font-semibold text-[var(--text)]"
-                >
-                  Item
-                </label>
-
-                {/* Continua <select> nativo: o smoke usa selectOption() no campo "Item". */}
-                <select
-                  id="mapa-catmat-selecionado"
-                  value={catmatSelecionado}
-                  onChange={(event) => setCatmatSelecionado(event.target.value)}
-                  className="mt-2 h-10 w-full min-w-0 rounded-[var(--radius-md)] border border-line bg-panel px-3 text-sm text-[var(--text)] shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                >
-                  {opcoesCatmat.map((item) => (
-                    <option key={item.catmat_id} value={item.catmat_id}>
-                      {item.descricao_catmat ?? "Descrição não informada"}
-                      {" — CATMAT "}
-                      {item.codigo_catmat ?? "N/I"}
-                    </option>
-                  ))}
-                </select>
-
-
-                <Button
-                  type="button"
-                  onClick={buscarMapaEstoque}
-                  disabled={carregandoEstoque || !itemCatmatSelecionado}
-                  className="mx-auto mt-5 flex h-10 w-full sm:w-1/2 lg:w-1/4"
-                >
-                  {carregandoEstoque
-                    ? "Carregando..."
-                    : "Buscar"}
-                </Button>
-              </div>
-            )}
+            />
 
 
             {erroEstoque && (
@@ -632,21 +416,11 @@ export function Mapa() {
           </div>
 
 
-          {falhaBusca != null && (
-            <div className="mt-5">
-              <ErrorState
-                error={falhaBusca}
-                onRetry={() => formBusca.current?.requestSubmit()}
-              />
-            </div>
-          )}
-
-
           {falhaEstoque != null && (
             <div className="mt-5">
               <ErrorState
                 error={falhaEstoque}
-                onRetry={itemCatmatSelecionado ? buscarMapaEstoque : undefined}
+                onRetry={grupo ? () => void buscarMapaEstoque(grupo) : undefined}
               />
             </div>
           )}
@@ -670,6 +444,8 @@ export function Mapa() {
                       catmatAplicado.descricao_catmat ?? "Medicamento selecionado"
                     } — CATMAT ${catmatAplicado.codigo_catmat ?? "N/I"}`}
                     tituloValor="Estoque"
+                    unidade="unidades"
+                    formatar={quantidade}
                   />
 
 
@@ -680,7 +456,7 @@ export function Mapa() {
                       </h2>
 
                       <p className="mt-1 text-sm leading-6 text-muted">
-                        A tabela e o mapa usam a mesma resposta da consulta. UFs sem registro são mantidas com valor zero.
+                        UFs sem registro aparecem hachuradas no mapa e como "sem registro" na tabela; 0 indica registro com estoque zerado.
                       </p>
                     </div>
 
@@ -711,7 +487,7 @@ export function Mapa() {
               </h2>
 
               <p className="mt-1 text-sm leading-6 text-muted">
-                Escolha a base utilizada. A métrica pode ser alterada depois sem realizar uma nova consulta.
+                A base é aplicada com o botão Aplicar; a métrica muda o mapa na hora.
               </p>
             </div>
 
@@ -768,6 +544,7 @@ export function Mapa() {
                   </SelectTrigger>
 
                   <SelectContent position="popper">
+                    <SelectItem value="percentual_sus">Participação do SUS (%)</SelectItem>
                     <SelectItem value="leitos_gerais">Leitos gerais</SelectItem>
                     <SelectItem value="leitos_sus">Leitos SUS</SelectItem>
                     <SelectItem value="leitos_uti">Leitos de UTI</SelectItem>
@@ -778,16 +555,13 @@ export function Mapa() {
             </div>
 
 
-            <Button
+            <BotaoAplicar
               type="button"
               onClick={buscarMapaLeitos}
-              disabled={carregandoLeitos}
-              className="mx-auto mt-5 flex h-10 w-full sm:w-1/2 lg:w-1/4"
-            >
-              {carregandoLeitos
-                ? "Carregando..."
-                : "Buscar"}
-            </Button>
+              carregando={carregandoLeitos}
+              pendente={modoLeitosAplicado != null && modoLeitos !== modoLeitosAplicado}
+              className="mx-auto mt-5 flex w-full flex-col items-center sm:w-1/2 lg:w-1/4"
+            />
           </div>
 
 
@@ -817,6 +591,8 @@ export function Mapa() {
                     titulo={ROTULOS_METRICA[metricaLeitos]}
                     descricao={ROTULOS_MODO[modoLeitosAplicado]}
                     tituloValor={ROTULOS_METRICA[metricaLeitos]}
+                    unidade={unidadeLeitos}
+                    formatar={formatarLeitos}
                   />
 
 

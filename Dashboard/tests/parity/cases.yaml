@@ -1,3 +1,6 @@
+# LEGADO: paridade Postgres × Snowflake, mantida só como referência histórica.
+# Desde 30/09/2026 o Snowflake é a base operacional; a última versão com paridade verificada é a tag
+# dashboard-postgres-estavel-v1 (47/47). Casos adicionados depois disso não foram rodados contra o Postgres.
 # catmat 15800: dipirona (associação) com estoque em instituicao_estoca_produto (5176 não tem estoque).
 catmat: 15800
 # catmat 85 (DIPIRONA SÓDICA 500 MG/ML, SOLUÇÃO INJETÁVEL): tem compras (686, 203 em 2021) e estoque.
@@ -15,6 +18,10 @@ cases:
   - /api/compras/kpis?data_inicio={data_inicio}&data_fim={data_fim}&catmat_id={catmat_compras}
   - /api/compras/kpis?data_inicio={data_inicio}&data_fim={data_fim}&tipo_compra=JUDICIAL
   - /api/compras/kpis?data_inicio={data_inicio}&data_fim={data_fim}&catmat_id={catmat_compras}&tipo_compra=ADMINISTRATIVA
+  - /api/compras/intervalo
+  - /api/compras/por-ano?data_inicio={data_inicio}&data_fim={data_fim}
+  - /api/compras/por-ano?data_inicio=2020-01-01&data_fim=2025-12-31
+  - /api/compras/por-ano?data_inicio=2020-01-01&data_fim=2025-12-31&catmat_id={catmat_compras}&tipo_compra=ADMINISTRATIVA
   - /api/compras/por-mes?data_inicio={data_inicio}&data_fim={data_fim}
   - /api/compras/fornecedores?data_inicio={data_inicio}&data_fim={data_fim}&limite=15
   - /api/compras/fabricantes?data_inicio={data_inicio}&data_fim={data_fim}&limite=15
