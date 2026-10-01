@@ -1,7 +1,12 @@
-# Deploy no Módulo de Inteligência (demo2, tenant dadosferademo)
+# Deploy no Módulo de Inteligência (tenant dadosferademo)
 
 Sobe o Dashboard como standalone service do Orchest: projeto `embrapii-dashboard-datasus`, ambiente
 `embrapii-dashboard` (base-kernel-py, Python 3.9, `environment_setup.sh`), pipeline `embrapii_dataapp` com o serviço `dataapp`.
+
+Desde 01/10/2026 o app roda no Módulo de Inteligência do `dadosferademo` (`app-intelligence-dadosferademo.dadosfera.ai`):
+a API do Orchest do demo2 passou a redirecionar para ele. O manifest do demo2 ficou em `manifest.demo2.json`. Para outro
+Orchest, use `ORCHEST_BASE_URL`. No primeiro deploy num projeto novo, grave os segredos nas variáveis do projeto com
+`--project-secret-file <JSON do Snowflake>` e `--autodrive-env-file <arquivo KEY=VALUE com AUTODRIVE_AUTH_CLIENT_ID/SECRET>`.
 
 **Pré-requisitos**
 - `.env` com `DADOSFERADEMO_USER`/`DADOSFERADEMO_PASSWORD` (o do ai-cto-assistants), apontado por `DADOSFERA_ENV_FILE`.
