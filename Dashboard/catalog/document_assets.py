@@ -136,6 +136,67 @@ def resolve_ids(api: Maestro, wanted: list[str]) -> dict[str, str]:
     return ids
 
 
+CATALOG_URL = "https://app.dadosfera.ai/en-US/catalog/data-assets/{}"  # rota do front (a mesma gravada pela demo Porto no Storage Explorer)
+DEPLOY_MANIFEST = HERE.parent / "deploy" / "manifest.json"  # somente leitura
+
+
+def sync_dataapp(api: Maestro, ids: dict[str, str], apply: bool, failures: list[str]) -> None:
+    """Ativo MANUAL do data app (não existe ativo automático para data app). Cria só se o manifesto não tiver o id."""
+    src = parse_dataapp()
+    url = json.loads(DEPLOY_MANIFEST.read_text())["dataapp_url"]
+    md = src["md"].replace("{{url}}", url)
+    md = re.sub(r"\{\{asset:(\w+)\}\}", lambda m: CATALOG_URL.format(ids[m.group(1)]), md)
+    docs = md_to_quill_html(md)
+    manifest = json.loads(MANIFEST.read_text())
+    aid = manifest.get("dataapp")
+    if not aid:
+        dup = [x for x in api.search("Dashboard EMBRAPII") if x.get("data_asset_type") == "dataapp" and x.get("display_name") == src["display_name"]]
+        aid = dup[0]["id"] if dup else None
+    meta = {"display_name": src["display_name"], "description": src["description"], "tags": src["tags"], "location": src["location"],
+            "external_url": url, "embed": {"url": url}, "data_asset_type": "dataapp"}
+    if not aid:
+        print(f"{'CREATE' if apply else 'DIFF '} dataapp  (novo ativo manual)")
+        if not apply:
+            return
+        try:
+            aid = api.req("POST", "/catalog", json={**meta, "name": src["display_name"]}).get("data_asset", {})["id"]
+        except RuntimeError as e:
+            failures.append(f"dataapp: {e}")
+            return
+        manifest["dataapp"] = aid
+        MANIFEST.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")
+        cur: dict = {}
+    else:
+        cur = api.asset(aid)
+    changes = [k for k in ("display_name", "description", "location", "external_url") if cur.get(k) != meta[k]]
+    if sorted(cur.get("tags") or []) != sorted(meta["tags"]):
+        changes.append("tags")
+    if (cur.get("embed") or {}).get("url") != url:
+        changes.append("embed")
+    if api.docs(aid).strip() != docs.strip():
+        changes.append("docs")
+    if cur.get("certification_status") != "approved":
+        changes.append("certification")
+    print(f"{'APPLY' if apply else 'DIFF '} dataapp {aid}  mudanças: {', '.join(changes) or 'nenhuma'}")
+    if not apply or not changes:
+        return
+    try:
+        api.req("PUT", f"/catalog/data-asset/{aid}", json=meta)
+        api.req("POST", f"/catalog/data-asset/{aid}/docs", params={"asset_type": "dataapp"}, json={"docs": docs})
+        api.req("PUT", f"/catalog/data-asset/{aid}/certification-status", json={"certification_status": "approved"})
+    except RuntimeError as e:
+        failures.append(f"dataapp: {e}")
+
+
+def parse_dataapp() -> dict:
+    text = (CONTENT / "dataapp" / "dashboard-embrapii.md").read_text(encoding="utf-8")
+    m = re.match(r"^---\n(.*?)\n---\n(.*)$", text, re.S)
+    fm = dict(re.match(r"^(\w+):\s*(.*)$", ln).groups() for ln in m.group(1).splitlines() if ln.strip())
+    fm["tags"] = [t.strip() for t in fm["tags"].split(",")]
+    fm["md"] = m.group(2)
+    return fm
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--apply", action="store_true", help="grava no catálogo (padrão: dry-run)")
@@ -145,7 +206,7 @@ def main() -> int:
 
     items = {c["table"]: c for c in map(parse_content, sorted(CONTENT.glob("*.md")))}
     only = {t.strip().upper() for t in args.only.split(",")} if args.only else None
-    wanted = [t for t in items if not only or t in only]
+    wanted = [t for t in items if not only or t in only]  # --only DATAAPP seleciona só o ativo do data app
     api = Maestro()
     api.login()
     ids = resolve_ids(api, list(items))
@@ -192,6 +253,9 @@ def main() -> int:
         except RuntimeError as e:
             failures.append(f"{t}: {e}")
             print(f"  [falhou] {t}: {e}")
+
+    if not only or "DATAAPP" in only:
+        sync_dataapp(api, ids, args.apply, failures)
 
     if write_bk:
         print(f"backup: {bk}")

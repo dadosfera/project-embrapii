@@ -17,3 +17,9 @@ python3 catalog/document_assets.py --apply --only CATMAT,PRODUTO --no-certify
 
 Notas: a busca do catálogo pagina por `page`; nunca passe `limit` à API (volta vazio). A certificação `approved` usa
 `PUT /catalog/data-asset/<id>/certification-status`.
+
+## Ativo do data app
+
+`content/dataapp/dashboard-embrapii.md` descreve o data app. É o único ativo manual (não existe ativo automático para data app):
+o script o cria só se `catalog_manifest.json` não tiver a chave `dataapp`. A URL vem de `Dashboard/deploy/manifest.json` (`dataapp_url`, somente leitura).
+`--only DATAAPP` atualiza apenas esse ativo.
