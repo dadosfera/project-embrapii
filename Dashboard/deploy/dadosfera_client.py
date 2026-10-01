@@ -27,7 +27,7 @@ class Dadosfera:
         self.username = g("DADOSFERA_USERNAME") or g("DADOSFERADEMO_USER"); self.password = g("DADOSFERA_PASSWORD") or g("DADOSFERADEMO_PASSWORD")
         if not self.username or not self.password: raise SystemExit("missing DADOSFERA_USERNAME/DADOSFERA_PASSWORD (or DADOSFERADEMO_USER/PASSWORD) in .env")
         self.customer = g("DADOSFERA_CUSTOMER_NAME", "dadosferademo")
-        self.orchest = g("ORCHEST_BASE_URL", f"https://app-intelligence-{self.customer}2.dadosfera.ai")
+        self.orchest = g("ORCHEST_BASE_URL", f"https://app-intelligence-{self.customer}.dadosfera.ai")
         self.s = requests.Session(); self.s.headers["Accept"] = "application/json"; self._exp = 0.0
 
     def login(self) -> None:

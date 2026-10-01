@@ -1,8 +1,8 @@
 {
-  "project_uuid": "f21f18a5-b92c-4b04-a18f-bab953dfa3c1",
-  "environment_uuid": "89d88d54-bee3-4742-9735-0b6d1e903c83",
-  "pipeline_uuid": "146b3b33-56c0-44c6-bb1e-338ac6bcf27f",
-  "base_path": "/pbp-service-dataapp-f21f18a5-b92c-4b04146b3b33-56c0-44c6_8000",
-  "dataapp_url": "https://app-intelligence-dadosferademo2.dadosfera.ai/pbp-service-dataapp-f21f18a5-b92c-4b04146b3b33-56c0-44c6_8000/",
-  "standalone_service_uuid": "26912d79-6ada-4d8d-a81b-8d00c177561e"
+  "project_uuid": "8764bda2-6700-4578-a949-b922ce09491c",
+  "environment_uuid": "275af648-1ef0-4bf6-bb91-a93954b227c2",
+  "pipeline_uuid": "f433658d-34c2-4b6d-ac8d-0a113ee74561",
+  "base_path": "/pbp-service-dataapp-8764bda2-6700-4578f433658d-34c2-4b6d_8000",
+  "dataapp_url": "https://app-intelligence-dadosferademo.dadosfera.ai/pbp-service-dataapp-8764bda2-6700-4578f433658d-34c2-4b6d_8000/",
+  "standalone_service_uuid": "1635a0f5-2fe1-43a0-8395-9d16921bc784"
 }
