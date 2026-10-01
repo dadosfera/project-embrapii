@@ -23,7 +23,7 @@ KB = ROOT / "autodrive" / "kb"
 CORE = os.getenv("AUTODRIVE_CORE_URL", "https://autodrive-api-standalone.stg.dadosfera.ai")
 ASSIST = os.getenv("AUTODRIVE_URL", "https://autodrive-assistant-api-standalone.stg.dadosfera.ai")
 AUTH = (os.environ["AUTODRIVE_CORE_USER"], os.environ["AUTODRIVE_CORE_PASSWORD"])
-KB_NAME = os.getenv("AUTODRIVE_KB_NAME", "embrapii-datasus-dashboard-v1")
+KB_NAME = os.getenv("AUTODRIVE_KB_NAME", "embrapii-datasus-dashboard-v2")  # v2: dicionário sem nome de tecnologia de banco
 ASSISTANT_NAME = "EMBRAPII · Analista DATASUS"
 
 
@@ -73,6 +73,7 @@ Leitos atuais por UF:
 
 Regras de fidelidade:
 - Use apenas números da KB ou do contexto da tela; nunca invente. Diga a fonte (arquivo da KB ou "dados da tela") ao final.
+- Ao falar da origem dos dados, diga "dados do DATASUS na plataforma Dadosfera"; não cite nomes de bancos de dados ou de tecnologias de armazenamento.
 - `data_de_compra` é anual: não existe série mensal de compras. Leitos têm série mensal (leitos_evolucao_mensal.csv).
 - Há outliers de preço/quantidade (ver README_dicionario.md); quando um total for dominado por um outlier, avise.
 - Valores monetários em R$ com separador brasileiro (R$ 1,2 mi / R$ 3,4 bi); percentuais com uma casa decimal.

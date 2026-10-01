@@ -8,6 +8,9 @@ import type { IconName } from "@/ui/icons";
 import { KpiCard } from "@/ui/KpiCard";
 import { SEM_DADO, numeroExato } from "@/ui/format";
 
+const LINK_PROJETO =
+  "https://www.ufmg.br/comunicacao/assessoria-de-imprensa/releases/pesquisa-e-inovacao/ufmg-e-startup-mineira-vao-criar-ia-para-responder-a-perguntas-sobre-o-sus/";
+
 const modulos: { titulo: string; descricao: string; href: string; status: string; icone: IconName }[] = [
   {
     titulo: "Medicamentos",
@@ -100,8 +103,23 @@ export function Home() {
             </h1>
 
             <p className="mt-4 max-w-2xl text-base leading-7 text-muted sm:text-lg sm:leading-8">
-              Medicamentos, compras, leitos hospitalares e fornecedores, com dados armazenados no
-              Snowflake da plataforma Dadosfera, em filtros, tabelas, gráficos e mapas.
+              Medicamentos, compras, leitos hospitalares e fornecedores, com dados da plataforma
+              Dadosfera, em filtros, tabelas, gráficos e mapas.
+            </p>
+
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
+              O painel faz parte do projeto em que a UFMG e uma startup mineira vão criar uma IA para responder a
+              perguntas sobre o SUS.{" "}
+              <a
+                href={LINK_PROJETO}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-primary underline-offset-4 hover:underline"
+              >
+                Leia sobre o projeto na UFMG
+                <span aria-hidden="true"> ↗</span>
+                <span className="sr-only"> (abre em nova aba)</span>
+              </a>
             </p>
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
