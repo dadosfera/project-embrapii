@@ -2,7 +2,7 @@
 
 Dados públicos do SUS (compras de medicamentos e insumos, estoque de medicamentos nas unidades de saúde e leitos do CNES),
 organizados pelo projeto UFMG/EMBRAPII e publicados no data app "Dashboard" do Módulo de Inteligência da Dadosfera.
-Fonte: Snowflake `DADOSFERA_PRD_DADOSFERADEMO.EMBRAPII_DATASUS` (cópia do Postgres `datalake_db2` da UFMG).
+Fonte: dados públicos do DATASUS, organizados pelo projeto UFMG/EMBRAPII e publicados na plataforma Dadosfera.
 Os arquivos desta base são **agregados**; o detalhe de um medicamento específico chega pelo contexto da tela (ui_context).
 
 ## Telas do app
